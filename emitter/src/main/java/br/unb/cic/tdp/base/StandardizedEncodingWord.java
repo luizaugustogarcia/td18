@@ -10,7 +10,7 @@ import static br.unb.cic.tdp.base.CommonOperations.cycleIndex;
 
 /**
  * Encoding word with auxiliary color names and oriented rank origins fixed by
- * first occurrence.
+ * first occurrence. Singleton colors encode algebraic fixed points.
  */
 public final class StandardizedEncodingWord extends EncodingWord {
 
@@ -30,14 +30,12 @@ public final class StandardizedEncodingWord extends EncodingWord {
             final MulticyclePermutation omega,
             final Cycle beta
     ) {
-        for (final var cycle : omega) {
-            if (cycle.size() == 1) {
-                throw new IllegalStateException(
-                        "The fixed-content encoding is defined for fixed-point-free algebraic permutations");
+        final var cycleBySymbol = cycleIndex(omega, beta);
+        for (final var symbol : beta.getSymbols()) {
+            if (cycleBySymbol[symbol] == null) {
+                cycleBySymbol[symbol] = Cycle.of(symbol);
             }
         }
-
-        final var cycleBySymbol = cycleIndex(omega, beta);
         final var labelByCycle = new IdentityHashMap<Cycle, Integer>();
         final var orientedByCycle = new IdentityHashMap<Cycle, Boolean>();
         final var rankBySymbolByCycle = new IdentityHashMap<Cycle, int[]>();
@@ -54,11 +52,6 @@ public final class StandardizedEncodingWord extends EncodingWord {
         for (var position = 0; position < beta.size(); position++) {
             final var symbol = beta.get(position);
             final var cycle = cycleBySymbol[symbol];
-            if (cycle == null) {
-                throw new IllegalStateException(
-                        "The fixed-content encoding requires every algebraic fixed point to be absent");
-            }
-
             var label = labelByCycle.get(cycle);
             if (label == null) {
                 label = nextLabel++;

@@ -61,4 +61,18 @@ class CyclicTargetCandidateTest {
 
         assertSame(candidate.canonicalRepresentative(), candidate.canonicalRepresentative());
     }
+
+    @Test
+    void fixedPointsAreSingletonColorsInTheCanonicalWord() {
+        final var beta = Cycle.of(0, 1, 2, 3);
+        final var implicitIdentity = new CyclicTargetCandidate(
+                new MulticyclePermutation(), beta);
+        final var explicitIdentity = new CyclicTargetCandidate(
+                new MulticyclePermutation("(0)(1)(2)(3)"), beta);
+
+        assertEquals("[1,2,3,4]", implicitIdentity.standardizedEncodingWord().toString());
+        assertEquals(implicitIdentity.twistedBraceletKey(),
+                explicitIdentity.twistedBraceletKey());
+        assertEquals(implicitIdentity, implicitIdentity.canonicalRepresentative());
+    }
 }

@@ -1,113 +1,79 @@
-# TD(16) certificate computation
+# TD(18) extremal-class computation
 
-This repository contains the source code and reproduction instructions for the
-computer-assisted portion of [*Twisted Bracelets for Sorting by
-Transpositions: the Transposition Diameter of S_16*](https://arxiv.org/abs/2609.17493).
-The paper proves that the transposition diameter of `S_16` is 9.
+This repository is the working implementation for the remaining transposition
+diameter problem at order 18. The target is to prove
 
-- `emitter` is the GPU-accelerated witness producer. It searches for sorting
-  sequences and writes them to a RocksDB certificate database.
-- `checker` is the CPU-only verifier. It independently reconstructs the case
-  enumeration, reads the database, and replays every recorded witness without
-  performing the emitter's search.
+```text
+TD(18) = 10.
+```
 
-The certificate database is the only interface between the two programs. This
-separation is intentional: regenerate it with the emitter when needed, then
-verify it independently with the checker.
+The lower bound 10 is already known. The computational task is therefore to
+certify that every permutation in `S_18` can be sorted with at most ten
+transpositions. This repository does **not** yet claim that result.
 
-## Reproducibility
+## Strategy
 
-The complete emitted certificate can be downloaded from the
-[certificate archive](https://td16.s3.us-east-2.amazonaws.com/certificate.tar),
-which is approximately 90 GB. Ensure that sufficient disk space is available
-for the download and extraction. Set `tdp.certificateDb` to the resulting
-RocksDB directory when running the checker.
+For a permutation `pi` and a symbol `x`, deleting `x` gives the elementary
+bound
 
-## Prerequisites
+```text
+d(pi) <= d(pi - x) + 1.
+```
 
-- Linux on x86_64 (the project uses the `linux64` RocksDB JNI artifact)
-- JDK 21
-- Maven 3.9 or newer
-- For the emitter: CMake 3.24+, a C++17 compiler, the CUDA toolkit, and a
-  CUDA-capable GPU supported by the toolkit
+Consequently, a permutation whose distance is one more than `TD(n - 1)` can
+exist only when every symbol deletion is diametral at order `n - 1`. We use
+`E_n` for the set of diametral extended-toric classes at order `n`.
+
+The intended computation is:
+
+1. Compute and validate `E_15`.
+2. Compute the complete `E_16`. Its fixed-point part is `Expand(E_15)`; its
+   fixed-point-free part requires a new exhaustive depth-eight classification.
+3. Generate the order-17 classes whose every circular removal belongs to
+   `E_16`, then search the survivors through depth nine to obtain `E_17`.
+4. Generate the analogous order-18 candidates from `E_17` and give every
+   survivor a sorting sequence of length at most ten.
+
+All generation is performed on extended-toric classes. For a representative
+on an `N`-symbol cyclic domain, its `N^2` insertions (one gap in the current
+cycle and one in the target cycle) cover all child classes; canonicalization
+and deduplication happen only after insertion.
+
+The detailed proof obligations, validation corpus, and stage gates are in
+[docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md).
+
+## Lineage
+
+- `../td` is the mathematical source of truth: the twisted-bracelet paper,
+  definitions, proof structure, and references.
+- `../td16` is the computational baseline: direct class generation,
+  canonicalization, exact CPU/GPU search, and certificate replay.
+
+Only the tracked source from `td16` was used to bootstrap this repository.
+The large certificate and reference-data directories were not copied.
+
+## Modules
+
+- `pipeline` contains the new extremal-class operations and staged TD(18)
+  computation.
+- `emitter` is the inherited GPU search and witness-production baseline.
+- `checker` is the inherited independent CPU verification baseline.
+
+At this initial milestone, `pipeline` implements and tests circular deletion,
+the `N^2` insertion construction, fixed-point expansion, and class-level
+symmetry invariants.
 
 ## Build
 
-Build both modules from the repository root:
+The new CPU-side milestone and all of its dependencies can be tested without
+CUDA:
 
 ```bash
-mvn verify
+mvn -pl pipeline -am test
 ```
 
-The emitter build configures and builds its CUDA JNI library as part of Maven's
-`compile` phase. To build only the CPU checker, use:
-
-```bash
-mvn -pl checker verify
-```
-
-## Emit a certificate
-
-Choose a writable directory for the RocksDB certificate (the default is
-`./certificates` at the repository root), then run:
-
-```bash
-mvn -pl emitter compile exec:exec \
-  -Dexec.mainClass=br.unb.cic.tdp.WitnessEmitter \
-  -Dtdp.certificateDb="$PWD/certificates"
-```
-
-The default emitter configuration uses GPU device `0`, seven concurrent slots
-per device, and a 1024 MiB GPU-memory budget per slot. For a machine with four
-16 GiB GPUs, the following configuration uses devices `0` through `3`, 16
-slots per device (64 total), an 850 MiB GPU-memory budget per slot, periodic
-statistics every 10 minutes, and 240 twisted-bracelet workers:
-
-```bash
-mvn -pl emitter compile exec:exec \
-  -Dexec.mainClass=br.unb.cic.tdp.WitnessEmitter \
-  -Dtdp.certificateDb="$PWD/certificates" \
-  -Dtdp.gpuDevices=0,1,2,3 \
-  -Dtdp.gpuSlots=16 \
-  -Dtdp.gpuBudgetMB=850 \
-  -Dtdp.gpuStatsPeriodSeconds=600 \
-  -Dtdp.gpuQueueCapacity=512 \
-  -Dtdp.twistedBraceletWorkers=240
-```
-
-The database can be large and is intentionally ignored by Git. Do not run the
-emitter against a certificate directory you need to preserve unless you intend
-to update it.
-
-## Check a certificate
-
-Run the checker against an emitted or otherwise supplied certificate database:
-
-```bash
-mvn -pl checker compile exec:java \
-  -Dexec.mainClass=br.unb.cic.tdp.ProofTD16 \
-  -Dtdp.certificateDb="$PWD/certificates" \
-  -Dtdp.twistedBraceletWorkers=240 \
-  -Dtdp.certificateStatsPeriodSeconds=600 \
-  -Dtdp.twistedBraceletBatchSize=500
-```
-
-The checker does not require CUDA. It fails if a required witness is missing or is invalid.
-This is the configuration used for the observed CPU-only checking time below;
-omit or adjust the worker and batch settings for other machines.
-
-## Observed runtime
-
-The following are approximate wall-clock times from one complete run; they are
-provided for reproducibility planning rather than as a general benchmark.
-
-| Task | Hardware and execution mode | Time |
-| --- | --- | --- |
-| Certificate generation | Four NVIDIA RTX 4080 SUPER GPUs (16 GiB each), AMD EPYC 7C13 CPU, and 128 GiB RAM; emitter configuration above | about 7 hours |
-| Certificate checking | The same machine, CPU only | about 2 hours |
-
-Actual times will vary with the software stack, storage performance, and
-machine load.
+The full inherited build includes the CUDA emitter and retains the TD(16)
+prerequisites documented in the repository history.
 
 ## License
 

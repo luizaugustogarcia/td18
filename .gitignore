@@ -4,6 +4,8 @@
 
 # Generated certificate database (RocksDB)
 certificates/
+data/
+checkpoints/
 
 # Native/CMake build products
 **/CMakeFiles/
