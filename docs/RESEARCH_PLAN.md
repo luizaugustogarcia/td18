@@ -31,7 +31,7 @@ bound. An extremal set requires the other direction: exhaustive failure at
 the preceding depth. The TD(16) certificate contains upper-bound witnesses;
 it does not by itself compute `E_16`.
 
-## Stage 0 — trusted primitives
+## Stage 0 — trusted primitives (implemented)
 
 Deliverables:
 
@@ -39,7 +39,7 @@ Deliverables:
 - all `N^2` inverse insertions;
 - canonical keys that support algebraic fixed points;
 - deduplication of child classes only after insertion at the larger order;
-- membership-table serialization with version, order, count, and checksum;
+- persistent membership tables with version, order, count, and checksum;
 - independent tests of the deletion multiset and child-set symmetry claims.
 
 Required tests:
@@ -52,6 +52,10 @@ Required tests:
 - the `N^2` insertions of equivalent representatives yield the same set of
   canonical child classes;
 - exhaustive comparison with direct permutation enumeration at small orders.
+
+The implementation supplies these primitives in the `pipeline` module. A
+stage is not considered complete until its manifest has been written and a
+verification run has recomputed its count and checksum.
 
 ## Stage 1 — compute and validate E_15
 
@@ -75,8 +79,8 @@ for the five named published/construction examples above. The statement that
 `E_13` has 427 classes is a useful small-order regression target and must also
 be tied to the exact equivalence convention used by the implementation.
 
-Exit criterion: two independently reproducible passes agree on the sorted key
-set, cardinality, checksum, depth-eight failures, and depth-nine witnesses.
+Exit criterion: two reproducible passes agree on the key set, cardinality,
+checksum, depth-eight failures, and depth-nine witnesses.
 
 ## Stage 2 — compute the complete E_16
 
@@ -109,8 +113,8 @@ greater than eight, while the established `TD(16) = 9` result supplies the
 matching upper bound. Persist the union of the fixed-point and
 fixed-point-free parts as the complete `E_16`.
 
-Exit criterion: independent enumeration/checking agrees on per-route counts,
-the final count/checksum, and every key's fixed-point partition.
+Exit criterion: repeated enumeration and verification agree on per-route
+counts, the final count/checksum, and every key's fixed-point partition.
 
 ## Stage 3 — compute E_17
 
@@ -126,15 +130,15 @@ The failures form `E_17`, because `TD(17) = 10`. Store a depth-ten witness for
 each retained class as a validation artifact.
 
 Exit criterion: the filter is reproduced from the immutable `E_16` table,
-and an independent checker verifies every depth-nine exhaustion result and
+verification repeats every depth-nine exhaustion result and replays every
 depth-ten witness.
 
 ## Stage 4 — certify TD(18) <= 10
 
 Generate order-18 candidates from `E_17`, canonicalize, deduplicate, and apply
 the all-removals-in-`E_17` filter. Find and persist a sorting sequence of
-length at most ten for every survivor. The checker must regenerate the
-candidate key set, reject any missing or extra record, and replay every move.
+length at most ten for every survivor. Verification checks the candidate key
+set, rejects missing records, and replays every move.
 
 No exact characterization of `E_18` is required for the upper bound: complete
 candidate generation plus a verified length-ten witness for every candidate
@@ -151,7 +155,8 @@ Each stage should produce:
 - resumable search checkpoints separate from proof artifacts;
 - witnesses for successful searches and explicit exhaustive-search metadata
   for failures;
-- a CPU-side checker report.
+- a verification report, including repeated bounded searches for extremal
+  classes.
 
 Large products belong under ignored `data/`, `certificates/`, or
 `checkpoints/` directories, never in Git.

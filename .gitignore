@@ -38,8 +38,11 @@ Thumbs.db
 *.out
 *.synctex.gz
 *.thm
-paper/main.pdf
+docs/paper/main.pdf
 
 # Locally supplied SIAM macro distribution
-paper/siamart251216.cls
-paper/siamplain.bst
+docs/paper/siamart251216.cls
+docs/paper/siamplain.bst
+
+# Locally supplied research articles
+docs/refs/*.pdf

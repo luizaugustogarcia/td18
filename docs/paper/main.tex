@@ -1,0 +1,508 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs,tabularx}
+\usepackage[hidelinks]{hyperref}
+\usepackage[margin=1in]{geometry}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\En}{\mathcal E}
+\newcommand{\Sn}{S}
+\newcommand{\dist}{d_t}
+\newcommand{\Del}{\operatorname{Del}}
+\newcommand{\Child}{\operatorname{Child}}
+\newcommand{\Fix}{\operatorname{Fix}}
+\newcommand{\id}{\iota}
+\newcommand{\cycle}[1]{(#1)}
+
+\title{Propagation of Extremal Classes in Sorting by Transpositions:\
+  a Route to the Diameter of $S_{18}$}
+\author{Luiz A. G. Silva \and Luis A. B. Kowada}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Sorting by transpositions asks for the minimum number of exchanges of two
+adjacent blocks that transform a permutation into the identity.  We develop a
+class-level reduction for determining the transposition diameter at order
+$18$.  Deleting any symbol changes transposition distance by at most one.
+Consequently, a permutation whose distance is one larger than the diameter at
+the preceding order must have every one-symbol deletion in the preceding
+extremal set.  We formulate this reduction for extended-toric classes of
+cyclic-target pairs, prove that one representative has only quadratically many
+child insertions before canonicalization, and obtain a finite pipeline
+$\En_{15}\to\En_{16}\to\En_{17}\to S_{18}$.  The first two stages compute the
+complete extremal sets at orders $15$ and $16$; the next stage propagates and
+classifies the surviving order-$17$ classes; the last stage requires a sorting
+sequence of length at most ten for every surviving order-$18$ class.  Together
+with the known lower bound, successful exhaustive generation, search, and
+verification would establish $TD(18)=10$.  This article records the reduction,
+the proof obligations, and the certificate design.  The large computation is
+in progress, and no completed $TD(18)$ result is claimed in this version.
+\end{abstract}
+
+\paragraph{Keywords.}
+sorting by transpositions; transposition diameter; toric equivalence;\newline
+computer-assisted proof; exhaustive generation
+
+\paragraph{MSC 2020.}
+05A05, 05A15, 20B30, 68R05.
+
+\section{Introduction}\label{sec:introduction}
+
+Let $\pi=[\pi_1\ \cdots\ \pi_n]\in S_n$.  A \emph{transposition}
+exchanges two adjacent, nonempty blocks while preserving the order inside
+each block.  The \emph{transposition distance} $\dist(\pi)$ is the minimum
+number of transpositions that sort $\pi$, and the \emph{transposition
+diameter} is
+\[
+  TD(n):=\max_{\pi\in S_n}\dist(\pi).
+\]
+Bafna and Pevzner introduced this problem and its cycle-graph lower
+bound~\cite{BafnaPevzner1998}.  Eriksson et al. determined the exact diameter
+through order $15$ and proved the recurrence
+$TD(n)\leq TD(n-3)+2$ for $n\geq9$~\cite{ErikssonEtAl2001}.
+The twisted-bracelet computation of Silva et al. subsequently established
+$TD(16)=9$~\cite{SilvaEtAl2026}.  The known values relevant here are therefore
+\[
+  TD(14)=8,\qquad TD(15)=9,\qquad TD(16)=9,
+  \qquad TD(17)=10.
+\]
+The last equality also follows because the lower bound of Elias and
+Hartman~\cite{EliasHartman2006} and the upper bound of Eriksson et al. both
+equal ten at order $17$; see also Korchmaros~\cite{Korchmaros2015}.
+
+At order $18$, the reverse-permutation lower bound gives $TD(18)\geq10$
+\cite{MeidanisWalterDias1997}, whereas the recurrence and $TD(15)=9$ give
+$TD(18)\leq11$.  Thus it remains to rule out distance eleven.  Direct
+enumeration of $S_{18}$ is not a credible approach.  Even after quotienting
+by the usual distance-preserving symmetries, the complete fixed-point-free
+space at the cyclic order needed for $S_{16}$ is expected to contain about
+$2.1\cdot10^{11}$ classes.  The central purpose of this paper is to replace
+enumeration at orders $17$ and $18$ by propagation from the much smaller
+sets of classes that are already extremal at the preceding order.
+
+The reduction rests on an elementary observation.  If a symbol is deleted
+from a permutation, any sorting sequence for the shorter permutation can be
+lifted while carrying the deleted symbol with an adjacent block.  At most one
+additional transposition then puts that symbol in its final position.  Hence a
+new extremal permutation can occur only when all of its deletions were already
+extremal.  At class level, deletion is compatible with toric rotation and
+reflection, and all child classes of a representative are obtained from only
+$N^2$ insertions on its $N$-symbol cyclic domain.
+
+Our contributions in this working draft are as follows.
+\begin{enumerate}
+  \item We prove the deletion inequality and its extremal-set consequence.
+  \item We formulate deletion and insertion for cyclic-target pairs and state
+        the compatibility needed to work directly with extended-toric classes.
+  \item We derive a four-stage exhaustive computation from $\En_{15}$ to the
+        order-$18$ candidates and isolate the exact proof obligation at each
+        stage.
+  \item We specify persistent class sets, sorting witnesses, failure checks,
+        and deterministic manifests sufficient to audit the computation.
+\end{enumerate}
+The present implementation realizes these stages, but the large run and its
+checked artifacts are not part of this draft.  Section~\ref{sec:preliminaries}
+sets the notation.  Section~\ref{sec:deletion} proves the deletion reduction.
+Section~\ref{sec:classes} transfers it to extended-toric classes.
+Section~\ref{sec:pipeline} gives the four stages and the conditional diameter
+theorem.  Section~\ref{sec:certificate} describes the certificate and
+verification obligations, and Section~\ref{sec:status} records the remaining
+work.
+
+\section{Preliminaries}\label{sec:preliminaries}
+
+For $1\leq i<j<k\leq n+1$, let $\tau(i,j,k)$ denote the transposition
+that sends
+\[
+ [\pi_1\cdots\pi_{i-1}\mid
+   \pi_i\cdots\pi_{j-1}\mid
+   \pi_j\cdots\pi_{k-1}\mid
+   \pi_k\cdots\pi_n]
+\]
+to
+\[
+ [\pi_1\cdots\pi_{i-1}\mid
+   \pi_j\cdots\pi_{k-1}\mid
+   \pi_i\cdots\pi_{j-1}\mid
+   \pi_k\cdots\pi_n].
+\]
+For a symbol $x$ of $\pi$, write $\pi-x$ for the permutation obtained by
+deleting $x$ and then replacing the remaining values by their
+order-preserving relabeling onto $[n-1]$.  Relabeling does not affect
+transposition distance.
+
+We use the cyclic-target model developed for the twisted-bracelet computation
+of $TD(16)$~\cite{SilvaEtAl2026}.  Let $E_N=\{0,\ldots,N-1\}$.  A
+\emph{cyclic-target pair} is a pair $(\omega,\beta)$ such that $\beta$ and
+$\rho:=\omega\beta$ are $N$-cycles.  We call $\beta$ the current cycle,
+$\rho$ the target cycle, and $\omega=\rho\beta^{-1}$ the algebraic
+permutation.  An ordinary permutation in $S_n$ is represented on the cyclic
+domain of size $N=n+1$.  Renaming the target cycle to
+$\cycle{0\ 1\ \cdots\ N-1}$ recovers the ordinary sorting problem and
+preserves distance.
+
+Toric rotations and reflection generate a dihedral action by
+distance-preserving maps.  Its orbits are the \emph{extended-toric classes}.
+For fixed-point-free algebraic permutations of prescribed annotated cycle
+type, realizable twisted bracelets correspond bijectively to these
+classes~\cite{SilvaEtAl2026}.  We use that correspondence only for exhaustive
+generation; the deletion reduction below applies to classes with or without
+fixed points.
+
+\begin{definition}[Extremal classes]
+For an order $n$ whose diameter is known, let $\En_n$ be the set of
+extended-toric classes represented by permutations $\pi\in S_n$ satisfying
+$\dist(\pi)=TD(n)$.
+\end{definition}
+
+Distance is constant on an extended-toric class, so this definition does not
+depend on the representative.  The distinction between permutations and
+classes remains important: a class table stores one canonical representative,
+whereas symbol deletion is evaluated through all circular positions of a
+cyclic-target representative.
+
+\section{The deletion reduction}\label{sec:deletion}
+
+\begin{lemma}[One-symbol deletion]\label{lem:deletion}
+For every permutation $\pi$ and every symbol $x$ of $\pi$,
+\[
+  \dist(\pi)\leq \dist(\pi-x)+1.
+\]
+\end{lemma}
+
+\begin{proof}
+Let $\tau_1,\ldots,\tau_s$ be a shortest sorting sequence for $\pi-x$.
+At every step, lift the two exchanged intervals to the current word containing
+$x$.  If $x$ lies in a gap touched by the exchange, assign it to either
+neighboring interval that contains that gap.  Deleting $x$ after the lifted
+move therefore gives exactly the move on the shorter word.  Inductively, the
+lifted sequence transforms $\pi$ into a word whose deletion of $x$ is the
+identity on the other $n-1$ symbols.
+
+The resulting word is the identity with $x$ inserted in one of its gaps.  If
+$x$ is not already in its identity position, exchange the singleton block
+containing $x$ with the adjacent interval between its current and prescribed
+positions.  This is one transposition and completes the sorting.  Thus
+$\dist(\pi)\leq s+1$.
+\end{proof}
+
+\begin{corollary}[All removals are extremal]\label{cor:all-removals}
+Suppose that $TD(n)=TD(n-1)+1$.  If
+$\pi\in S_n$ satisfies $\dist(\pi)=TD(n)$, then
+$\pi-x\in\En_{n-1}$ for every symbol $x$, where membership is understood
+up to extended-toric equivalence.
+\end{corollary}
+
+\begin{proof}
+Lemma~\ref{lem:deletion} gives
+\[
+ TD(n)=\dist(\pi)\leq\dist(\pi-x)+1\leq TD(n-1)+1=TD(n).
+\]
+Both inequalities are equalities, and hence
+$\dist(\pi-x)=TD(n-1)$.
+\end{proof}
+
+The contrapositive is the useful computational form.  If one deletion of an
+order-$n$ instance lies outside $\En_{n-1}$, then the instance cannot be one
+move beyond $TD(n-1)$.  This is a membership test, not a search: after the
+preceding extremal set has been materialized, every deletion is resolved by a
+canonical key lookup.
+
+\section{Deletion and insertion on classes}\label{sec:classes}
+
+Let $(\omega,\beta)$ be a cyclic-target pair on $E_N$, with
+$\rho=\omega\beta$.  For $x\in E_N$, delete $x$ from the cyclic notation of
+both full cycles $\beta$ and $\rho$, close the two cycles, and relabel the
+remaining symbols in their natural order.  The resulting full cycles
+$\beta-x$ and $\rho-x$ define the smaller pair
+\[
+  \Del_x(\omega,\beta)
+  :=\bigl((\rho-x)(\beta-x)^{-1},\,\beta-x\bigr).
+\]
+This simultaneous deletion is essential.  Deleting a symbol only from a
+stored one-line permutation does not preserve the cyclic target.
+
+The inverse construction inserts the new largest symbol $N$ into one gap of
+$\beta$ and independently into one gap of $\rho$.  There are $N$ gaps in
+each cycle and therefore $N^2$ raw insertions.  The algebraic permutation of
+the resulting pair is reconstructed as $\rho'({\beta'})^{-1}$.
+
+\begin{proposition}[Class compatibility]\label{prop:class-compatibility}
+The multiset
+\[
+  \bigl\{[\Del_x(\omega,\beta)]:x\in E_N\bigr\}
+\]
+of extended-toric classes depends only on the extended-toric class of
+$(\omega,\beta)$.  Reflection commutes with deletion up to the induced
+order-preserving relabeling.  Moreover, the $N^2$ raw insertions of any one
+representative, followed by canonicalization on $E_{N+1}$, contain every
+extended-toric child class and no class whose deletion cannot return to the
+parent class.
+\end{proposition}
+
+\begin{proof}
+A toric rotation changes only the distinguished origin of each full cycle.
+Deleting all possible symbols after this change permutes the resulting
+deletions and conjugates each by the induced relabeling.  Reversal changes the
+orientation of both full cycles; deleting a position before or after reversal
+again differs only by the induced relabeling.  These maps are precisely the
+rotation and reflection maps defining extended-toric equivalence, proving the
+multiset statement.
+
+For the converse direction, let a child class have a deletion in the parent
+class.  Choose the equivalence taking that deletion to the fixed parent
+representative and apply the same renaming to the child.  The deleted symbol
+then occupies one gap of the representative's current cycle and one gap of
+its target cycle.  The renamed child is consequently one of the $N^2$ raw
+insertions.  Canonicalization removes repetitions and changes no class.
+\end{proof}
+
+Write $\Child(C)$ for the canonical child classes obtained from a class $C$,
+and define the complete child set of a class family $A$ by
+\[
+  \Child(A):=\bigcup_{C\in A}\Child(C).
+\]
+For a child class $C$, write $\Del(C)$ for its multiset of deletion classes.
+Proposition~\ref{prop:class-compatibility} makes both definitions independent
+of all representative choices.
+
+An algebraic fixed point of $\omega$ is an adjacency shared by $\beta$ and
+$\rho$.  Contracting the corresponding edge deletes the fixed symbol from
+both cycles and preserves transposition distance~\cite{SilvaEtAl2026}.
+Conversely, inserting a symbol into the same corresponding gap of both cycles
+restores a fixed point and preserves distance.  We denote the classes obtained
+in this way by $\operatorname{Expand}(A)$.
+
+\begin{proposition}[Fixed-point part of $\En_{16}$]
+The classes in $\En_{16}$ with an algebraic fixed point are exactly
+$\operatorname{Expand}(\En_{15})$.  Each such class has exactly one algebraic
+fixed point.
+\end{proposition}
+
+\begin{proof}
+Contraction preserves distance.  Hence contracting a fixed point from a class
+of distance $TD(16)=9$ produces an order-$15$ class of distance nine, which
+belongs to $\En_{15}$.  Conversely, fixed-point expansion of any class in
+$\En_{15}$ preserves its distance nine and therefore gives a class in
+$\En_{16}$.  Since $TD(15)=9>TD(14)=8$, a member of $\En_{15}$ cannot itself
+have an algebraic fixed point.  The restored class consequently has exactly
+one.
+\end{proof}
+
+\section{The extremal-class pipeline}\label{sec:pipeline}
+
+The cyclic domain for an ordinary order-$n$ permutation has size $N=n+1$.
+Thus the four stages below use domains $16,17,18,$ and $19$, respectively.
+The phrase \emph{failure through depth $k$} always means exhaustive failure
+of an exact bounded search, not failure of a heuristic.  A successful search
+is retained as an explicit sequence and proves only an upper bound.
+
+\begin{table}[ht]
+\centering
+\begin{tabularx}{\textwidth}{@{}ll
+  >{\raggedright\arraybackslash}X
+  >{\raggedright\arraybackslash}X@{}}
+\toprule
+Stage & Cyclic domain & Input or enumeration & Required conclusion \\
+\midrule
+$\En_{15}$ & $16$ & all fixed-point-free classes
+  & fail at $8$, sort at $9$ \\
+$\En_{16}$ & $17$ & $\operatorname{Expand}(\En_{15})$ and all
+  fixed-point-free classes & fail at $8$, sort at $9$ \\
+$\En_{17}$ & $18$ & children of $\En_{16}$ with all removals in $\En_{16}$
+  & fail at $9$, sort at $10$ \\
+$S_{18}$ candidates & $19$ & children of $\En_{17}$ with all removals in
+  $\En_{17}$ & sort at $10$ \\
+\bottomrule
+\end{tabularx}
+\caption{The four exhaustive stages.  The last stage need not compute the
+exact set $\En_{18}$; it only certifies a ten-move upper bound for every class
+that could have larger distance.}
+\label{tab:pipeline}
+\end{table}
+
+\subsection{Stage 1: computing \texorpdfstring{$\En_{15}$}{E15}}
+
+Since $TD(15)=9>TD(14)=8$, contraction shows that every member of
+$\En_{15}$ is fixed-point-free.  We enumerate each realizable
+fixed-point-free twisted bracelet on the $16$-symbol cyclic domain, search it
+exhaustively through depth eight, and retain precisely the failures.  Every
+retained class must also have a checked nine-move sorting sequence.  The two
+tests establish equality rather than merely an upper bound.
+
+The stage will be compared with the known hard instances from the $TD(16)$
+computation, including its residual depth-eight obstructions and the published
+diametral examples.  These comparisons are regression tests; completeness
+comes from exhaustive twisted-bracelet generation across every admissible
+annotated cycle type.
+
+\subsection{Stage 2: computing \texorpdfstring{$\En_{16}$}{E16}}
+
+The fixed-point part is $\operatorname{Expand}(\En_{15})$ by the proposition
+above.  For the remaining part, we enumerate all fixed-point-free classes on
+the $17$-symbol cyclic domain and retain exactly those that fail exhaustive
+search through depth eight.  The theorem $TD(16)=9$ supplies the ambient upper
+bound, and stored nine-move sequences provide local witnesses.
+
+The Bafna--Pevzner lower bound and the $1.375$ sorting guarantee
+\cite{BafnaPevzner1998,EliasHartman2006} partition the exact-search work.  In
+the implemented routing, lower-bound values at most six are discharged by the
+guarantee; value eight has zero slack, and value seven has one unit of slack.
+The final paper will state the precise integer form of each routing lemma and
+its preconditions before reporting route counts.
+
+\subsection{Stage 3: computing \texorpdfstring{$\En_{17}$}{E17}}
+
+Generate $\Child(\En_{16})$, canonicalize on the $18$-symbol domain, and
+deduplicate globally.  A child $C$ reaches exact search only if every member of
+$\Del(C)$ lies in $\En_{16}$.  Search each survivor through depth nine.
+Because $TD(17)=10$, the failures are exactly $\En_{17}$; for each failure we
+also store a sorting sequence of length at most ten.
+
+\subsection{Stage 4: certifying order 18}
+
+Generate $\Child(\En_{17})$ on the $19$-symbol cyclic domain and retain a
+child $C$ only if every member of $\Del(C)$ lies in $\En_{17}$.  This stage
+does not need to determine which survivors have distance exactly ten.  It
+only needs a checked sorting sequence of length at most ten for every survivor.
+
+\begin{theorem}[Conditional certification theorem]\label{thm:conditional}
+Assume that the first three stages of Table~\ref{tab:pipeline} produce the
+complete sets $\En_{15}$, $\En_{16}$, and $\En_{17}$, with the stated
+exhaustive failures and sorting witnesses.  If every class surviving the
+fourth-stage removal filter has a sorting sequence of length at most ten, then
+$TD(18)=10$.
+\end{theorem}
+
+\begin{proof}
+The reverse-permutation lower bound gives $TD(18)\geq10$.  Suppose for a
+contradiction that some $\pi\in S_{18}$ has distance at least eleven.  Since
+$TD(17)=10$, Lemma~\ref{lem:deletion} implies
+\[
+  11\leq\dist(\pi)\leq\dist(\pi-x)+1\leq11
+\]
+for every symbol $x$.  Thus every deletion has distance ten and belongs to
+$\En_{17}$.  Proposition~\ref{prop:class-compatibility} places the class of
+$\pi$ among the children generated in Stage~4, and it survives the
+all-removals filter.  By hypothesis it sorts within ten moves, contradicting
+$\dist(\pi)\geq11$.  Hence $TD(18)\leq10$, and equality follows.
+\end{proof}
+
+\begin{remark}
+The theorem separates mathematical completeness from search success.  A
+ten-move witness for every class in an incomplete candidate list proves
+nothing about omitted classes.  Conversely, exhaustive candidate generation
+without replayable witnesses does not prove the upper bound.
+\end{remark}
+
+\section{Certificate and verification}\label{sec:certificate}
+
+The computation maintains an immutable set of canonical class keys for each
+completed stage.  A key encodes the algebraic permutation of the canonical
+cyclic-target representative, including algebraic fixed points.  Each stage
+manifest records the format version, stage name, cyclic-domain size, number
+of keys, and a SHA-256 checksum over deterministic key order.
+
+Successful searches are stored separately as ordered triples of symbols.  A
+witness checker reconstructs the cyclic-target pair, verifies that each
+triple is applicable in the current cyclic order, applies it, checks that the
+target cycle is preserved at every step, and finally checks that the algebraic
+permutation is the identity.  Search failure is not encoded as a one-bit
+claim: verification repeats the exact bounded search at the excluded depth.
+
+The verification pass checks the following obligations.
+\begin{enumerate}
+  \item It recomputes every class-set count and checksum from the persistent
+        key table.
+  \item For $\En_{15}$, it checks absence of fixed points, repeats every
+        depth-eight failure, and replays every depth-nine witness.
+  \item For $\En_{16}$, it reconstructs all fixed-point expansions from
+        $\En_{15}$, checks contraction of every stored fixed-point class, and
+        repeats the depth-eight classification of the fixed-point-free part.
+  \item For $\En_{17}$, it recomputes the complete canonical child set and the
+        all-removals filter, repeats every depth-nine search, and replays every
+        depth-ten witness.
+  \item For order $18$, it recomputes the complete child set and removal
+        filter and replays a depth-ten witness for every survivor.
+\end{enumerate}
+Generation is resumable at annotated-cycle-type boundaries.  Child
+generation and classification use persistent processed-key sets, so an
+interrupted pass may repeat work but cannot silently omit or duplicate a
+class.  A completion manifest is written only after the corresponding class
+set has been summarized.
+
+The strongest final validation will use two reproducible passes from empty
+storage and compare their per-stage key counts and checksums.  Small-order
+tests independently enumerate ordinary permutations and confirm that the
+quadratic insertion construction produces exactly the directly enumerated
+child classes.  Further tests compare deletion multisets and child sets across
+every representative in selected dihedral orbits.
+
+\section{Computation status and remaining work}\label{sec:status}
+
+Table~\ref{tab:status} distinguishes implemented machinery from completed
+proof artifacts.  ``Implemented'' means that the construction and its
+unit-level regression tests exist; it does not mean that the corresponding
+astronomical enumeration has finished.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+Item & Software status & Proof-artifact status \\
+\midrule
+Class deletion and insertion & implemented and tested & small-order checks pass \\
+Fixed-point-free direct generation & implemented and tested & large run pending \\
+$\En_{15}$ classification & implemented & complete artifact pending \\
+$\En_{16}$ classification & implemented & complete artifact pending \\
+$\En_{17}$ propagation & implemented & depends on $\En_{16}$ \\
+Order-$18$ certification & implemented & depends on $\En_{17}$ \\
+Independent reproducibility pass & designed & pending \\
+\bottomrule
+\end{tabular}
+\caption{Status of the working draft.}
+\label{tab:status}
+\end{table}
+
+Before Theorem~\ref{thm:conditional} may be converted into an unconditional
+diameter theorem, the computation must supply all stage manifests, the
+complete witness stores, repeated exhaustive-search results, and agreement of
+the independent passes.  The final version must also report per-route counts,
+wall-clock and hardware information, peak storage, exact software revision,
+and the location and checksum of the archived certificate.
+
+\section{Conclusion}\label{sec:conclusion}
+
+One-symbol deletion turns the order-$18$ diameter question into propagation
+of a sequence of extremal class sets.  The key gain is structural: after the
+complete $\En_{16}$ table has been computed, neither $S_{17}$ nor $S_{18}$ is
+enumerated globally.  Only canonical children whose every deletion remains
+extremal can advance.  Compatibility with extended-toric equivalence permits
+this propagation directly at class level, using quadratically many raw
+insertions per representative.
+
+The resulting certificate has a sharp logical boundary.  Exhaustive failure
+below the known diameter establishes extremal-set membership, while explicit
+sorting sequences establish upper bounds.  Counts and checksums protect the
+persisted class sets, and recomputation of child and removal filters protects
+the inductive link between stages.  Completion of these obligations would
+rule out distance eleven in $S_{18}$ and, with the lower bound, establish
+$TD(18)=10$.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
