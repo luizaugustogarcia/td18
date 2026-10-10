@@ -13,10 +13,12 @@ repository alone does not claim that result.
 
 ## Reduction
 
+Let `del_x(pi)` denote the permutation obtained by deleting symbol `x` from
+`pi` and then standardizing the remaining values in their original order.
 For every symbol `x`,
 
 ```text
-d(pi) <= d(pi - x) + 1.
+d(pi) <= d(del_x(pi)) + 1.
 ```
 
 Thus a class can exceed `TD(n - 1)` only if all of its circular removals lie

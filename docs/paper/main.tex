@@ -18,7 +18,7 @@
 \newcommand{\En}{\mathcal E}
 \newcommand{\Sn}{S}
 \newcommand{\dist}{d_t}
-\newcommand{\Del}{\operatorname{Del}}
+\newcommand{\Del}{\operatorname{del}}
 \newcommand{\Child}{\operatorname{Child}}
 \newcommand{\Fix}{\operatorname{Fix}}
 \newcommand{\id}{\iota}
@@ -61,7 +61,8 @@ computer-assisted proof; exhaustive generation
 
 \section{Introduction}\label{sec:introduction}
 
-Let $\pi=[\pi_1\ \cdots\ \pi_n]\in S_n$.  A \emph{transposition}
+Let $[n]:=\{1,\ldots,n\}$ and
+$\pi=[\pi_1\ \cdots\ \pi_n]\in S_n$.  A \emph{transposition}
 exchanges two adjacent, nonempty blocks while preserving the order inside
 each block.  The \emph{transposition distance} $\dist(\pi)$ is the minimum
 number of transpositions that sort $\pi$, and the \emph{transposition
@@ -139,10 +140,23 @@ to
    \pi_i\cdots\pi_{j-1}\mid
    \pi_k\cdots\pi_n].
 \]
-For a symbol $x$ of $\pi$, write $\pi-x$ for the permutation obtained by
-deleting $x$ and then replacing the remaining values by their
-order-preserving relabeling onto $[n-1]$.  Relabeling does not affect
-transposition distance.
+For $x\in[n]$, define the order-preserving standardization map
+$s_x:[n]\setminus\{x\}\to[n-1]$ by
+\[
+  s_x(y):=
+  \begin{cases}
+    y, & y<x,\\
+    y-1, & y>x.
+  \end{cases}
+\]
+If $x=\pi_r$, the \emph{deletion of $x$ from $\pi$} is
+\begin{equation}\label{eq:symbol-deletion}
+  \Del_x(\pi):=
+  [s_x(\pi_1)\ \cdots\ s_x(\pi_{r-1})\
+   \ s_x(\pi_{r+1})\ \cdots\ s_x(\pi_n)]\in S_{n-1}.
+\end{equation}
+Thus deletion removes the entry $x$ and standardizes the remaining alphabet.
+This order-preserving relabeling does not affect transposition distance.
 
 We use the cyclic-target model developed for the twisted-bracelet computation
 of $TD(16)$~\cite{SilvaEtAl2026}.  Let $E_N=\{0,\ldots,N-1\}$.  A
@@ -179,12 +193,13 @@ cyclic-target representative.
 \begin{lemma}[One-symbol deletion]\label{lem:deletion}
 For every permutation $\pi$ and every symbol $x$ of $\pi$,
 \[
-  \dist(\pi)\leq \dist(\pi-x)+1.
+  \dist(\pi)\leq \dist(\Del_x(\pi))+1.
 \]
 \end{lemma}
 
 \begin{proof}
-Let $\tau_1,\ldots,\tau_s$ be a shortest sorting sequence for $\pi-x$.
+Let $\tau_1,\ldots,\tau_s$ be a shortest sorting sequence for
+$\Del_x(\pi)$.
 At every step, lift the two exchanged intervals to the current word containing
 $x$.  If $x$ lies in a gap touched by the exchange, assign it to either
 neighboring interval that contains that gap.  Deleting $x$ after the lifted
@@ -202,17 +217,18 @@ $\dist(\pi)\leq s+1$.
 \begin{corollary}[All removals are extremal]\label{cor:all-removals}
 Suppose that $TD(n)=TD(n-1)+1$.  If
 $\pi\in S_n$ satisfies $\dist(\pi)=TD(n)$, then
-$\pi-x\in\En_{n-1}$ for every symbol $x$, where membership is understood
+$\Del_x(\pi)\in\En_{n-1}$ for every symbol $x$, where membership is understood
 up to extended-toric equivalence.
 \end{corollary}
 
 \begin{proof}
 Lemma~\ref{lem:deletion} gives
 \[
- TD(n)=\dist(\pi)\leq\dist(\pi-x)+1\leq TD(n-1)+1=TD(n).
+ TD(n)=\dist(\pi)\leq\dist(\Del_x(\pi))+1
+ \leq TD(n-1)+1=TD(n).
 \]
 Both inequalities are equalities, and hence
-$\dist(\pi-x)=TD(n-1)$.
+$\dist(\Del_x(\pi))=TD(n-1)$.
 \end{proof}
 
 The contrapositive is the useful computational form.  If one deletion of an
@@ -225,12 +241,14 @@ canonical key lookup.
 
 Let $(\omega,\beta)$ be a cyclic-target pair on $E_N$, with
 $\rho=\omega\beta$.  For $x\in E_N$, delete $x$ from the cyclic notation of
-both full cycles $\beta$ and $\rho$, close the two cycles, and relabel the
-remaining symbols in their natural order.  The resulting full cycles
-$\beta-x$ and $\rho-x$ define the smaller pair
+both full cycles $\beta$ and $\rho$, close the two cycles, and apply the
+unique order-preserving bijection from $E_N\setminus\{x\}$ to $E_{N-1}$.
+This is the zero-based analogue of the standardization in
+\eqref{eq:symbol-deletion}.  We denote the resulting full cycles by
+$\Del_x(\beta)$ and $\Del_x(\rho)$.  They define the smaller pair
 \[
   \Del_x(\omega,\beta)
-  :=\bigl((\rho-x)(\beta-x)^{-1},\,\beta-x\bigr).
+  :=\bigl(\Del_x(\rho)\Del_x(\beta)^{-1},\,\Del_x(\beta)\bigr).
 \]
 This simultaneous deletion is essential.  Deleting a symbol only from a
 stored one-line permutation does not preserve the cyclic target.
@@ -392,7 +410,7 @@ The reverse-permutation lower bound gives $TD(18)\geq10$.  Suppose for a
 contradiction that some $\pi\in S_{18}$ has distance at least eleven.  Since
 $TD(17)=10$, Lemma~\ref{lem:deletion} implies
 \[
-  11\leq\dist(\pi)\leq\dist(\pi-x)+1\leq11
+  11\leq\dist(\pi)\leq\dist(\Del_x(\pi))+1\leq11
 \]
 for every symbol $x$.  Thus every deletion has distance ten and belongs to
 $\En_{17}$.  Proposition~\ref{prop:class-compatibility} places the class of

@@ -5,14 +5,16 @@
 Prove `TD(18) <= 10`; together with the known lower bound, this establishes
 `TD(18) = 10`.
 
-The reduction driving the computation is the following elementary lemma. For
-every symbol `x`,
+Let `del_x(pi)` be the permutation obtained by deleting symbol `x` from `pi`
+and then applying the unique order-preserving relabeling to `[n-1]`. The
+reduction driving the computation is the following elementary lemma. For every
+symbol `x`,
 
 ```text
-d(pi) <= d(pi - x) + 1.
+d(pi) <= d(del_x(pi)) + 1.
 ```
 
-Sort `pi - x` while carrying `x` with its neighboring block, then place `x`
+Sort `del_x(pi)` while carrying `x` with its neighboring block, then place `x`
 with one final transposition. Hence, if `d(pi) = TD(n - 1) + 1`, every removal
 of `pi` lies in `E_(n-1)`.
 
