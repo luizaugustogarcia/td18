@@ -1,6 +1,6 @@
 # Paper draft
 
-`main.tex` is the working paper for the E15-to-E18 extremal-class reduction.
+`main.tex` is the working paper for the E12-to-E18 extremal-class reduction.
 It deliberately distinguishes the implemented pipeline from the still-pending
 large computational proof artifacts.
 

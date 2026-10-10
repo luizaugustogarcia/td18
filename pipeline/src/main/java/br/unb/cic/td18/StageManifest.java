@@ -11,7 +11,7 @@ import java.util.Map;
 /** Deterministic completion record for one immutable pipeline data product. */
 public final class StageManifest {
     private static final String FILE_NAME = "manifest.txt";
-    private static final String FORMAT = "td18-extremal-v1";
+    private static final String FORMAT = "td18-extremal-v2";
 
     private StageManifest() {
     }

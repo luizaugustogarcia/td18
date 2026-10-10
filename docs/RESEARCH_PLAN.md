@@ -6,32 +6,37 @@ Prove `TD(18) <= 10`; together with the known lower bound, this establishes
 `TD(18) = 10`.
 
 Let `del_x(pi)` be the permutation obtained by deleting symbol `x` from `pi`
-and then applying the unique order-preserving relabeling to `[n-1]`. The
-reduction driving the computation is the following elementary lemma. For every
+and applying the unique order-preserving relabeling to `[n-1]`. For every
 symbol `x`,
 
 ```text
 d(pi) <= d(del_x(pi)) + 1.
 ```
 
-Sort `del_x(pi)` while carrying `x` with its neighboring block, then place `x`
-with one final transposition. Hence, if `d(pi) = TD(n - 1) + 1`, every removal
-of `pi` lies in `E_(n-1)`.
+Sort `del_x(pi)` while carrying `x` with a neighboring block, then place `x`
+with one final transposition. More generally, if `d(pi) >= r + 1`, every
+one-symbol deletion of `pi` has distance at least `r`.
 
-At class level, use the cyclic-target representation `(omega, beta)` with
-`rho = omega * beta`. Delete a symbol from both `beta` and `rho` and relabel.
-The multiset of the `N` circular removals is invariant under toric rotation;
-reflection commutes with deletion. Conversely, inserting a new symbol into
-one of the `N` gaps of each cycle gives `N^2` raw children of one
-representative. Canonicalizing at size `N + 1` and deduplicating covers all
-child extended-toric classes.
+Write `E_n` for the extended-toric classes at distance `TD(n)`, and write
+
+```text
+H_n(r) = { C in S_n / extended-toric equivalence : d(C) >= r }.
+```
+
+At class level, represent an instance by the cyclic-target pair
+`(omega, beta)`, with `rho = omega * beta`. Delete a symbol from both `beta`
+and `rho`, then relabel. The multiset of the `N` circular removals is invariant
+under toric rotation, and reflection commutes with deletion. Conversely,
+inserting a new symbol into one of the `N` gaps of each cycle gives `N^2` raw
+children of one representative. Canonicalizing at size `N + 1` and
+deduplicating covers all child extended-toric classes.
 
 ## Non-negotiable proof distinction
 
 A successful bounded search supplies a sorting witness and proves an upper
-bound. An extremal set requires the other direction: exhaustive failure at
-the preceding depth. The TD(16) certificate contains upper-bound witnesses;
-it does not by itself compute `E_16`.
+bound. Membership in an extremal or threshold set requires the other
+direction: exhaustive failure at the preceding depth. The TD(16) certificate
+contains upper-bound witnesses; it does not by itself compute `E_16`.
 
 ## Stage 0 — trusted primitives (implemented)
 
@@ -41,7 +46,7 @@ Deliverables:
 - all `N^2` inverse insertions;
 - canonical keys that support algebraic fixed points;
 - deduplication of child classes only after insertion at the larger order;
-- persistent membership tables with version, order, count, and checksum;
+- persistent membership tables with format, order, count, and checksum;
 - independent tests of the deletion multiset and child-set symmetry claims.
 
 Required tests:
@@ -56,35 +61,78 @@ Required tests:
 - exhaustive comparison with direct permutation enumeration at small orders.
 
 The implementation supplies these primitives in the `pipeline` module. A
-stage is not considered complete until its manifest has been written and a
-verification run has recomputed its count and checksum.
+stage is not complete until its manifest has been written. Verification
+recomputes the stored count and checksum and independently repeats the
+generation, removal, and search obligations.
 
-## Stage 1 — compute and validate E_15
+## Stage 1 — compute `E_12`
 
-`TD(15) = 9` and `TD(14) = 8`, so a diametral order-15 instance has no
-algebraic fixed point. Compute the complete fixed-point-free `E_15` and prove
-both sides for every retained class:
+The known values `TD(11) = 6` and `TD(12) = 7` imply that an order-12
+diametral class has no algebraic fixed point. Enumerate every fixed-point-free
+extended-toric class on the 13-symbol cyclic domain with the direct
+twisted-bracelet generator. Retain exactly the classes that fail exhaustive
+search through depth six, and store a depth-seven sorting witness for each.
 
-- no sorting sequence of length at most eight exists;
-- a sorting sequence of length nine exists.
+Exit criterion: complete generator checkpoints, a deterministic `E_12`
+manifest, repeated depth-six failures, and replayed depth-seven witnesses.
 
-Validation corpus from the project discussion:
+## Stage 2 — compute `H_13(7)` and `E_13`
 
-- all `2,036` residual obstructions from the TD(16) computation;
+The fixed-point part of `H_13(7)` is exactly `Expand(E_12)`: contracting a
+fixed point preserves distance, and `E_12` itself has no fixed point. For the
+fixed-point-free part, globally enumerate the 14-symbol cyclic domain with
+the twisted-bracelet generator. A class belongs to `H_13(7)` exactly when it
+fails exhaustive search through depth six. Its depth-seven failures form
+`E_13`, since `TD(13) = 8`; store a witness of length at most eight for every
+member of `E_13`.
+
+The [rearrangement database](https://mirza.ic.unicamp.br/bioinfo/index.jsf)
+reports 427 **ordinary permutations** in `S_13` at distance eight. This is a
+useful regression count, but it is not the cardinality of `E_13`, whose
+elements are extended-toric classes. Validation must compare like with like by
+expanding stored classes to ordinary permutations or by canonicalizing the
+database records.
+
+Exit criterion: complete global generation of the fixed-point-free part,
+complete `H_13(7)` and `E_13` manifests, contraction checks for the fixed-point
+part, repeated bounded failures, and replayed witnesses.
+
+## Stage 3 — propagate `H_13(7)` to `E_14`
+
+An order-14 class of distance eight has every removal at distance at least
+seven. Therefore:
+
+1. stream all raw children of `H_13(7)`;
+2. reject a child as soon as one removal lies outside `H_13(7)`;
+3. canonicalize each survivor and deduplicate it globally;
+4. retain the depth-seven failures and store depth-eight witnesses.
+
+These survivors are exactly `E_14`, because `TD(14) = 8`. The fixed-point
+members provide an additional check: each has exactly one fixed point and
+contracts to `E_13`.
+
+The implementation fuses insertion, removal filtering, canonicalization,
+deduplication, and search. It does not persist the full unfiltered child set.
+
+## Stage 4 — propagate `E_14` to `E_15`
+
+Since `TD(15) = 9 = TD(14) + 1`, every member of `E_15` has all removals in
+`E_14`. Apply the same fused propagation, fail classes through depth eight,
+and store depth-nine witnesses. Because `TD(15) > TD(14)`, every retained
+class must be fixed-point-free.
+
+The historical hard instances remain useful regressions:
+
+- all 2,036 residual obstructions from the TD(16) computation;
 - the published Eriksson diametral permutation;
 - the two published BSB 2012 examples;
 - `rho_4 disjoint-union u_(10,7)`;
 - `rho_4 disjoint-union u_(10,8)`.
 
-Before the stage is accepted, record exact encodings and bibliographic sources
-for the five named published/construction examples above. The statement that
-`E_13` has 427 classes is a useful small-order regression target and must also
-be tied to the exact equivalence convention used by the implementation.
+Their exact encodings and bibliographic sources must be recorded before a
+proof artifact is accepted.
 
-Exit criterion: two reproducible passes agree on the key set, cardinality,
-checksum, depth-eight failures, and depth-nine witnesses.
-
-## Stage 2 — compute the complete E_16
+## Stage 5 — compute the complete `E_16`
 
 Split by algebraic fixed points.
 
@@ -98,70 +146,63 @@ and deduplicate. Verify that contraction returns a member of `E_15`.
 
 Enumerate every fixed-point-free extended-toric class on the 17-symbol cyclic
 domain using the direct generator from the TD(16) work. The expected scale
-from the project discussion is roughly `2.1 * 10^11` classes.
+from the project discussion is roughly `2.1 * 10^11` classes. This is the
+remaining global-enumeration bottleneck; propagating only `E_15` would be
+incomplete because `TD(15) = TD(16) = 9`.
 
-Use the Bafna–Pevzner lower bound to route exact depth-eight work:
+Use the approximation upper bound only where its hypotheses apply. For
+3-norm `k < 8`, use the Bafna–Pevzner `floor(3k/2)` guarantee. For `k >= 8`,
+use the stronger `floor(11k/8)` guarantee. In the depth-eight classification,
+3-norm at most five is discharged by the upper bound; norms six, seven, and
+eight require exact work with two, one, and zero units of slack,
+respectively.
 
-- 3-norm at most 5 is excluded from `E_16` by the Bafna–Pevzner `1.5`
-  guarantee;
-- 3-norm 6 has two units of slack and requires exact search;
-- 3-norm 7 has one unit of slack;
-- 3-norm 8 has zero slack and reduces to the existence of an all-2-move
-  sorting sequence.
+For every retained fixed-point-free class, exhaustive depth-eight failure
+proves distance greater than eight, while a stored depth-nine witness proves
+the matching upper bound. Persist the union of both parts as `E_16`.
 
-The stronger `1.375` guarantee is used only when the 3-norm is at least 8.
-These reductions are proof rules only after their integer rounding and all
-algorithmic preconditions have been formalized and tested.
+## Stage 6 — propagate `E_16` to `E_17`
 
-For every retained class, exhaustive depth-eight failure proves distance
-greater than eight, while the established `TD(16) = 9` result supplies the
-matching upper bound. Persist the union of the fixed-point and
-fixed-point-free parts as the complete `E_16`.
+Stream children of `E_16`, keep only those whose every circular removal lies
+in `E_16`, canonicalize and deduplicate the survivors, and search them
+exhaustively through depth nine. The failures form `E_17`, because
+`TD(17) = 10`; store a depth-ten witness for each.
 
-Exit criterion: repeated enumeration and verification agree on per-route
-counts, the final count/checksum, and every key's fixed-point partition.
+Exit criterion: verification independently regenerates every qualified child,
+repeats each depth-nine failure, and replays every depth-ten witness.
 
-## Stage 3 — compute E_17
+## Stage 7 — certify `TD(18) <= 10`
 
-For every class in `E_16`:
+Stream order-18 children of `E_17`, retain only those whose every removal lies
+in `E_17`, and find a sorting sequence of length at most ten for every
+survivor. No exact characterization of `E_18` is required: complete candidate
+generation plus a verified length-ten witness for every candidate rules out
+distance eleven.
 
-1. generate its raw insertions;
-2. canonicalize at the 18-symbol cyclic domain and deduplicate globally;
-3. compute every circular removal of each child;
-4. keep the child only if every removal key belongs to `E_16`;
-5. search each survivor exhaustively through depth nine.
+## Performance scope
 
-The failures form `E_17`, because `TD(17) = 10`. Store a depth-ten witness for
-each retained class as a validation artifact.
-
-Exit criterion: the filter is reproduced from the immutable `E_16` table,
-verification repeats every depth-nine exhaustion result and replays every
-depth-ten witness.
-
-## Stage 4 — certify TD(18) <= 10
-
-Generate order-18 candidates from `E_17`, canonicalize, deduplicate, and apply
-the all-removals-in-`E_17` filter. Find and persist a sorting sequence of
-length at most ten for every survivor. Verification checks the candidate key
-set, rejects missing records, and replays every move.
-
-No exact characterization of `E_18` is required for the upper bound: complete
-candidate generation plus a verified length-ten witness for every candidate
-is sufficient.
+The current design keeps twisted-bracelet generation at ordinary orders 12,
+13, and 16. Child generation at orders 14, 15, 17, and 18 is CPU-side and
+fused with early removal rejection so raw child sets are never materialized.
+GPU acceleration of the `N^2` insertion/canonicalization step is parked; CUDA
+is used only for exact bounded sorting. Profiling the persisted candidate
+counts should precede any GPU implementation of propagation.
 
 ## Data products
 
 Each stage should produce:
 
-- a manifest naming the code revision, format version, mathematical order,
-  equivalence convention, and search bound;
-- deterministic sorted keys or deterministic key partitions;
-- counts and cryptographic checksums per partition;
-- resumable search checkpoints separate from proof artifacts;
-- witnesses for successful searches and explicit exhaustive-search metadata
-  for failures;
-- a verification report, including repeated bounded searches for extremal
-  classes.
+- a manifest naming the format version, mathematical order, equivalence
+  convention, search bound, code revision, count, and checksum;
+- deterministic class keys or deterministic key partitions;
+- resumable checkpoints separate from proof artifacts;
+- witnesses for successful searches and reproducible exhaustive searches for
+  failures;
+- a verification report that independently repeats generation and filtering.
+
+The current manifest format records the format version, stage name, cyclic
+domain size, count, and SHA-256 checksum. Code revision, equivalence metadata,
+and search-bound metadata remain required before archival proof runs.
 
 Large products belong under ignored `data/`, `certificates/`, or
 `checkpoints/` directories, never in Git.

@@ -6,7 +6,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Command-line entry point for the E15 -> E18 computation. */
+/** Command-line entry point for the E12 -> E18 computation. */
 public final class ExtremalPipelineMain {
     private ExtremalPipelineMain() {
     }
@@ -35,6 +35,9 @@ public final class ExtremalPipelineMain {
         try {
             final var pipeline = new ExtremalPipeline(work, sorter);
             switch (args[0]) {
+                case "e12" -> pipeline.runE12();
+                case "e13" -> pipeline.runE13();
+                case "e14" -> pipeline.runE14();
                 case "e15" -> pipeline.runE15();
                 case "e16" -> pipeline.runE16();
                 case "e17" -> pipeline.runE17();
@@ -66,7 +69,7 @@ public final class ExtremalPipelineMain {
 
     private static void usage() {
         System.out.println("""
-                Usage: ExtremalPipelineMain <e15|e16|e17|e18|all|verify> [options]
+                Usage: ExtremalPipelineMain <e12|e13|e14|e15|e16|e17|e18|all|verify> [options]
 
                   --work=PATH                 stage databases (default: data)
                   --gpu-devices=0,1           CUDA device ordinals (default: 0)
