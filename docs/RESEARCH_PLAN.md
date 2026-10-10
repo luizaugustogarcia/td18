@@ -102,11 +102,14 @@ from the project discussion is roughly `2.1 * 10^11` classes.
 
 Use the Bafna–Pevzner lower bound to route exact depth-eight work:
 
-- lower bound at most 6 is excluded from `E_16` by the 1.375 guarantee;
-- lower bound 8 has zero slack and reduces to the existence of an all-2-move
-  sorting sequence;
-- lower bound 7 has one unit of slack.
+- 3-norm at most 5 is excluded from `E_16` by the Bafna–Pevzner `1.5`
+  guarantee;
+- 3-norm 6 has two units of slack and requires exact search;
+- 3-norm 7 has one unit of slack;
+- 3-norm 8 has zero slack and reduces to the existence of an all-2-move
+  sorting sequence.
 
+The stronger `1.375` guarantee is used only when the 3-norm is at least 8.
 These reductions are proof rules only after their integer rounding and all
 algorithmic preconditions have been formalized and tested.
 

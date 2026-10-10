@@ -375,12 +375,23 @@ the $17$-symbol cyclic domain and retain exactly those that fail exhaustive
 search through depth eight.  The theorem $TD(16)=9$ supplies the ambient upper
 bound, and stored nine-move sequences provide local witnesses.
 
-The Bafna--Pevzner lower bound and the $1.375$ sorting guarantee
-\cite{BafnaPevzner1998,EliasHartman2006} partition the exact-search work.  In
-the implemented routing, lower-bound values at most six are discharged by the
-guarantee; value eight has zero slack, and value seven has one unit of slack.
-The final paper will state the precise integer form of each routing lemma and
-its preconditions before reporting route counts.
+Let $\lVert\pi\rVert_3$ denote the Bafna--Pevzner 3-norm.  The approximation
+guarantees used for pruning give the integer upper bound
+\[
+ U(k):=
+ \begin{cases}
+   \lfloor 3k/2\rfloor, & 0\leq k<8,\\
+   \lfloor 11k/8\rfloor, & k\geq8,
+ \end{cases}
+ \qquad k=\lVert\pi\rVert_3.
+\]
+The first line follows from the Bafna--Pevzner $1.5$ guarantee
+\cite{BafnaPevzner1998}; the stronger $1.375$ guarantee is applicable only
+when $k\geq8$~\cite{EliasHartman2006}.  Consequently, in the depth-eight
+classification, 3-norm at most five is discharged by the approximation bound,
+whereas 3-norm six must be searched with two units of slack.  Norms seven and
+eight have, respectively, one unit and zero units of slack; the latter case
+reduces to the existence of an all-2-move sorting sequence.
 
 \subsection{Stage 3: computing \texorpdfstring{$\En_{17}$}{E17}}
 
