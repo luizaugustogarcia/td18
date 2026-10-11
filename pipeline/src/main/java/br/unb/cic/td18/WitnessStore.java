@@ -62,18 +62,35 @@ public final class WitnessStore implements AutoCloseable {
         if (entries.isEmpty()) {
             return;
         }
+        final var encoded = new java.util.ArrayList<EncodedCertificate>(
+                entries.size());
+        for (final var entry : entries) {
+            final var canonical = entry.pair().canonicalRepresentative();
+            CertificateValidator.validate(
+                    canonical, entry.moves(), entry.moves().size());
+            encoded.add(new EncodedCertificate(
+                    CertificateCodec.keyFor(canonical),
+                    CertificateCodec.valueFor(entry.moves())));
+        }
+        putEncodedAll(encoded);
+    }
+
+    /** Stores already encoded witnesses in one WAL-free write batch. */
+    void putEncodedAll(final List<EncodedCertificate> entries) {
+        if (!writable) {
+            throw new IllegalStateException("Witness store is read-only");
+        }
+        if (entries.isEmpty()) {
+            return;
+        }
         try (final var writes = new WriteBatch()) {
             for (final var entry : entries) {
-                final var canonical = entry.pair().canonicalRepresentative();
-                CertificateValidator.validate(
-                        canonical, entry.moves(), entry.moves().size());
-                writes.put(CertificateCodec.keyFor(canonical),
-                        CertificateCodec.valueFor(entry.moves()));
+                writes.put(entry.key(), entry.witness());
             }
             database.write(resources.writes, writes);
         } catch (final RocksDBException failure) {
             throw new IllegalStateException(
-                    "Cannot persist sorting-witness batch", failure);
+                    "Cannot persist encoded sorting-witness batch", failure);
         }
     }
 

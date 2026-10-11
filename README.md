@@ -127,12 +127,14 @@ mvn -Pgpu -pl pipeline compile exec:java \
 ```
 
 Additional options control the GPU queue, statistics period, generator
-worker count, lookup batch size, write batch size, and RocksDB cache; run the
+worker count, lookup batch size, write flush period, and RocksDB cache; run the
 main class with `help` to list them. `--lookup-batch-size=500` is the default
 for every propagated stage; `1` selects scalar deletion lookups.
-`--write-batch-size=500` bounds buffered class/witness output. Directly
-generated canonical classes and uniquely owned propagated classes are written
-without membership reads; interrupted work may be recomputed and overwritten.
+`--write-flush-seconds=60` keeps compact encoded class/witness output in a
+write-behind buffer and flushes it once per minute. Stage completion and direct
+generator checkpoints force a flush. Directly generated canonical classes and
+uniquely owned propagated classes are written without membership reads;
+interrupted work may be recomputed and overwritten.
 
 `--rocksdb-cache-mib=256` sets a bounded native-memory block cache **per open
 store**, separate from the Java heap. Membership and witness reads populate

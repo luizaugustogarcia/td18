@@ -107,6 +107,24 @@ public final class ClassStore implements AutoCloseable {
         }
     }
 
+    /** Stores already encoded canonical keys in one WAL-free write batch. */
+    void putEncodedAll(final List<EncodedCertificate> entries) {
+        requireWritable();
+        Objects.requireNonNull(entries);
+        if (entries.isEmpty()) {
+            return;
+        }
+        try (final var writes = new WriteBatch()) {
+            for (final var entry : entries) {
+                writes.put(entry.key(), PRESENT);
+            }
+            database.write(resources.writes, writes);
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException(
+                    "Cannot update encoded class-store batch", failure);
+        }
+    }
+
     public boolean contains(final CyclicTargetPair pair) {
         final var key = keyFor(pair);
         try {
