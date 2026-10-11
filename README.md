@@ -41,29 +41,30 @@ The single `pipeline` module contains only code used by this computation:
 - piecewise approximation pruning: the Bafna–Pevzner `1.5` guarantee below
   3-norm eight and the `1.375` guarantee from 3-norm eight onward;
 - exact CUDA bounded search through domain size 19 and depth 10;
-- RocksDB class, candidate, processed-key, and witness stores;
+- RocksDB class stores and order-18 witness stores;
 - resumable annotated-partition checkpoints;
 - deterministic stage manifests with counts and SHA-256 checksums;
-- witness replay and exact-depth verification.
+- exclusion-search verification against known diameters and order-18 witness replay.
 
 The stages are:
 
 1. `e12`: classify every fixed-point-free class on the 13-symbol cyclic
-   domain and retain the depth-six failures with depth-seven witnesses.
+   domain and retain the depth-six failures, using `TD(12)=7`.
 2. `e13`: generate children of `E12`, require every removal to belong to
-   `E12`, and retain the depth-seven failures with depth-eight witnesses.
+   `E12`, and retain the depth-seven failures, using `TD(13)=8`.
 3. `h13`: independently form the fixed-point part of `H13(7)` as
    `Expand(E12)` and classify every fixed-point-free class on the 14-symbol
-   cyclic domain through depth six. A search through depth eight supplies an
-   upper-bound witness for each retained fixed-point-free class.
+   cyclic domain through depth six. Retain every failure: `H13(7)` contains
+   distances seven and eight, and `TD(13)=8` supplies the upper bound.
 4. `e14`: generate children of `H13(7)`, require every removal to remain in
-   `H13(7)`, and retain the depth-seven failures with depth-eight witnesses.
+   `H13(7)`, and retain the depth-seven failures, using `TD(14)=8`.
 5. `e15`: generate children of `E14`, apply the all-removals-in-`E14` filter,
-   and retain the depth-eight failures with depth-nine witnesses.
+   and retain the depth-eight failures, using `TD(15)=9`.
 6. `e16`: generate the fixed-point part as `Expand(E15)`, classify every
-   fixed-point-free 17-symbol class through depth eight, and retain `E16`.
+   fixed-point-free 17-symbol class through depth eight, and retain the
+   failures using `TD(16)=9`.
 7. `e17`: generate children of `E16`, require every removal to belong to
-   `E16`, and retain the depth-nine failures with depth-ten witnesses.
+   `E16`, and retain the depth-nine failures, using `TD(17)=10`.
 8. `e18`: generate children of `E17`, apply the all-removals filter, and
    require a verified witness of length at most ten for every survivor.
 
@@ -76,19 +77,19 @@ the CUDA code is used only by exact bounded sorting.
 All propagated stages process bounded batches across the available CPUs.
 Deletion checks use RocksDB `MultiGet` in rounds: each round constructs just
 one deletion per surviving child, rejecting misses before computing any
-further deletions. A nonblocking in-flight claim admits one classification
-owner per canonical child class; duplicate workers skip immediately. The owner
-persists completion only after classification and witness storage succeed.
-Its parent batch remains uncheckpointed until then, so failed or interrupted
-owners are retried on resume even if a duplicate worker completed another
-parent batch. These claims use memory proportional to active workers, not the
-number of generated children, and do not change the persisted format.
+further deletions. A child is classified only by the parent with the least
+canonical removal key. Insertion class sets are representative-invariant, so
+that owner always generates the child. Per-parent canonical deduplication and
+this ownership rule eliminate global candidate membership reads. Propagated
+stages recompute interrupted work and overwrite identical keys.
 
 The CUDA sorter also shares overlapping requests for the same canonical class
 and depth bound. Calls that need the result wait for that one search; different
-depth bounds remain separate searches. A class may therefore need both a
-lower-depth exclusion search and a higher-depth witness search, but duplicate
-propagation workers do not repeat its classification.
+depth bounds remain separate searches. At known ordinary orders 12 through
+17, classification needs only the lower-depth exclusion search; established
+diameters supply the upper bound. These stages do not generate or require
+witness stores. Only order 18 searches for and stores upper-bound witnesses,
+because proving its ten-move bound is the objective.
 
 See [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md) for the proof obligations
 and validation corpus.
@@ -165,9 +166,10 @@ to obtain the small extremal set through removal-filtered propagation; run
 `h13` when preparing the larger threshold set required by `e14`.
 
 Each completed stage is immutable by convention. If interrupted before its
-manifest is written, global generation resumes at annotated-partition
-boundaries, while propagated stages resume from persistent parent and
-candidate sets. Both routes safely deduplicate already persisted classes.
+manifest is written, global generation has annotated-partition checkpoints,
+while propagated stages recompute their parent sets. Writes disable WAL and
+sync, so neither route guarantees recovery after interruption; use fresh stage
+storage when an interrupted run may have lost buffered data.
 
 ## Lineage
 

@@ -369,7 +369,11 @@ one.
 The cyclic domain for an ordinary order-$n$ permutation has size $N=n+1$.
 The phrase \emph{failure through depth $k$} always means exhaustive failure
 of an exact bounded search, not failure of a heuristic.  A successful search
-is retained as an explicit sequence and proves only an upper bound.
+proves only an upper bound.
+At orders $12$ through $17$, the established diameters already supply the
+upper bounds, so classification requires only the excluded-depth search.
+The order-$18$ stage instead constructs explicit sorting sequences to prove
+the new upper bound.
 Table~\ref{tab:pipeline} summarizes the computation.
 
 \begin{table}[ht]
@@ -381,19 +385,19 @@ Table~\ref{tab:pipeline} summarizes the computation.
 Stage & Cyclic domain & Input or enumeration & Required conclusion \\
 \midrule
 $\En_{12}$ & $13$ & all fixed-point-free classes
-  & fail at $6$, sort at $7$ \\
+  & fail at $6$; use $TD(12)=7$ \\
 $\En_{13}$ & $14$ & children of $\En_{12}$ with all removals in $\En_{12}$
-  & fail at $7$, sort at $8$ \\
+  & fail at $7$; use $TD(13)=8$ \\
 $\Hn_{13}(7)$ & $14$ & $\operatorname{Expand}(\En_{12})$ and all
-  fixed-point-free classes & fail at $6$, sort at or before $8$ \\
+  fixed-point-free classes & fail at $6$; use $TD(13)=8$ \\
 $\En_{14}$ & $15$ & children of $\Hn_{13}(7)$ with all removals in
-  $\Hn_{13}(7)$ & fail at $7$, sort at $8$ \\
+  $\Hn_{13}(7)$ & fail at $7$; use $TD(14)=8$ \\
 $\En_{15}$ & $16$ & children of $\En_{14}$ with all removals in $\En_{14}$
-  & fail at $8$, sort at $9$ \\
+  & fail at $8$; use $TD(15)=9$ \\
 $\En_{16}$ & $17$ & $\operatorname{Expand}(\En_{15})$ and all
-  fixed-point-free classes & fail at $8$, sort at $9$ \\
+  fixed-point-free classes & fail at $8$; use $TD(16)=9$ \\
 $\En_{17}$ & $18$ & children of $\En_{16}$ with all removals in $\En_{16}$
-  & fail at $9$, sort at $10$ \\
+  & fail at $9$; use $TD(17)=10$ \\
 $S_{18}$ candidates & $19$ & children of $\En_{17}$ with all removals in
   $\En_{17}$ & sort at $10$ \\
 \bottomrule
@@ -418,8 +422,8 @@ been classified; an interrupted batch may therefore be repeated safely.
 Since $TD(12)=7>TD(11)=6$, every member of $\En_{12}$ is
 fixed-point-free.  We enumerate every realizable fixed-point-free twisted
 bracelet on the $13$-symbol cyclic domain, search it exhaustively through
-depth six, and retain precisely the failures.  A checked seven-move sorting
-sequence for every retained class proves the matching upper bound.
+depth six, and retain precisely the failures.  The known equality $TD(12)=7$
+supplies the matching upper bound.
 
 \subsection{Computing \texorpdfstring{$\En_{13}$}{E13} and
 \texorpdfstring{$\Hn_{13}(7)$}{H13(7)}}
@@ -430,15 +434,15 @@ belong to $\En_{12}$.  We therefore stream the children of $\En_{12}$,
 discard a child as soon as one removal lies outside $\En_{12}$, and
 canonicalize and deduplicate the survivors.  Proposition~\ref{prop:class-compatibility}
 ensures that this procedure includes every class in $\En_{13}$.  Exhaustive
-failure through depth seven and a checked depth-eight sorting sequence then
-characterize $\En_{13}$ exactly.
+failure through depth seven, together with $TD(13)=8$, then characterizes
+$\En_{13}$ exactly.
 
 The fixed-point part of $\Hn_{13}(7)$ is
 $\operatorname{Expand}(\En_{12})$.  We globally enumerate the
 fixed-point-free classes on the $14$-symbol cyclic domain.  Failure through
 depth six identifies membership in $\Hn_{13}(7)$, and the known equality
-$TD(13)=8$ supplies the ambient upper bound.  Each retained fixed-point-free
-class receives a checked sorting sequence of length at most eight.  This
+$TD(13)=8$ supplies the ambient upper bound.  Thus this set includes classes
+of distance seven and eight without distinguishing them.  This
 global computation is independent of the preceding computation of
 $\En_{13}$ and is required because a class of distance seven may have a
 removal of distance six rather than a removal in $\En_{12}$.
@@ -458,12 +462,12 @@ Corollary~\ref{cor:threshold-removals} places every removal in
 $\Hn_{13}(7)$.  We therefore stream the raw children of $\Hn_{13}(7)$,
 discard a child as soon as a removal lies outside that set, canonicalize and
 deduplicate the survivors, and retain precisely the depth-seven failures.
-The known equality $TD(14)=8$ and a stored depth-eight witness establish that
+The known equality $TD(14)=8$ establishes that
 the result is exactly $\En_{14}$.
 
 The next step is a diameter jump: $TD(15)=9=TD(14)+1$.  Hence all removals
 of a member of $\En_{15}$ lie in $\En_{14}$.  The same propagation, followed
-by failure through depth eight and a checked depth-nine witness, computes
+by failure through depth eight and the known bound $TD(15)=9$, computes
 $\En_{15}$.  Since $TD(15)>TD(14)$, its classes are fixed-point-free.
 The implementation fuses raw insertion, removal filtering, canonicalization,
 global deduplication, and search instead of materializing the much larger
@@ -477,7 +481,7 @@ The fixed-point part is $\operatorname{Expand}(\En_{15})$ by the proposition
 above.  For the remaining part, we enumerate all fixed-point-free classes on
 the $17$-symbol cyclic domain and retain exactly those that fail exhaustive
 search through depth eight.  The theorem $TD(16)=9$ supplies the ambient upper
-bound, and stored nine-move sequences provide local witnesses.
+bound without a further search for sorting sequences.
 
 Let $\lVert\pi\rVert_3$ denote the Bafna--Pevzner 3-norm.  The approximation
 guarantees used for pruning give the integer upper bound
@@ -502,8 +506,8 @@ reduces to the existence of an all-2-move sorting sequence.
 Stream $\Child(\En_{16})$ on the $18$-symbol domain.  A child $C$ reaches
 exact search only if every member of $\Del(C)$ lies in $\En_{16}$.
 Canonicalize and deduplicate the survivors, then search each through depth
-nine.  Because $TD(17)=10$, the failures are exactly $\En_{17}$; for each
-failure we also store a sorting sequence of length at most ten.
+nine.  Because $TD(17)=10$, the failures are exactly $\En_{17}$, and no
+additional search for a sorting sequence is required.
 
 \subsection{Certifying order 18}
 
@@ -515,7 +519,7 @@ only needs a checked sorting sequence of length at most ten for every survivor.
 \begin{theorem}[Conditional certification theorem]\label{thm:conditional}
 Assume that the stages of Table~\ref{tab:pipeline} produce the complete sets
 $\En_{12}$, $\Hn_{13}(7)$, and $\En_{13},\ldots,\En_{17}$, with the stated
-exhaustive failures and sorting witnesses.  If every class surviving the
+exhaustive failures and the established diameter bounds.  If every class surviving the
 order-$18$ removal filter has a sorting sequence of length at most ten, then
 $TD(18)=10$.
 \end{theorem}
@@ -547,9 +551,10 @@ The computation maintains an immutable set of canonical class keys for each
 completed stage.  A key encodes the algebraic permutation of the canonical
 cyclic-target representative, including algebraic fixed points.  Each stage
 manifest records the format version, stage name, cyclic-domain size, number
-of keys, and a SHA-256 checksum over deterministic key order.
+of keys, and a SHA-256 checksum over deterministic key order.  At known
+orders the manifest also records the upper bound and its established source.
 
-Successful searches are stored separately as ordered triples of symbols.  A
+At order $18$, successful searches are stored separately as ordered triples of symbols.  A
 witness checker reconstructs the cyclic-target pair, verifies that each
 triple is applicable in the current cyclic order, applies it, checks that the
 target cycle is preserved at every step, and finally checks that the algebraic
@@ -560,34 +565,31 @@ The verification pass checks the following obligations.
 \begin{enumerate}
   \item It recomputes every class-set count and checksum from the persistent
         key table.
-  \item For $\En_{12}$, it independently repeats fixed-point-free generation,
-        every depth-six failure, and every depth-seven witness.
+  \item For $\En_{12}$, it independently repeats fixed-point-free generation
+        and every depth-six failure, using the known bound $TD(12)=7$.
   \item For $\En_{13}$, it independently regenerates the children whose every
-        removal belongs to $\En_{12}$, repeats the depth-seven failures, and
-        replays the depth-eight witnesses.
+        removal belongs to $\En_{12}$ and repeats the depth-seven failures,
+        using the known bound $TD(13)=8$.
   \item For $\Hn_{13}(7)$, it reconstructs
         $\operatorname{Expand}(\En_{12})$, independently enumerates the
-        fixed-point-free part, repeats the depth-six classification, and
-        checks a sorting witness of length at most eight for every retained
-        fixed-point-free class.
+        fixed-point-free part and repeats the depth-six classification,
+        using $TD(13)=8$ as the upper bound.
   \item For $\En_{14}$ and $\En_{15}$, it independently regenerates the
-        removal-qualified children, repeats the excluded-depth searches, and
-        replays the stored witnesses.
+        removal-qualified children and repeats the excluded-depth searches,
+        using their established diameters as upper bounds.
   \item For $\En_{16}$, it reconstructs all fixed-point expansions from
         $\En_{15}$, checks contraction of every stored fixed-point class, and
         repeats the depth-eight classification of the fixed-point-free part.
   \item For $\En_{17}$, it recomputes the complete canonical child set and the
-        all-removals filter, repeats every depth-nine search, and replays every
-        depth-ten witness.
+        all-removals filter and repeats every depth-nine search, using
+        $TD(17)=10$ as the upper bound.
   \item For order $18$, it recomputes the complete child set and removal
         filter and replays a depth-ten witness for every survivor.
 \end{enumerate}
-Generation is resumable at annotated-cycle-type boundaries.  Child
-generation and classification use persistent processed-parent and
-processed-candidate sets, so an
-interrupted pass may repeat work but cannot silently omit or duplicate a
-class.  A completion manifest is written only after the corresponding class
-set has been summarized.
+Direct generation records completed annotated cycle types.  Propagation
+regenerates unfinished parent sets, with each child assigned to its least
+canonical removal class.  A completion manifest is written only after all
+output has been flushed and the corresponding class set has been summarized.
 
 The strongest final validation will use two reproducible passes from empty
 storage and compare their per-stage key counts and checksums.  Small-order
@@ -628,7 +630,7 @@ Independent reproducibility pass & designed & pending \\
 
 Before Theorem~\ref{thm:conditional} may be converted into an unconditional
 diameter theorem, the computation must supply all stage manifests, the
-complete witness stores, repeated exhaustive-search results, and agreement of
+complete order-$18$ witness store, repeated exhaustive-search results, and agreement of
 the independent passes.  The final version must also report per-route counts,
 wall-clock and hardware information, peak storage, exact software revision,
 and the location and checksum of the archived certificate.
@@ -649,8 +651,9 @@ directly at class level, using quadratically many raw insertions per
 representative.
 
 The resulting certificate has a sharp logical boundary.  Exhaustive failure
-below the known diameter establishes extremal-set membership, while explicit
-sorting sequences establish upper bounds.  Counts and checksums protect the
+below the established diameter establishes extremal-set membership.  Known
+diameters supply the upper bounds through order $17$, and explicit sorting
+sequences establish the new upper bound at order $18$.  Counts and checksums protect the
 persisted class sets, and recomputation of child and removal filters protects
 the inductive link between stages.  Completion of these obligations would
 rule out distance eleven in $S_{18}$ and, with the lower bound, establish

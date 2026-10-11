@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-/** Compact write-behind buffer flushed periodically and at durable boundaries. */
+/** Compact class or certificate output flushed periodically and at checkpoints. */
 final class RetainedClassWriter implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(
             RetainedClassWriter.class);
@@ -30,6 +30,10 @@ final class RetainedClassWriter implements AutoCloseable {
     private final ScheduledExecutorService flusher;
     private ArrayList<EncodedCertificate> pending = new ArrayList<>();
 
+    RetainedClassWriter(final ClassStore classes, final int flushSeconds) {
+        this(classes, null, flushSeconds);
+    }
+
     RetainedClassWriter(
             final ClassStore classes,
             final WitnessStore witnesses,
@@ -40,7 +44,7 @@ final class RetainedClassWriter implements AutoCloseable {
                     "Write flush period must be positive");
         }
         this.classes = Objects.requireNonNull(classes);
-        this.witnesses = Objects.requireNonNull(witnesses);
+        this.witnesses = witnesses;
         flusher = Executors.newSingleThreadScheduledExecutor(
                 Thread.ofPlatform().daemon().name(
                         "retained-class-writer").factory());
@@ -53,6 +57,9 @@ final class RetainedClassWriter implements AutoCloseable {
 
     void add(final CyclicTargetPair pair, final List<Cycle> moves) {
         requireHealthy();
+        if (witnesses == null) {
+            throw new IllegalStateException("Writer has no witness store");
+        }
         final var canonical = Objects.requireNonNull(pair)
                 .canonicalRepresentative();
         CertificateValidator.validate(canonical, moves, moves.size());
@@ -60,6 +67,19 @@ final class RetainedClassWriter implements AutoCloseable {
                 CertificateCodec.keyFor(canonical),
                 CertificateCodec.valueFor(moves));
 
+        enqueue(encoded);
+    }
+
+    void add(final CyclicTargetPair pair) {
+        requireHealthy();
+        if (witnesses != null) {
+            throw new IllegalStateException("Certificate writer requires a witness");
+        }
+        enqueue(new EncodedCertificate(CertificateCodec.keyFor(
+                Objects.requireNonNull(pair).canonicalRepresentative()), null));
+    }
+
+    private void enqueue(final EncodedCertificate encoded) {
         bufferLock.lock();
         try {
             requireHealthy();
@@ -87,8 +107,10 @@ final class RetainedClassWriter implements AutoCloseable {
 
             final var startedAt = System.nanoTime();
             try {
-                // A class is visible only after its corresponding witness exists.
-                witnesses.putEncodedAll(batch);
+                if (witnesses != null) {
+                    // At order 18 a class is visible only after its witness exists.
+                    witnesses.putEncodedAll(batch);
+                }
                 classes.putEncodedAll(batch);
             } catch (final RuntimeException exception) {
                 failure.compareAndSet(null, exception);
@@ -96,8 +118,9 @@ final class RetainedClassWriter implements AutoCloseable {
             }
             final var elapsedMillis = Math.round(
                     (System.nanoTime() - startedAt) / 1.0e6);
-            LOG.info("Flushed {} retained classes and witnesses in {} ms",
-                    batch.size(), elapsedMillis);
+            LOG.info("Flushed {} retained classes{} in {} ms",
+                    batch.size(), witnesses == null ? "" : " and witnesses",
+                    elapsedMillis);
         } finally {
             flushLock.unlock();
         }

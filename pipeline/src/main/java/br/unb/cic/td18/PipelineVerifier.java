@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
 
-/** Replays generation, propagation, bounded failures, and sorting witnesses. */
+/** Replays classification against known bounds and order-18 sorting witnesses. */
 @Slf4j
 public final class PipelineVerifier {
     private static final int E12_DOMAIN = 13;
@@ -39,17 +39,14 @@ public final class PipelineVerifier {
         final var stage = workDirectory.resolve("e12");
         FixedPointFreeClassGenerator.requireComplete(
                 E12_DOMAIN, stage.resolve("fixed-point-free.checkpoints"));
-        try (final var classes = checkedClasses(stage, "E12", E12_DOMAIN);
-             final var witnesses = new WitnessStore(
-                     stage.resolve("witnesses"), false)) {
+        try (final var classes = checkedClasses(stage, "E12", E12_DOMAIN)) {
             classes.forEach(pair -> {
                 requireFixedPointCount(pair, 0);
                 requireNoSorting(pair, 6);
-                requireWitness(pair, 7, witnesses);
             });
             verifyFixedPointFreeExactEnumeration(
                     stage, "E12", E12_DOMAIN, 6, 7,
-                    classes, witnesses);
+                    classes);
         }
         log.info("E12 verified");
     }
@@ -76,8 +73,6 @@ public final class PipelineVerifier {
         try (final var e12 = checkedClasses(e12Stage, "E12", E12_DOMAIN);
              final var layer = checkedClasses(
                      layerStage, "H13_GE7", E13_DOMAIN);
-             final var layerWitnesses = new WitnessStore(
-                     layerStage.resolve("witnesses"), false);
              final var e13 = checkedClasses(
                      e13Stage, "E13", E13_DOMAIN)) {
             requireEveryFixedPointExpansion(e12, E13_DOMAIN, layer,
@@ -97,7 +92,6 @@ public final class PipelineVerifier {
                     return;
                 }
                 requireNoSorting(pair, 6);
-                requireWitness(pair, 8, layerWitnesses);
             });
 
             e13.forEach(pair -> {
@@ -111,8 +105,7 @@ public final class PipelineVerifier {
                     E13_DOMAIN,
                     layerStage.resolve(
                             "verification/fixed-point-free.checkpoints"),
-                    pair -> verifyS13Threshold(
-                            pair, layer, layerWitnesses));
+                    pair -> verifyS13Threshold(pair, layer));
         }
         log.info("H13(7) verified");
     }
@@ -157,9 +150,7 @@ public final class PipelineVerifier {
         FixedPointFreeClassGenerator.requireComplete(
                 E16_DOMAIN, stage.resolve("fixed-point-free.checkpoints"));
         try (final var e15 = checkedClasses(e15Stage, "E15", E15_DOMAIN);
-             final var classes = checkedClasses(stage, "E16", E16_DOMAIN);
-             final var witnesses = new WitnessStore(
-                     stage.resolve("witnesses"), false)) {
+             final var classes = checkedClasses(stage, "E16", E16_DOMAIN)) {
             requireEveryFixedPointExpansion(e15, E16_DOMAIN, classes,
                     "Expand(E15) child is missing from E16");
             classes.forEach(pair -> {
@@ -167,7 +158,6 @@ public final class PipelineVerifier {
                         .algebraicFixedPointCount(pair);
                 if (fixedPoints == 0) {
                     requireNoSorting(pair, 8);
-                    requireWitness(pair, 9, witnesses);
                     return;
                 }
                 requireFixedPointCount(pair, 1);
@@ -176,7 +166,7 @@ public final class PipelineVerifier {
             });
             verifyFixedPointFreeExactEnumeration(
                     stage, "E16", E16_DOMAIN, 8, 9,
-                    classes, witnesses);
+                    classes);
         }
         log.info("E16 verified");
     }
@@ -214,8 +204,7 @@ public final class PipelineVerifier {
 
     private void verifyS13Threshold(
             final CyclicTargetPair pair,
-            final ClassStore layer,
-            final WitnessStore layerWitnesses
+            final ClassStore layer
     ) {
         final var canonical = pair.canonicalRepresentative();
         final var expectedInLayer = liesBeyondDepth(canonical, 6);
@@ -223,10 +212,6 @@ public final class PipelineVerifier {
             throw new IllegalStateException(
                     "Fixed-point-free H13(7) classification mismatch");
         }
-        if (!expectedInLayer) {
-            return;
-        }
-        requireWitness(canonical, 8, layerWitnesses);
     }
 
     private void verifyFixedPointFreeExactEnumeration(
@@ -235,9 +220,9 @@ public final class PipelineVerifier {
             final int domainSize,
             final int excludedDepth,
             final int exactDepth,
-            final ClassStore classes,
-            final WitnessStore witnesses
+            final ClassStore classes
     ) {
+        KnownDiameters.requireExactDepth(domainSize, excludedDepth, exactDepth);
         FixedPointFreeClassGenerator.generate(
                 domainSize,
                 stage.resolve("verification/fixed-point-free.checkpoints"),
@@ -248,9 +233,6 @@ public final class PipelineVerifier {
                     if (expected != classes.contains(canonical)) {
                         throw new IllegalStateException(
                                 name + " fixed-point-free classification mismatch");
-                    }
-                    if (expected) {
-                        requireWitness(canonical, exactDepth, witnesses);
                     }
                 });
     }
@@ -265,16 +247,14 @@ public final class PipelineVerifier {
             final int excludedDepth,
             final int exactDepth
     ) {
+        KnownDiameters.requireExactDepth(childDomain, excludedDepth, exactDepth);
         try (final var parents = checkedClasses(
                 parentStage, parentName, parentDomain);
              final var classes = checkedClasses(
-                     childStage, childName, childDomain);
-             final var witnesses = new WitnessStore(
-                     childStage.resolve("witnesses"), false)) {
+                     childStage, childName, childDomain)) {
             classes.forEach(pair -> {
                 requireAllRemovals(pair, parents);
                 requireNoSorting(pair, excludedDepth);
-                requireWitness(pair, exactDepth, witnesses);
             });
 
             final var verification = childStage.resolve("verification");
@@ -312,9 +292,6 @@ public final class PipelineVerifier {
                             if (expected != classes.contains(canonical)) {
                                 throw new IllegalStateException(
                                         childName + " propagation mismatch");
-                            }
-                            if (expected) {
-                                requireWitness(canonical, exactDepth, witnesses);
                             }
                         });
                     }
@@ -381,9 +358,7 @@ public final class PipelineVerifier {
             final CyclicTargetPair pair,
             final int maximumMoves
     ) {
-        return ApproximationBound.guaranteedMoves(pair.getThreeNorm())
-                > maximumMoves
-                && sorter.sort(pair, maximumMoves).isEmpty();
+        return KnownDiameters.liesBeyondDepth(pair, maximumMoves, sorter);
     }
 
     private ClassStore checkedClasses(

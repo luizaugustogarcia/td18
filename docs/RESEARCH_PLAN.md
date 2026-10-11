@@ -37,6 +37,10 @@ A successful bounded search supplies a sorting witness and proves an upper
 bound. Membership in an extremal or threshold set requires the other
 direction: exhaustive failure at the preceding depth. The TD(16) certificate
 contains upper-bound witnesses; it does not by itself compute `E_16`.
+At orders 12 through 17 the established diameter supplies the upper bound,
+so an additional witness search is unnecessary. Only the order-18 stage must
+produce new upper-bound witnesses. `H_13(7)` retains distances seven and eight
+by testing failure through depth six, without separating those two distances.
 
 ## Stage 0 — trusted primitives (implemented)
 
@@ -71,10 +75,11 @@ The known values `TD(11) = 6` and `TD(12) = 7` imply that an order-12
 diametral class has no algebraic fixed point. Enumerate every fixed-point-free
 extended-toric class on the 13-symbol cyclic domain with the direct
 twisted-bracelet generator. Retain exactly the classes that fail exhaustive
-search through depth six, and store a depth-seven sorting witness for each.
+search through depth six. The known bound `TD(12)=7` supplies the matching
+upper bound without a second search.
 
 Exit criterion: complete generator checkpoints, a deterministic `E_12`
-manifest, repeated depth-six failures, and replayed depth-seven witnesses.
+manifest and repeated depth-six failures, using the established upper bound.
 
 ## Stage 2a — propagate `E_12` to `E_13`
 
@@ -83,7 +88,7 @@ has distance at least seven. Since `TD(12) = 7`, every deletion belongs to
 `E_12`. Stream the `N^2` children of `E_12`, reject each child having a
 removal outside `E_12`, canonicalize and deduplicate the survivors, and
 retain exactly the classes that fail exhaustive search through depth seven.
-Store a depth-eight sorting witness for each retained class.
+The established bound `TD(13)=8` supplies the upper bound for retained classes.
 
 The [rearrangement database](https://mirza.ic.unicamp.br/bioinfo/index.jsf)
 reports 427 **ordinary permutations** in `S_13` at distance eight. This is a
@@ -93,8 +98,8 @@ expanding stored classes to ordinary permutations or by canonicalizing the
 database records.
 
 Exit criterion: a complete `E_13` manifest, independent regeneration of all
-removal-qualified children, repeated depth-seven failures, replayed
-depth-eight witnesses, and a comparison with the 427 ordinary permutations.
+removal-qualified children, repeated depth-seven failures, and a comparison
+with the 427 ordinary permutations, using the established upper bound.
 
 ## Stage 2b — compute `H_13(7)`
 
@@ -102,14 +107,14 @@ The fixed-point part of `H_13(7)` is exactly `Expand(E_12)`: contracting a
 fixed point preserves distance, and `E_12` itself has no fixed point. For the
 fixed-point-free part, globally enumerate the 14-symbol cyclic domain with
 the twisted-bracelet generator. A class belongs to `H_13(7)` exactly when it
-fails exhaustive search through depth six. Store a sorting witness of length
-at most eight for every retained fixed-point-free class. There is no need to
+fails exhaustive search through depth six. The known diameter `TD(13)=8`
+supplies the upper bound. There is no need to
 classify this global enumeration again through depth seven because `E_13` is
 computed independently by Stage 2a.
 
 Exit criterion: complete global generation of the fixed-point-free part,
 complete `H_13(7)` manifest, contraction checks for the fixed-point part,
-repeated depth-six failures, replayed witnesses, and confirmation that every
+repeated depth-six failures and confirmation that every
 member of `E_13` belongs to `H_13(7)`.
 
 ## Stage 3 — propagate `H_13(7)` to `E_14`
@@ -120,7 +125,7 @@ seven. Therefore:
 1. stream all raw children of `H_13(7)`;
 2. reject a child as soon as one removal lies outside `H_13(7)`;
 3. canonicalize each survivor and deduplicate it globally;
-4. retain the depth-seven failures and store depth-eight witnesses.
+4. retain the depth-seven failures, using the known bound `TD(14)=8`.
 
 These survivors are exactly `E_14`, because `TD(14) = 8`. The fixed-point
 members provide an additional check: each has exactly one fixed point and
@@ -133,7 +138,7 @@ deduplication, and search. It does not persist the full unfiltered child set.
 
 Since `TD(15) = 9 = TD(14) + 1`, every member of `E_15` has all removals in
 `E_14`. Apply the same fused propagation, fail classes through depth eight,
-and store depth-nine witnesses. Because `TD(15) > TD(14)`, every retained
+and use the established upper bound `TD(15)=9`. Because `TD(15) > TD(14)`, every retained
 class must be fixed-point-free.
 
 The historical hard instances remain useful regressions:
@@ -173,18 +178,18 @@ eight require exact work with two, one, and zero units of slack,
 respectively.
 
 For every retained fixed-point-free class, exhaustive depth-eight failure
-proves distance greater than eight, while a stored depth-nine witness proves
-the matching upper bound. Persist the union of both parts as `E_16`.
+proves distance greater than eight, while the established bound `TD(16)=9`
+supplies the matching upper bound. Persist the union of both parts as `E_16`.
 
 ## Stage 6 — propagate `E_16` to `E_17`
 
 Stream children of `E_16`, keep only those whose every circular removal lies
 in `E_16`, canonicalize and deduplicate the survivors, and search them
 exhaustively through depth nine. The failures form `E_17`, because
-`TD(17) = 10`; store a depth-ten witness for each.
+`TD(17) = 10`; no additional witness search is needed.
 
 Exit criterion: verification independently regenerates every qualified child,
-repeats each depth-nine failure, and replays every depth-ten witness.
+repeats each depth-nine failure, and applies the established diameter bound.
 
 ## Stage 7 — certify `TD(18) <= 10`
 
@@ -214,17 +219,17 @@ All propagated stages share bounded parent batches and round-based deletion
 filtering. Each round constructs one deletion per surviving child and queries
 membership with RocksDB `MultiGet`; a miss discards that child before later
 deletions are constructed. This changes neither the deletion criterion nor
-the set of generated children. Parents are checkpointed only after the entire
-batch is classified, so interrupted batches can safely be replayed.
+the set of generated children. Propagation recomputes interrupted parent
+batches and overwrites identical output keys.
 
-Canonical child classes have nonblocking in-flight ownership. Duplicate
-workers skip; the owner records completion only after successful classification
-and witness persistence. The owner's parent batch is not checkpointed until
-that succeeds, so skipping another parent's duplicate does not remove the
-restart path after failure. The independent propagation verifier uses the same
-ownership protocol without changing its independent removal checks. Overlapping
-bounded-search requests also share one backend result per class and depth;
-exclusion and witness searches at different bounds remain distinct.
+Each qualified canonical child is classified only by the parent with the
+least canonical removal key. Insertion class sets are representative-invariant,
+so the owner always regenerates the child. Per-parent deduplication and this
+ownership rule require no global candidate membership table. The independent
+verifier regenerates insertions and repeats removal checks separately.
+Overlapping bounded-search requests share one backend result per class and
+depth. Known-diameter stages perform only exclusion searches; order 18 retains
+the witness search needed for its new upper bound.
 
 All RocksDB stores share the same configurable cache policy: cached point
 reads, a bounded native block cache per store, prioritized index/filter
@@ -240,12 +245,13 @@ Each stage should produce:
   convention, search bound, code revision, count, and checksum;
 - deterministic class keys or deterministic key partitions;
 - resumable checkpoints separate from proof artifacts;
-- witnesses for successful searches and reproducible exhaustive searches for
-  failures;
+- the established upper bound for stages through order 17, replayable witnesses
+  for order 18, and reproducible exhaustive searches for failures;
 - a verification report that independently repeats generation and filtering.
 
 The current manifest format records the format version, stage name, cyclic
-domain size, count, and SHA-256 checksum. Code revision, equivalence metadata,
+domain size, count, and SHA-256 checksum. New known-diameter stages also record
+their upper bound and its source. Code revision, equivalence metadata,
 and search-bound metadata remain required before archival proof runs.
 
 Large products belong under ignored `data/`, `certificates/`, or

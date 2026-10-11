@@ -11,10 +11,27 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RetainedClassWriterTest {
     @TempDir
     Path temporaryDirectory;
+
+    @Test
+    void classOnlyWriterFlushesOnCloseWithoutRequiringAWitness() {
+        final var pair = KnownDiametersTest.reversePair(15);
+        final var directory = temporaryDirectory.resolve("class-only");
+        try (final var classes = new ClassStore(directory, 15, true)) {
+            try (final var writer = new RetainedClassWriter(classes, 60)) {
+                writer.add(pair);
+                assertFalse(classes.contains(pair));
+            }
+            assertTrue(classes.contains(pair));
+        }
+        try (final var classes = new ClassStore(directory, 15, false)) {
+            assertTrue(classes.contains(pair));
+        }
+    }
 
     @Test
     void keepsOnlyEncodedOutputBufferedUntilFlush() {
@@ -28,6 +45,7 @@ class RetainedClassWriterTest {
                      temporaryDirectory.resolve("witnesses"), true);
              final var writer = new RetainedClassWriter(
                      classes, witnesses, 60)) {
+            assertThrows(IllegalStateException.class, () -> writer.add(pair));
             writer.add(pair, moves);
 
             assertFalse(classes.contains(pair));

@@ -30,5 +30,6 @@ class ExtremalPipelineTest {
             assertEquals(0, classes.summarize().count());
         }
         assertFalse(Files.exists(temporaryDirectory.resolve("h13-ge7")));
+        assertFalse(Files.exists(temporaryDirectory.resolve("e13/witnesses")));
     }
 }

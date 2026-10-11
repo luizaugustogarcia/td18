@@ -1,18 +1,16 @@
 package br.unb.cic.td18;
 
 import br.unb.cic.tdp.base.CyclicTargetPair;
-import br.unb.cic.tdp.permutation.Cycle;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
-/** Durable end-to-end computation from E12 to the TD(18) candidates. */
+/** End-to-end computation from E12 to the TD(18) candidates. */
 @Slf4j
 public final class ExtremalPipeline {
     private static final long PROPAGATION_LOG_INTERVAL = 10_000;
@@ -74,25 +72,23 @@ public final class ExtremalPipeline {
         final var examined = new LongAdder();
         final var retained = new LongAdder();
         try (final var classes = new ClassStore(
-                stage.resolve("classes"), E12_DOMAIN, true);
-             final var witnesses = new WitnessStore(
-                     stage.resolve("witnesses"), true)) {
+                stage.resolve("classes"), E12_DOMAIN, true)) {
             try (final var writer = new RetainedClassWriter(
-                    classes, witnesses, writeFlushSeconds)) {
+                    classes, writeFlushSeconds)) {
                 FixedPointFreeClassGenerator.generate(
                         E12_DOMAIN,
                         stage.resolve("fixed-point-free.checkpoints"),
                         pair -> {
                             examined.increment();
-                            exactDistanceWitness(pair, 6, 7).ifPresent(witness -> {
-                                writer.add(pair, witness);
+                            if (KnownDiameters.liesBeyondDepth(pair, 6, sorter)) {
+                                writer.add(pair);
                                 retained.increment();
-                            });
+                            }
                         },
                         writer::flush);
             }
             final var summary = classes.summarize();
-            StageManifest.complete(stage, "E12", E12_DOMAIN, summary);
+            StageManifest.completeKnownDiameter(stage, "E12", E12_DOMAIN, summary);
             log.info("E12 complete: examined={}, retained={}, stored={}",
                     examined.sum(), retained.sum(), summary.count());
         }
@@ -123,29 +119,26 @@ public final class ExtremalPipeline {
         try (final var e12 = new ClassStore(
                 e12Stage.resolve("classes"), E12_DOMAIN, false);
              final var layer = new ClassStore(
-                     layerStage.resolve("classes"), E13_DOMAIN, true);
-             final var layerWitnesses = new WitnessStore(
-                     layerStage.resolve("witnesses"), true)) {
+                     layerStage.resolve("classes"), E13_DOMAIN, true)) {
             addFixedPointExpansions(e12, E13_DOMAIN, layer, expanded);
 
             try (final var writer = new RetainedClassWriter(
-                    layer, layerWitnesses, writeFlushSeconds)) {
+                    layer, writeFlushSeconds)) {
                 FixedPointFreeClassGenerator.generate(
                         E13_DOMAIN,
                         layerStage.resolve("fixed-point-free.checkpoints"),
                         pair -> {
                             examined.increment();
-                            thresholdDistanceWitness(pair, 6, 8)
-                                    .ifPresent(witness -> {
-                                        writer.add(pair, witness);
-                                        retainedInLayer.increment();
-                                    });
+                            if (KnownDiameters.liesBeyondDepth(pair, 6, sorter)) {
+                                writer.add(pair);
+                                retainedInLayer.increment();
+                            }
                         },
                         writer::flush);
             }
 
             final var layerSummary = layer.summarize();
-            StageManifest.complete(
+            StageManifest.completeKnownDiameter(
                     layerStage, "H13_GE7", E13_DOMAIN, layerSummary);
             log.info("H13(7) complete: expanded={}, fixed-point-free "
                             + "examined={}, fixed-point-free retained={}, "
@@ -185,27 +178,25 @@ public final class ExtremalPipeline {
         try (final var e15 = new ClassStore(
                 e15Stage.resolve("classes"), E15_DOMAIN, false);
              final var classes = new ClassStore(
-                     stage.resolve("classes"), E16_DOMAIN, true);
-             final var witnesses = new WitnessStore(
-                     stage.resolve("witnesses"), true)) {
+                     stage.resolve("classes"), E16_DOMAIN, true)) {
             addFixedPointExpansions(e15, E16_DOMAIN, classes, expanded);
 
             try (final var writer = new RetainedClassWriter(
-                    classes, witnesses, writeFlushSeconds)) {
+                    classes, writeFlushSeconds)) {
                 FixedPointFreeClassGenerator.generate(
                         E16_DOMAIN,
                         stage.resolve("fixed-point-free.checkpoints"),
                         pair -> {
                             examined.increment();
-                            exactDistanceWitness(pair, 8, 9).ifPresent(witness -> {
-                                writer.add(pair, witness);
+                            if (KnownDiameters.liesBeyondDepth(pair, 8, sorter)) {
+                                writer.add(pair);
                                 retained.increment();
-                            });
+                            }
                         },
                         writer::flush);
             }
             final var summary = classes.summarize();
-            StageManifest.complete(stage, "E16", E16_DOMAIN, summary);
+            StageManifest.completeKnownDiameter(stage, "E16", E16_DOMAIN, summary);
             log.info("E16 complete: expanded={}, fixed-point-free examined={}, "
                             + "fixed-point-free retained={}, stored={}",
                     expanded.sum(), examined.sum(), retained.sum(), summary.count());
@@ -289,6 +280,7 @@ public final class ExtremalPipeline {
             final int excludedDepth,
             final int exactDepth
     ) {
+        KnownDiameters.requireExactDepth(childDomain, excludedDepth, exactDepth);
         StageManifest.requireComplete(parentStage, parentName, parentDomain);
         if (StageManifest.isComplete(childStage)) {
             StageManifest.requireComplete(childStage, childName, childDomain);
@@ -296,6 +288,9 @@ public final class ExtremalPipeline {
             return;
         }
 
+        log.info("{} classification: excluded depth={}, known upper bound={}, "
+                        + "witness searches=disabled",
+                childName, excludedDepth, exactDepth);
         final var examined = new LongAdder();
         final var qualified = new LongAdder();
         final var retained = new LongAdder();
@@ -303,25 +298,22 @@ public final class ExtremalPipeline {
         try (final var parents = new ClassStore(
                 parentStage.resolve("classes"), parentDomain, false);
              final var classes = new ClassStore(
-                     childStage.resolve("classes"), childDomain, true);
-             final var witnesses = new WitnessStore(
-                     childStage.resolve("witnesses"), true)) {
+                     childStage.resolve("classes"), childDomain, true)) {
             try (final var writer = new RetainedClassWriter(
-                    classes, witnesses, writeFlushSeconds)) {
+                    classes, writeFlushSeconds)) {
                 forEachQualifiedChild(parents, examined,
                         completedParents, childName, qualified, retained, children -> {
                     qualified.add(children.size());
                     for (final var child : children) {
-                        exactDistanceWitness(child, excludedDepth, exactDepth)
-                                .ifPresent(witness -> {
-                                    writer.add(child, witness);
-                                    retained.increment();
-                                });
+                        if (KnownDiameters.liesBeyondDepth(child, excludedDepth, sorter)) {
+                            writer.add(child);
+                            retained.increment();
+                        }
                     }
                 });
             }
             final var summary = classes.summarize();
-            StageManifest.complete(
+            StageManifest.completeKnownDiameter(
                     childStage, childName, childDomain, summary);
             log.info("{} complete: raw children={}, new removal-qualified={}, "
                             + "new retained={}, stored={}",
@@ -368,52 +360,6 @@ public final class ExtremalPipeline {
                 }
             }
         });
-    }
-
-    private Optional<List<Cycle>> thresholdDistanceWitness(
-            final CyclicTargetPair pair,
-            final int excludedDepth,
-            final int witnessDepth
-    ) {
-        final var canonical = pair.canonicalRepresentative();
-        if (ApproximationBound.guaranteedMoves(canonical.getThreeNorm())
-                <= excludedDepth
-                || sorter.sort(canonical, excludedDepth).isPresent()) {
-            return Optional.empty();
-        }
-        final var witness = sorter.sort(canonical, witnessDepth)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Known diameter bound failed for threshold class "
-                                + canonical.extendedToricClassKey()));
-        if (witness.isEmpty()) {
-            throw new IllegalStateException(
-                    "A threshold class unexpectedly represents the identity");
-        }
-        return Optional.of(witness);
-    }
-
-    private Optional<List<Cycle>> exactDistanceWitness(
-            final CyclicTargetPair pair,
-            final int excludedDepth,
-            final int exactDepth
-    ) {
-        final var canonical = pair.canonicalRepresentative();
-        if (ApproximationBound.guaranteedMoves(canonical.getThreeNorm())
-                <= excludedDepth) {
-            return Optional.empty();
-        }
-        if (sorter.sort(canonical, excludedDepth).isPresent()) {
-            return Optional.empty();
-        }
-        final var witness = sorter.sort(canonical, exactDepth)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Known diameter bound failed for class "
-                                + canonical.extendedToricClassKey()));
-        if (witness.isEmpty()) {
-            throw new IllegalStateException(
-                    "An extremal candidate unexpectedly represents the identity");
-        }
-        return Optional.of(witness);
     }
 
     private static void addFixedPointExpansions(

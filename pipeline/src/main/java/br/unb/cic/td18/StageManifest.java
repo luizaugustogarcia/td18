@@ -43,6 +43,27 @@ public final class StageManifest {
             final int domainSize,
             final ClassStore.Summary summary
     ) {
+        complete(stageDirectory, stage, domainSize, summary, "");
+    }
+
+    static void completeKnownDiameter(
+            final Path stageDirectory,
+            final String stage,
+            final int domainSize,
+            final ClassStore.Summary summary
+    ) {
+        complete(stageDirectory, stage, domainSize, summary,
+                "upperBoundSource=known-diameter\nupperBound="
+                        + KnownDiameters.forDomain(domainSize) + "\n");
+    }
+
+    private static void complete(
+            final Path stageDirectory,
+            final String stage,
+            final int domainSize,
+            final ClassStore.Summary summary,
+            final String evidence
+    ) {
         try {
             Files.createDirectories(stageDirectory);
             final var contents = "format=" + FORMAT + "\n"
@@ -50,7 +71,8 @@ public final class StageManifest {
                     + "domainSize=" + domainSize + "\n"
                     + "status=complete\n"
                     + "count=" + summary.count() + "\n"
-                    + "sha256=" + summary.sha256() + "\n";
+                    + "sha256=" + summary.sha256() + "\n"
+                    + evidence;
             final var temporary = stageDirectory.resolve(FILE_NAME + ".tmp");
             Files.writeString(temporary, contents, StandardCharsets.UTF_8);
             final var destination = stageDirectory.resolve(FILE_NAME);

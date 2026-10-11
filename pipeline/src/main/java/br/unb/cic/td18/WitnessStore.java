@@ -85,6 +85,9 @@ public final class WitnessStore implements AutoCloseable {
         }
         try (final var writes = new WriteBatch()) {
             for (final var entry : entries) {
+                if (entry.witness() == null) {
+                    throw new IllegalArgumentException("Missing encoded sorting witness");
+                }
                 writes.put(entry.key(), entry.witness());
             }
             database.write(resources.writes, writes);
