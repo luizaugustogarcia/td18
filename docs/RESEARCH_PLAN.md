@@ -76,15 +76,14 @@ search through depth six, and store a depth-seven sorting witness for each.
 Exit criterion: complete generator checkpoints, a deterministic `E_12`
 manifest, repeated depth-six failures, and replayed depth-seven witnesses.
 
-## Stage 2 — compute `H_13(7)` and `E_13`
+## Stage 2a — propagate `E_12` to `E_13`
 
-The fixed-point part of `H_13(7)` is exactly `Expand(E_12)`: contracting a
-fixed point preserves distance, and `E_12` itself has no fixed point. For the
-fixed-point-free part, globally enumerate the 14-symbol cyclic domain with
-the twisted-bracelet generator. A class belongs to `H_13(7)` exactly when it
-fails exhaustive search through depth six. Its depth-seven failures form
-`E_13`, since `TD(13) = 8`; store a witness of length at most eight for every
-member of `E_13`.
+If a class belongs to `E_13`, then its distance is eight and every deletion
+has distance at least seven. Since `TD(12) = 7`, every deletion belongs to
+`E_12`. Stream the `N^2` children of `E_12`, reject each child having a
+removal outside `E_12`, canonicalize and deduplicate the survivors, and
+retain exactly the classes that fail exhaustive search through depth seven.
+Store a depth-eight sorting witness for each retained class.
 
 The [rearrangement database](https://mirza.ic.unicamp.br/bioinfo/index.jsf)
 reports 427 **ordinary permutations** in `S_13` at distance eight. This is a
@@ -93,9 +92,25 @@ elements are extended-toric classes. Validation must compare like with like by
 expanding stored classes to ordinary permutations or by canonicalizing the
 database records.
 
+Exit criterion: a complete `E_13` manifest, independent regeneration of all
+removal-qualified children, repeated depth-seven failures, replayed
+depth-eight witnesses, and a comparison with the 427 ordinary permutations.
+
+## Stage 2b — compute `H_13(7)`
+
+The fixed-point part of `H_13(7)` is exactly `Expand(E_12)`: contracting a
+fixed point preserves distance, and `E_12` itself has no fixed point. For the
+fixed-point-free part, globally enumerate the 14-symbol cyclic domain with
+the twisted-bracelet generator. A class belongs to `H_13(7)` exactly when it
+fails exhaustive search through depth six. Store a sorting witness of length
+at most eight for every retained fixed-point-free class. There is no need to
+classify this global enumeration again through depth seven because `E_13` is
+computed independently by Stage 2a.
+
 Exit criterion: complete global generation of the fixed-point-free part,
-complete `H_13(7)` and `E_13` manifests, contraction checks for the fixed-point
-part, repeated bounded failures, and replayed witnesses.
+complete `H_13(7)` manifest, contraction checks for the fixed-point part,
+repeated depth-six failures, replayed witnesses, and confirmation that every
+member of `E_13` belongs to `H_13(7)`.
 
 ## Stage 3 — propagate `H_13(7)` to `E_14`
 
@@ -182,8 +197,11 @@ distance eleven.
 ## Performance scope
 
 The current design keeps twisted-bracelet generation at ordinary orders 12,
-13, and 16. Child generation at orders 14, 15, 17, and 18 is CPU-side and
+13, and 16. Child generation at orders 13, 14, 15, 17, and 18 is CPU-side and
 fused with early removal rejection so raw child sets are never materialized.
+The order-13 child propagation computes `E_13`; the independent global
+order-13 generation computes the larger threshold set `H_13(7)` needed for
+`E_14`.
 Fixed-point expansion is a special case: matching predecessor gaps in the two
 cycles directly generates its `N` children, and parents are processed in
 parallel across all available CPUs. It does not enumerate and filter `N^2`

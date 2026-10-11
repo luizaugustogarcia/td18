@@ -4,11 +4,13 @@ import br.unb.cic.tdp.base.CyclicTargetPair;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 /** Durable end-to-end computation from E12 to the TD(18) candidates. */
 @Slf4j
 public final class ExtremalPipeline {
+    private static final long PROPAGATION_LOG_INTERVAL = 10_000;
     private static final int E12_DOMAIN = 13;
     private static final int E13_DOMAIN = 14;
     private static final int E14_DOMAIN = 15;
@@ -59,35 +61,34 @@ public final class ExtremalPipeline {
         }
     }
 
-    /** Computes H13(7) and its exact-distance-eight subset E13 in one pass. */
+    /** Propagates E12 and retains the exact-distance-eight classes E13. */
     public void runE13() {
+        propagateExactDistance(
+                stage("e12"), "E12", E12_DOMAIN,
+                stage("e13"), "E13", E13_DOMAIN, 7, 8);
+    }
+
+    /** Computes the threshold layer H13(7) needed to propagate E14. */
+    public void runH13() {
         final var e12Stage = stage("e12");
         StageManifest.requireComplete(e12Stage, "E12", E12_DOMAIN);
         final var layerStage = stage("h13-ge7");
-        final var e13Stage = stage("e13");
-        recoverS13Manifests(layerStage, e13Stage);
         if (StageManifest.isComplete(layerStage)) {
             StageManifest.requireComplete(
                     layerStage, "H13_GE7", E13_DOMAIN);
-            StageManifest.requireComplete(e13Stage, "E13", E13_DOMAIN);
-            log.info("H13(7) and E13 are already complete");
+            log.info("H13(7) is already complete");
             return;
         }
 
         final var expanded = new LongAdder();
         final var examined = new LongAdder();
         final var retainedInLayer = new LongAdder();
-        final var retainedInE13 = new LongAdder();
         try (final var e12 = new ClassStore(
                 e12Stage.resolve("classes"), E12_DOMAIN, false);
              final var layer = new ClassStore(
                      layerStage.resolve("classes"), E13_DOMAIN, true);
              final var layerWitnesses = new WitnessStore(
-                     layerStage.resolve("witnesses"), true);
-             final var e13 = new ClassStore(
-                     e13Stage.resolve("classes"), E13_DOMAIN, true);
-             final var e13Witnesses = new WitnessStore(
-                     e13Stage.resolve("witnesses"), true)) {
+                     layerStage.resolve("witnesses"), true)) {
             addFixedPointExpansions(e12, E13_DOMAIN, layer, expanded);
 
             FixedPointFreeClassGenerator.generate(
@@ -95,30 +96,20 @@ public final class ExtremalPipeline {
                     layerStage.resolve("fixed-point-free.checkpoints"),
                     pair -> {
                         examined.increment();
-                        final var result = classifyS13Layer(
-                                pair, layer, layerWitnesses,
-                                e13, e13Witnesses);
-                        if (result.inLayer()) {
+                        if (retainThresholdDistance(
+                                pair, 6, 8, layer, layerWitnesses)) {
                             retainedInLayer.increment();
-                        }
-                        if (result.inE13()) {
-                            retainedInE13.increment();
                         }
                     });
 
-            final var e13Summary = e13.summarize();
             final var layerSummary = layer.summarize();
-            // E13 is written first so an interrupted two-manifest commit can
-            // safely recover H13(7), whose store is already complete.
-            StageManifest.complete(
-                    e13Stage, "E13", E13_DOMAIN, e13Summary);
             StageManifest.complete(
                     layerStage, "H13_GE7", E13_DOMAIN, layerSummary);
-            log.info("S13 layers complete: expanded={}, fixed-point-free "
-                            + "examined={}, fixed-point-free in H13(7)={}, "
-                            + "new E13={}, E13 stored={}, H13(7) stored={}",
+            log.info("H13(7) complete: expanded={}, fixed-point-free "
+                            + "examined={}, fixed-point-free retained={}, "
+                            + "stored={}",
                     expanded.sum(), examined.sum(), retainedInLayer.sum(),
-                    retainedInE13.sum(), e13Summary.count(), layerSummary.count());
+                    layerSummary.count());
         }
     }
 
@@ -196,6 +187,7 @@ public final class ExtremalPipeline {
 
         final var examined = new LongAdder();
         final var qualified = new LongAdder();
+        final var completedParents = new AtomicLong();
         try (final var parents = new ClassStore(
                 e17Stage.resolve("classes"), E17_DOMAIN, false);
              final var processedParents = new ClassStore(
@@ -206,7 +198,7 @@ public final class ExtremalPipeline {
                      stage.resolve("classes"), E18_DOMAIN, true);
              final var witnesses = new WitnessStore(
                      stage.resolve("witnesses"), true)) {
-            parents.forEach(parent -> {
+            parents.forEachParallel(availableProcessors(), parent -> {
                 if (processedParents.contains(parent)) {
                     return;
                 }
@@ -236,6 +228,12 @@ public final class ExtremalPipeline {
                     processedCandidates.add(canonical);
                 }
                 processedParents.add(parent);
+                final var completed = completedParents.incrementAndGet();
+                if (completed % PROPAGATION_LOG_INTERVAL == 0) {
+                    log.info("TD(18) propagation progress: new parents={}, "
+                                    + "raw children={}, qualified={}",
+                            completed, examined.sum(), qualified.sum());
+                }
             });
             final var summary = candidates.summarize();
             StageManifest.complete(
@@ -249,6 +247,7 @@ public final class ExtremalPipeline {
     public void runAll() {
         runE12();
         runE13();
+        runH13();
         runE14();
         runE15();
         runE16();
@@ -276,6 +275,7 @@ public final class ExtremalPipeline {
         final var examined = new LongAdder();
         final var qualified = new LongAdder();
         final var retained = new LongAdder();
+        final var completedParents = new AtomicLong();
         try (final var parents = new ClassStore(
                 parentStage.resolve("classes"), parentDomain, false);
              final var processedParents = new ClassStore(
@@ -286,7 +286,7 @@ public final class ExtremalPipeline {
                      childStage.resolve("classes"), childDomain, true);
              final var witnesses = new WitnessStore(
                      childStage.resolve("witnesses"), true)) {
-            parents.forEach(parent -> {
+            parents.forEachParallel(availableProcessors(), parent -> {
                 if (processedParents.contains(parent)) {
                     return;
                 }
@@ -309,6 +309,14 @@ public final class ExtremalPipeline {
                     processedCandidates.add(canonical);
                 }
                 processedParents.add(parent);
+                final var completed = completedParents.incrementAndGet();
+                if (completed % PROPAGATION_LOG_INTERVAL == 0) {
+                    log.info("{} propagation progress: new parents={}, "
+                                    + "raw children={}, removal-qualified={}, "
+                                    + "retained={}",
+                            childName, completed, examined.sum(),
+                            qualified.sum(), retained.sum());
+                }
             });
             final var summary = classes.summarize();
             StageManifest.complete(
@@ -320,42 +328,32 @@ public final class ExtremalPipeline {
         }
     }
 
-    private LayerResult classifyS13Layer(
+    private boolean retainThresholdDistance(
             final CyclicTargetPair pair,
-            final ClassStore layer,
-            final WitnessStore layerWitnesses,
-            final ClassStore e13,
-            final WitnessStore e13Witnesses
+            final int excludedDepth,
+            final int witnessDepth,
+            final ClassStore classes,
+            final WitnessStore witnesses
     ) {
         final var canonical = pair.canonicalRepresentative();
-        if (layer.contains(canonical)) {
-            return new LayerResult(false, false);
+        if (classes.contains(canonical)) {
+            return false;
         }
-        if (ApproximationBound.guaranteedMoves(canonical.getThreeNorm()) <= 6
-                || sorter.sort(canonical, 6).isPresent()) {
-            return new LayerResult(false, false);
+        if (ApproximationBound.guaranteedMoves(canonical.getThreeNorm())
+                <= excludedDepth
+                || sorter.sort(canonical, excludedDepth).isPresent()) {
+            return false;
         }
-
-        final var depthSeven = sorter.sort(canonical, 7);
-        if (depthSeven.isPresent()) {
-            layerWitnesses.put(canonical, depthSeven.orElseThrow());
-            layer.add(canonical);
-            return new LayerResult(true, false);
-        }
-
-        final var depthEight = sorter.sort(canonical, 8)
+        final var witness = sorter.sort(canonical, witnessDepth)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Known TD(13) bound failed for class "
+                        "Known diameter bound failed for threshold class "
                                 + canonical.extendedToricClassKey()));
-        if (depthEight.isEmpty()) {
+        if (witness.isEmpty()) {
             throw new IllegalStateException(
-                    "A member of E13 unexpectedly represents the identity");
+                    "A threshold class unexpectedly represents the identity");
         }
-        layerWitnesses.put(canonical, depthEight);
-        e13Witnesses.put(canonical, depthEight);
-        e13.add(canonical);
-        layer.add(canonical);
-        return new LayerResult(true, true);
+        witnesses.put(canonical, witness);
+        return classes.add(canonical);
     }
 
     private boolean retainExactDistance(
@@ -422,37 +420,11 @@ public final class ExtremalPipeline {
         return true;
     }
 
-    private static void recoverS13Manifests(
-            final Path layerStage,
-            final Path e13Stage
-    ) {
-        final var layerComplete = StageManifest.isComplete(layerStage);
-        final var e13Complete = StageManifest.isComplete(e13Stage);
-        if (layerComplete && !e13Complete) {
-            throw new IllegalStateException(
-                    "H13(7) is complete but its E13 subset is incomplete");
-        }
-        if (!layerComplete && e13Complete) {
-            FixedPointFreeClassGenerator.requireComplete(
-                    E13_DOMAIN,
-                    layerStage.resolve("fixed-point-free.checkpoints"));
-            try (final var layer = new ClassStore(
-                    layerStage.resolve("classes"), E13_DOMAIN, false)) {
-                StageManifest.complete(
-                        layerStage, "H13_GE7", E13_DOMAIN,
-                        layer.summarize());
-            }
-        }
-    }
-
     private Path stage(final String name) {
         return workDirectory.resolve(name);
     }
 
     private static int availableProcessors() {
         return Math.max(1, Runtime.getRuntime().availableProcessors());
-    }
-
-    private record LayerResult(boolean inLayer, boolean inE13) {
     }
 }

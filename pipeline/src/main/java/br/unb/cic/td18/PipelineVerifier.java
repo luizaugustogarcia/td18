@@ -27,6 +27,7 @@ public final class PipelineVerifier {
     public void verifyAll() {
         verifyE12();
         verifyE13();
+        verifyH13();
         verifyE14();
         verifyE15();
         verifyE16();
@@ -54,6 +55,18 @@ public final class PipelineVerifier {
     }
 
     public void verifyE13() {
+        verifyPropagatedExactStage(
+                workDirectory.resolve("e12"), "E12", E12_DOMAIN,
+                workDirectory.resolve("e13"), "E13", E13_DOMAIN,
+                7, 8);
+        try (final var e13 = checkedClasses(
+                workDirectory.resolve("e13"), "E13", E13_DOMAIN)) {
+            e13.forEach(pair -> requireFixedPointCount(pair, 0));
+        }
+        log.info("E13 verified");
+    }
+
+    public void verifyH13() {
         final var e12Stage = workDirectory.resolve("e12");
         final var layerStage = workDirectory.resolve("h13-ge7");
         final var e13Stage = workDirectory.resolve("e13");
@@ -65,9 +78,8 @@ public final class PipelineVerifier {
                      layerStage, "H13_GE7", E13_DOMAIN);
              final var layerWitnesses = new WitnessStore(
                      layerStage.resolve("witnesses"), false);
-             final var e13 = checkedClasses(e13Stage, "E13", E13_DOMAIN);
-             final var e13Witnesses = new WitnessStore(
-                     e13Stage.resolve("witnesses"), false)) {
+             final var e13 = checkedClasses(
+                     e13Stage, "E13", E13_DOMAIN)) {
             requireEveryFixedPointExpansion(e12, E13_DOMAIN, layer,
                     "Expand(E12) child is missing from H13(7)");
 
@@ -86,35 +98,23 @@ public final class PipelineVerifier {
                 }
                 requireNoSorting(pair, 6);
                 requireWitness(pair, 8, layerWitnesses);
-                final var belongsToE13 = sorter.sort(pair, 7).isEmpty();
-                if (belongsToE13 != e13.contains(pair)) {
-                    throw new IllegalStateException(
-                            "E13 does not equal the depth-seven failures in H13(7)");
-                }
-                if (belongsToE13) {
-                    requireWitness(pair, 8, e13Witnesses);
-                }
             });
 
             e13.forEach(pair -> {
-                requireFixedPointCount(pair, 0);
                 if (!layer.contains(pair)) {
                     throw new IllegalStateException(
                             "E13 contains a class outside H13(7)");
                 }
-                requireNoSorting(pair, 7);
-                requireWitness(pair, 8, e13Witnesses);
             });
 
             FixedPointFreeClassGenerator.generate(
                     E13_DOMAIN,
                     layerStage.resolve(
                             "verification/fixed-point-free.checkpoints"),
-                    pair -> verifyS13Classification(
-                            pair, layer, layerWitnesses,
-                            e13, e13Witnesses));
+                    pair -> verifyS13Threshold(
+                            pair, layer, layerWitnesses));
         }
-        log.info("H13(7) and E13 verified");
+        log.info("H13(7) verified");
     }
 
     public void verifyE14() {
@@ -212,12 +212,10 @@ public final class PipelineVerifier {
         log.info("TD(18) candidate certificate verified");
     }
 
-    private void verifyS13Classification(
+    private void verifyS13Threshold(
             final CyclicTargetPair pair,
             final ClassStore layer,
-            final WitnessStore layerWitnesses,
-            final ClassStore e13,
-            final WitnessStore e13Witnesses
+            final WitnessStore layerWitnesses
     ) {
         final var canonical = pair.canonicalRepresentative();
         final var expectedInLayer = liesBeyondDepth(canonical, 6);
@@ -226,21 +224,9 @@ public final class PipelineVerifier {
                     "Fixed-point-free H13(7) classification mismatch");
         }
         if (!expectedInLayer) {
-            if (e13.contains(canonical)) {
-                throw new IllegalStateException(
-                        "E13 contains a class outside H13(7)");
-            }
             return;
         }
         requireWitness(canonical, 8, layerWitnesses);
-        final var expectedInE13 = sorter.sort(canonical, 7).isEmpty();
-        if (expectedInE13 != e13.contains(canonical)) {
-            throw new IllegalStateException(
-                    "Fixed-point-free E13 classification mismatch");
-        }
-        if (expectedInE13) {
-            requireWitness(canonical, 8, e13Witnesses);
-        }
     }
 
     private void verifyFixedPointFreeExactEnumeration(
@@ -309,7 +295,7 @@ public final class PipelineVerifier {
                  final var processedCandidates = new ClassStore(
                          verification.resolve("processed-candidates"),
                          childDomain, true)) {
-                parents.forEach(parent -> {
+                parents.forEachParallel(availableProcessors(), parent -> {
                     if (processedParents.contains(parent)) {
                         return;
                     }
@@ -367,7 +353,7 @@ public final class PipelineVerifier {
              final var processedCandidates = new ClassStore(
                      verification.resolve("processed-candidates"),
                      E18_DOMAIN, true)) {
-            parents.forEach(parent -> {
+            parents.forEachParallel(availableProcessors(), parent -> {
                 if (processedParents.contains(parent)) {
                     return;
                 }
@@ -509,5 +495,9 @@ public final class PipelineVerifier {
             }
         }
         return true;
+    }
+
+    private static int availableProcessors() {
+        return Math.max(1, Runtime.getRuntime().availableProcessors());
     }
 }

@@ -37,6 +37,7 @@ public final class ExtremalPipelineMain {
             switch (args[0]) {
                 case "e12" -> pipeline.runE12();
                 case "e13" -> pipeline.runE13();
+                case "h13", "h13-ge7" -> pipeline.runH13();
                 case "e14" -> pipeline.runE14();
                 case "e15" -> pipeline.runE15();
                 case "e16" -> pipeline.runE16();
@@ -69,7 +70,7 @@ public final class ExtremalPipelineMain {
 
     private static void usage() {
         System.out.println("""
-                Usage: ExtremalPipelineMain <e12|e13|e14|e15|e16|e17|e18|all|verify> [options]
+                Usage: ExtremalPipelineMain <e12|e13|h13|e14|e15|e16|e17|e18|all|verify> [options]
 
                   --work=PATH                 stage databases (default: data)
                   --gpu-devices=0,1           CUDA device ordinals (default: 0)

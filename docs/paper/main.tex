@@ -43,9 +43,10 @@ the preceding order must have every one-symbol deletion in the preceding
 extremal set.  We formulate this reduction for extended-toric classes of
 cyclic-target pairs, prove that one representative has only quadratically many
 child insertions before canonicalization, and obtain a finite pipeline that
-starts with the complete extremal set $\En_{12}$.  A global generation at
-order $13$ constructs the threshold set $\Hn_{13}(7)$ and its extremal subset
-$\En_{13}$; removal-filtered propagation then gives $\En_{14}$ and
+starts with the complete extremal set $\En_{12}$.  Removal-filtered
+propagation computes $\En_{13}$ directly from $\En_{12}$, while an independent
+global generation at order $13$ constructs the larger threshold set
+$\Hn_{13}(7)$ needed to propagate $\En_{14}$.  A further propagation gives
 $\En_{15}$.  After the complete set $\En_{16}$ is computed, two further
 propagations reduce the order-$18$ claim to explicit ten-move sorting
 witnesses.  Together with the known lower bound, successful exhaustive
@@ -381,8 +382,10 @@ Stage & Cyclic domain & Input or enumeration & Required conclusion \\
 \midrule
 $\En_{12}$ & $13$ & all fixed-point-free classes
   & fail at $6$, sort at $7$ \\
-$\Hn_{13}(7),\En_{13}$ & $14$ & $\operatorname{Expand}(\En_{12})$ and all
-  fixed-point-free classes & fail at $6$; classify at $7$ and $8$ \\
+$\En_{13}$ & $14$ & children of $\En_{12}$ with all removals in $\En_{12}$
+  & fail at $7$, sort at $8$ \\
+$\Hn_{13}(7)$ & $14$ & $\operatorname{Expand}(\En_{12})$ and all
+  fixed-point-free classes & fail at $6$, sort at or before $8$ \\
 $\En_{14}$ & $15$ & children of $\Hn_{13}(7)$ with all removals in
   $\Hn_{13}(7)$ & fail at $7$, sort at $8$ \\
 $\En_{15}$ & $16$ & children of $\En_{14}$ with all removals in $\En_{14}$
@@ -409,15 +412,27 @@ bracelet on the $13$-symbol cyclic domain, search it exhaustively through
 depth six, and retain precisely the failures.  A checked seven-move sorting
 sequence for every retained class proves the matching upper bound.
 
-\subsection{Computing \texorpdfstring{$\Hn_{13}(7)$}{H13(7)}
-and \texorpdfstring{$\En_{13}$}{E13}}
+\subsection{Computing \texorpdfstring{$\En_{13}$}{E13} and
+\texorpdfstring{$\Hn_{13}(7)$}{H13(7)}}
+
+Every removal of a class in $\En_{13}$ has distance at least seven by
+Corollary~\ref{cor:threshold-removals}.  Since $TD(12)=7$, all these removals
+belong to $\En_{12}$.  We therefore stream the children of $\En_{12}$,
+discard a child as soon as one removal lies outside $\En_{12}$, and
+canonicalize and deduplicate the survivors.  Proposition~\ref{prop:class-compatibility}
+ensures that this procedure includes every class in $\En_{13}$.  Exhaustive
+failure through depth seven and a checked depth-eight sorting sequence then
+characterize $\En_{13}$ exactly.
 
 The fixed-point part of $\Hn_{13}(7)$ is
 $\operatorname{Expand}(\En_{12})$.  We globally enumerate the
 fixed-point-free classes on the $14$-symbol cyclic domain.  Failure through
-depth six identifies membership in $\Hn_{13}(7)$; failure through depth seven
-identifies its extremal subset $\En_{13}$ because $TD(13)=8$.  Classes that
-sort at depth seven and eight retain their respective witnesses.
+depth six identifies membership in $\Hn_{13}(7)$, and the known equality
+$TD(13)=8$ supplies the ambient upper bound.  Each retained fixed-point-free
+class receives a checked sorting sequence of length at most eight.  This
+global computation is independent of the preceding computation of
+$\En_{13}$ and is required because a class of distance seven may have a
+removal of distance six rather than a removal in $\En_{12}$.
 
 The online rearrangement database lists 427 ordinary permutations of
 $S_{13}$ at distance eight~\cite{RearrangementDatabase2026}.  This is a
@@ -538,10 +553,14 @@ The verification pass checks the following obligations.
         key table.
   \item For $\En_{12}$, it independently repeats fixed-point-free generation,
         every depth-six failure, and every depth-seven witness.
-  \item For $\Hn_{13}(7)$ and $\En_{13}$, it reconstructs
+  \item For $\En_{13}$, it independently regenerates the children whose every
+        removal belongs to $\En_{12}$, repeats the depth-seven failures, and
+        replays the depth-eight witnesses.
+  \item For $\Hn_{13}(7)$, it reconstructs
         $\operatorname{Expand}(\En_{12})$, independently enumerates the
-        fixed-point-free part, and repeats the depth-six and depth-seven
-        classifications.
+        fixed-point-free part, repeats the depth-six classification, and
+        checks a sorting witness of length at most eight for every retained
+        fixed-point-free class.
   \item For $\En_{14}$ and $\En_{15}$, it independently regenerates the
         removal-qualified children, repeats the excluded-depth searches, and
         replays the stored witnesses.
@@ -584,8 +603,8 @@ Item & Software status & Proof-artifact status \\
 Class deletion and insertion & implemented and tested & small-order checks pass \\
 Fixed-point-free direct generation & implemented and tested & large run pending \\
 $\En_{12}$ classification & implemented & complete artifact pending \\
-$\Hn_{13}(7)$ and $\En_{13}$ classification
-  & implemented & complete artifacts pending \\
+$\En_{13}$ propagation & implemented & complete artifact pending \\
+$\Hn_{13}(7)$ classification & implemented & complete artifact pending \\
 $\En_{14}$ and $\En_{15}$ propagation
   & implemented & complete artifacts pending \\
 $\En_{16}$ classification & implemented & complete artifact pending \\
@@ -608,11 +627,12 @@ and the location and checksum of the archived certificate.
 \section{Conclusion}\label{sec:conclusion}
 
 One-symbol deletion turns the order-$18$ diameter question into propagation
-of a sequence of threshold and extremal class sets.  Starting at $\En_{12}$
-is what makes the fixed-point part of $\Hn_{13}(7)$ complete; global
-twisted-bracelet generation supplies its fixed-point-free part.  Propagation
-then computes $\En_{14}$ and $\En_{15}$ without global enumeration at those
-orders.  After the complete $\En_{16}$ table has been computed, neither
+of a sequence of threshold and extremal class sets.  The set $\En_{13}$ is
+obtained directly from removal-qualified children of $\En_{12}$.  Starting at
+$\En_{12}$ also makes the fixed-point part of $\Hn_{13}(7)$ complete, while
+global twisted-bracelet generation independently supplies its fixed-point-free
+part.  Propagation then computes $\En_{14}$ and $\En_{15}$ without global
+enumeration at those orders.  After the complete $\En_{16}$ table has been computed, neither
 $S_{17}$ nor $S_{18}$ is enumerated globally.  Only canonical children whose
 every deletion remains in the required preceding set can advance.
 Compatibility with extended-toric equivalence permits this propagation

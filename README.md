@@ -3,7 +3,9 @@
 This repository implements the computation
 
 ```text
-E12 -> H13(7) -> E13 -> E14 -> E15 -> E16 -> E17 -> TD(18) <= 10
+       +-> E13
+E12 ---+
+       +-> H13(7) -> E14 -> E15 -> E16 -> E17 -> TD(18) <= 10
 ```
 
 where `E_n` is the set of diametral extended-toric classes at order `n`.
@@ -48,18 +50,21 @@ The stages are:
 
 1. `e12`: classify every fixed-point-free class on the 13-symbol cyclic
    domain and retain the depth-six failures with depth-seven witnesses.
-2. `e13`: form the fixed-point part of `H13(7)` as `Expand(E12)`, classify
-   every fixed-point-free class on the 14-symbol cyclic domain, and persist
-   both `H13(7)` and its depth-seven failures `E13`.
-3. `e14`: generate children of `H13(7)`, require every removal to remain in
+2. `e13`: generate children of `E12`, require every removal to belong to
+   `E12`, and retain the depth-seven failures with depth-eight witnesses.
+3. `h13`: independently form the fixed-point part of `H13(7)` as
+   `Expand(E12)` and classify every fixed-point-free class on the 14-symbol
+   cyclic domain through depth six. A search through depth eight supplies an
+   upper-bound witness for each retained fixed-point-free class.
+4. `e14`: generate children of `H13(7)`, require every removal to remain in
    `H13(7)`, and retain the depth-seven failures with depth-eight witnesses.
-4. `e15`: generate children of `E14`, apply the all-removals-in-`E14` filter,
+5. `e15`: generate children of `E14`, apply the all-removals-in-`E14` filter,
    and retain the depth-eight failures with depth-nine witnesses.
-5. `e16`: generate the fixed-point part as `Expand(E15)`, classify every
+6. `e16`: generate the fixed-point part as `Expand(E15)`, classify every
    fixed-point-free 17-symbol class through depth eight, and retain `E16`.
-6. `e17`: generate children of `E16`, require every removal to belong to
+7. `e17`: generate children of `E16`, require every removal to belong to
    `E16`, and retain the depth-nine failures with depth-ten witnesses.
-7. `e18`: generate children of `E17`, apply the all-removals filter, and
+8. `e18`: generate children of `E17`, apply the all-removals filter, and
    require a verified witness of length at most ten for every survivor.
 
 The propagated stages fuse raw insertion, the all-removals test,
@@ -106,6 +111,10 @@ mvn -Pgpu -pl pipeline compile exec:java \
 
 Additional options control the GPU queue, statistics period, and generator
 worker count; run the main class with `help` to list them.
+
+The `e13` and `h13` commands are separate resumable stages. Run `e13` first
+to obtain the small extremal set through removal-filtered propagation; run
+`h13` when preparing the larger threshold set required by `e14`.
 
 Each completed stage is immutable by convention. If interrupted before its
 manifest is written, global generation resumes at annotated-partition

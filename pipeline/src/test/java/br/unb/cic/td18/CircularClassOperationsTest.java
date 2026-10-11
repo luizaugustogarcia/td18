@@ -23,6 +23,7 @@ import static br.unb.cic.td18.CircularClassOperations.insertions;
 import static br.unb.cic.td18.CircularClassOperations.removalClassMultiset;
 import static br.unb.cic.td18.CircularClassOperations.removeSymbol;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CircularClassOperationsTest {
@@ -128,6 +129,47 @@ class CircularClassOperationsTest {
                 pair.extendedToricClassKey()));
 
         assertEquals(directlyEnumerated, generatedChildren);
+    }
+
+    @Test
+    void removalFilteredRepresentativeInsertionsAreCompleteAtSmallOrder() {
+        final Map<ExtendedToricClassKey, CyclicTargetPair> allParentClasses =
+                new LinkedHashMap<>();
+        ordinaryPairs(3).forEach(pair -> allParentClasses.putIfAbsent(
+                pair.extendedToricClassKey(), pair));
+
+        final Map<ExtendedToricClassKey, CyclicTargetPair> selectedParents =
+                new LinkedHashMap<>();
+        allParentClasses.entrySet().stream()
+                .limit(Math.max(1, allParentClasses.size() - 1L))
+                .forEach(entry -> selectedParents.put(
+                        entry.getKey(), entry.getValue()));
+
+        final Set<ExtendedToricClassKey> generated = new HashSet<>();
+        selectedParents.values().forEach(parent -> childClasses(parent).stream()
+                .filter(child -> removalsBelongTo(
+                        child, selectedParents.keySet()))
+                .forEach(child -> generated.add(
+                        child.extendedToricClassKey())));
+
+        final Set<ExtendedToricClassKey> directlyEnumerated = new HashSet<>();
+        ordinaryPairs(4).stream()
+                .filter(child -> removalsBelongTo(
+                        child, selectedParents.keySet()))
+                .forEach(child -> directlyEnumerated.add(
+                        child.extendedToricClassKey()));
+
+        assertFalse(directlyEnumerated.isEmpty());
+        assertEquals(directlyEnumerated, generated);
+    }
+
+    private static boolean removalsBelongTo(
+            final CyclicTargetPair pair,
+            final Set<ExtendedToricClassKey> parents
+    ) {
+        return CircularClassOperations.removals(pair).stream()
+                .map(CyclicTargetPair::extendedToricClassKey)
+                .allMatch(parents::contains);
     }
 
     private static Set<ExtendedToricClassKey> childKeys(
