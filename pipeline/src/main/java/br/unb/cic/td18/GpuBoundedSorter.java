@@ -48,12 +48,13 @@ public final class GpuBoundedSorter implements BoundedSorter {
         for (var index = 0; index < beta.size(); index++) {
             betaBytes[index] = (byte) beta.get(index);
         }
+        final var minRate = 2 / (maximumMoves / (float) canonical.getOmega().get3Norm());
         final var moves = GPUSortingSearch.getInstance().search(
                         betaBytes,
                         new OneLinePermutation(
                                 canonical.getOmega().getOneLineNotation()),
                         canonical.getOmega().getNumberOfEvenCycles(),
-                        0,
+                        minRate,
                         maximumMoves,
                         true)
                 .stream()
