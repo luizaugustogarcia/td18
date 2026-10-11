@@ -1,6 +1,7 @@
 package br.unb.cic.td18;
 
 import br.unb.cic.tdp.DirectTwistedBraceletGenerator;
+import br.unb.cic.tdp.base.GPUSortingSearch;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -52,6 +53,7 @@ public final class ExtremalPipelineMain {
                         "Unknown command: " + args[0]);
             }
         } finally {
+            GPUSortingSearch.shutdownStatsReporter();
             DirectTwistedBraceletGenerator.shutdownExecutor();
         }
     }

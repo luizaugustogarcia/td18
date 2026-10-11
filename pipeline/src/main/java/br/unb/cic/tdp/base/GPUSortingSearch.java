@@ -112,6 +112,13 @@ public class GPUSortingSearch {
         return instance;
     }
 
+    /** Stops the optional periodic statistics reporter. */
+    public static synchronized void shutdownStatsReporter() {
+        if (instance != null && instance.statsReporter != null) {
+            instance.statsReporter.shutdownNow();
+        }
+    }
+
     private static native void initSlots(int totalSlots, int[] devices, long queueBytesBudget);
 
     private static native int[][] searchForSortingSeq(byte[] beta, byte[] omega, int initialEvenCycles, float minRate, int maxMoves, boolean fullSorting, int slot);
