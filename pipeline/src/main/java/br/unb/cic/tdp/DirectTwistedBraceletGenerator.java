@@ -1500,7 +1500,7 @@ public final class DirectTwistedBraceletGenerator {
             for (var index = 1; index < n; index++) {
                 rhoSymbols[index] = targetSuccessor[rhoSymbols[index - 1]];
             }
-            return CyclicTargetPair.ofKnownTargetOwned(
+            return CyclicTargetPair.ofCanonicalKnownTargetOwned(
                     omega, Cycle.of(betaSymbols), Cycle.of(rhoSymbols));
         }
 

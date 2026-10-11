@@ -77,6 +77,21 @@ public final class CyclicTargetPair extends CyclicTargetCandidate {
         return new CyclicTargetPair(omega, beta, rho, true, false);
     }
 
+    /**
+     * Takes ownership of a pair already proved to be the canonical member of
+     * its extended-toric class. This avoids repeating orbit minimization for
+     * representatives emitted by a direct canonical generator.
+     */
+    public static CyclicTargetPair ofCanonicalKnownTargetOwned(
+            final MulticyclePermutation omega,
+            final Cycle beta,
+            final Cycle rho
+    ) {
+        final var pair = new CyclicTargetPair(omega, beta, rho, true, false);
+        pair.canonicalRepresentative = pair;
+        return pair;
+    }
+
     /** Decodes and validates a realizable fixed-content encoding in one pass. */
     public static CyclicTargetPair fromEncodingWord(final EncodingWord word) {
         final var pair = new CyclicTargetPair(

@@ -1,7 +1,6 @@
 package br.unb.cic.td18;
 
 import br.unb.cic.tdp.base.CyclicTargetPair;
-import br.unb.cic.tdp.base.ExtendedToricClassKey;
 import br.unb.cic.tdp.permutation.Cycle;
 
 import java.util.List;
@@ -24,13 +23,13 @@ final class CoalescingBoundedSorter implements BoundedSorter {
             throw new IllegalArgumentException("Maximum moves must not be negative");
         }
         final var canonical = pair.canonicalRepresentative();
-        final var key = new SearchKey(canonical.extendedToricClassKey(), maximumMoves);
+        final var key = new SearchKey(EncodedClassKey.of(canonical), maximumMoves);
         final var result = searches.run(key, () -> delegate.sort(canonical, maximumMoves));
         // Cycle exposes a mutable symbol array; each caller owns its witness.
         return result.map(moves -> moves.stream()
                 .map(move -> Cycle.of(move.getSymbols().clone())).toList());
     }
 
-    private record SearchKey(ExtendedToricClassKey classKey, int maximumMoves) {
+    private record SearchKey(EncodedClassKey classKey, int maximumMoves) {
     }
 }

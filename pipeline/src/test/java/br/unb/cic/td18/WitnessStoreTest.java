@@ -33,4 +33,23 @@ class WitnessStoreTest {
             assertEquals(moves, store.find(pair, 1).orElseThrow());
         }
     }
+
+    @Test
+    void persistsWitnessBatch() {
+        final var parent = CyclicTargetPair.of(
+                new MulticyclePermutation(Cycle.of(0, 1, 2)),
+                Cycle.of(0, 1, 2));
+        final var moves = List.of(Cycle.of(0, 1, 2));
+        final var path = temporaryDirectory.resolve("batched-witnesses");
+
+        try (final var store = new WitnessStore(path, true)) {
+            store.putAll(List.of(
+                    new WitnessStore.Entry(parent, moves),
+                    new WitnessStore.Entry(parent.canonicalRepresentative(), moves)));
+        }
+
+        try (final var store = new WitnessStore(path, false)) {
+            assertEquals(moves, store.find(parent, 1).orElseThrow());
+        }
+    }
 }

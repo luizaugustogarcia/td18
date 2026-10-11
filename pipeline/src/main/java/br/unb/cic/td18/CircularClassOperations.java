@@ -6,7 +6,6 @@ import br.unb.cic.tdp.permutation.Cycle;
 import br.unb.cic.tdp.permutation.PermutationGroups;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,16 +123,15 @@ public final class CircularClassOperations {
      * representative per extended-toric class in deterministic key order.
      */
     public static List<CyclicTargetPair> childClasses(final CyclicTargetPair pair) {
-        final Map<ExtendedToricClassKey, CyclicTargetPair> byKey =
+        final Map<EncodedClassKey, CyclicTargetPair> byKey =
                 new LinkedHashMap<>();
         for (final var insertion : insertions(pair)) {
-            final var child = insertion.child();
-            byKey.putIfAbsent(child.extendedToricClassKey(), child);
+            final var child = insertion.child().canonicalRepresentative();
+            byKey.putIfAbsent(EncodedClassKey.of(child), child);
         }
         return byKey.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey(Comparator.comparing(
-                        ExtendedToricClassKey::twistedBracelet)))
-                .map(entry -> entry.getValue().canonicalRepresentative())
+                .sorted(Map.Entry.comparingByKey())
+                .map(Map.Entry::getValue)
                 .toList();
     }
 

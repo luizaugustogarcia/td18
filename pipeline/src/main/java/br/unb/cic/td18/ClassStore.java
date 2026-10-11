@@ -5,6 +5,7 @@ import br.unb.cic.tdp.base.CyclicTargetPair;
 import br.unb.cic.tdp.base.ExtendedToricClassKey;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteBatch;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -89,6 +90,23 @@ public final class ClassStore implements AutoCloseable {
         }
     }
 
+    /** Stores a batch without membership reads; existing values are replaced. */
+    public void putAll(final List<CyclicTargetPair> pairs) {
+        requireWritable();
+        Objects.requireNonNull(pairs);
+        if (pairs.isEmpty()) {
+            return;
+        }
+        try (final var writes = new WriteBatch()) {
+            for (final var pair : pairs) {
+                writes.put(keyFor(pair), PRESENT);
+            }
+            database.write(resources.writes, writes);
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot update class-store batch", failure);
+        }
+    }
+
     public boolean contains(final CyclicTargetPair pair) {
         final var key = keyFor(pair);
         try {
@@ -140,6 +158,26 @@ public final class ClassStore implements AutoCloseable {
             return present;
         } catch (final RocksDBException failure) {
             throw new IllegalStateException("Cannot query class-store batch", failure);
+        }
+    }
+
+    /** Exact batched membership for already encoded canonical keys. */
+    boolean[] containsEncoded(final List<EncodedClassKey> keys) {
+        Objects.requireNonNull(keys);
+        final var present = new boolean[keys.size()];
+        if (keys.isEmpty()) {
+            return present;
+        }
+        final var encoded = new ArrayList<byte[]>(keys.size());
+        keys.forEach(key -> encoded.add(key.bytes()));
+        try {
+            final var values = database.multiGetAsList(resources.reads, encoded);
+            for (var index = 0; index < values.size(); index++) {
+                present[index] = values.get(index) != null;
+            }
+            return present;
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot query encoded class-store batch", failure);
         }
     }
 

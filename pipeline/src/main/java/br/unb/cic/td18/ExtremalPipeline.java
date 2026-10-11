@@ -1,10 +1,13 @@
 package br.unb.cic.td18;
 
 import br.unb.cic.tdp.base.CyclicTargetPair;
+import br.unb.cic.tdp.permutation.Cycle;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -24,12 +27,13 @@ public final class ExtremalPipeline {
     private final Path workDirectory;
     private final BoundedSorter sorter;
     private final int lookupBatchSize;
+    private final int writeBatchSize;
 
     public ExtremalPipeline(
             final Path workDirectory,
             final BoundedSorter sorter
     ) {
-        this(workDirectory, sorter, 500);
+        this(workDirectory, sorter, 500, 500);
     }
 
     public ExtremalPipeline(
@@ -37,12 +41,25 @@ public final class ExtremalPipeline {
             final BoundedSorter sorter,
             final int lookupBatchSize
     ) {
+        this(workDirectory, sorter, lookupBatchSize, 500);
+    }
+
+    public ExtremalPipeline(
+            final Path workDirectory,
+            final BoundedSorter sorter,
+            final int lookupBatchSize,
+            final int writeBatchSize
+    ) {
         if (lookupBatchSize < 1) {
             throw new IllegalArgumentException("Lookup batch size must be positive");
+        }
+        if (writeBatchSize < 1) {
+            throw new IllegalArgumentException("Write batch size must be positive");
         }
         this.workDirectory = workDirectory.toAbsolutePath();
         this.sorter = sorter;
         this.lookupBatchSize = lookupBatchSize;
+        this.writeBatchSize = writeBatchSize;
     }
 
     /** Enumerates every fixed-point-free order-12 class and retains distance 7. */
@@ -59,16 +76,20 @@ public final class ExtremalPipeline {
                 stage.resolve("classes"), E12_DOMAIN, true);
              final var witnesses = new WitnessStore(
                      stage.resolve("witnesses"), true)) {
-            FixedPointFreeClassGenerator.generate(
-                    E12_DOMAIN,
-                    stage.resolve("fixed-point-free.checkpoints"),
-                    pair -> {
-                        examined.increment();
-                        if (retainExactDistance(
-                                pair, 6, 7, classes, witnesses)) {
-                            retained.increment();
-                        }
-                    });
+            try (final var writer = new RetainedClassWriter(
+                    classes, witnesses, writeBatchSize)) {
+                FixedPointFreeClassGenerator.generate(
+                        E12_DOMAIN,
+                        stage.resolve("fixed-point-free.checkpoints"),
+                        pair -> {
+                            examined.increment();
+                            exactDistanceWitness(pair, 6, 7).ifPresent(witness -> {
+                                writer.add(pair, witness);
+                                retained.increment();
+                            });
+                        },
+                        writer::flush);
+            }
             final var summary = classes.summarize();
             StageManifest.complete(stage, "E12", E12_DOMAIN, summary);
             log.info("E12 complete: examined={}, retained={}, stored={}",
@@ -106,16 +127,21 @@ public final class ExtremalPipeline {
                      layerStage.resolve("witnesses"), true)) {
             addFixedPointExpansions(e12, E13_DOMAIN, layer, expanded);
 
-            FixedPointFreeClassGenerator.generate(
-                    E13_DOMAIN,
-                    layerStage.resolve("fixed-point-free.checkpoints"),
-                    pair -> {
-                        examined.increment();
-                        if (retainThresholdDistance(
-                                pair, 6, 8, layer, layerWitnesses)) {
-                            retainedInLayer.increment();
-                        }
-                    });
+            try (final var writer = new RetainedClassWriter(
+                    layer, layerWitnesses, writeBatchSize)) {
+                FixedPointFreeClassGenerator.generate(
+                        E13_DOMAIN,
+                        layerStage.resolve("fixed-point-free.checkpoints"),
+                        pair -> {
+                            examined.increment();
+                            thresholdDistanceWitness(pair, 6, 8)
+                                    .ifPresent(witness -> {
+                                        writer.add(pair, witness);
+                                        retainedInLayer.increment();
+                                    });
+                        },
+                        writer::flush);
+            }
 
             final var layerSummary = layer.summarize();
             StageManifest.complete(
@@ -163,16 +189,20 @@ public final class ExtremalPipeline {
                      stage.resolve("witnesses"), true)) {
             addFixedPointExpansions(e15, E16_DOMAIN, classes, expanded);
 
-            FixedPointFreeClassGenerator.generate(
-                    E16_DOMAIN,
-                    stage.resolve("fixed-point-free.checkpoints"),
-                    pair -> {
-                        examined.increment();
-                        if (retainExactDistance(
-                                pair, 8, 9, classes, witnesses)) {
-                            retained.increment();
-                        }
-                    });
+            try (final var writer = new RetainedClassWriter(
+                    classes, witnesses, writeBatchSize)) {
+                FixedPointFreeClassGenerator.generate(
+                        E16_DOMAIN,
+                        stage.resolve("fixed-point-free.checkpoints"),
+                        pair -> {
+                            examined.increment();
+                            exactDistanceWitness(pair, 8, 9).ifPresent(witness -> {
+                                writer.add(pair, witness);
+                                retained.increment();
+                            });
+                        },
+                        writer::flush);
+            }
             final var summary = classes.summarize();
             StageManifest.complete(stage, "E16", E16_DOMAIN, summary);
             log.info("E16 complete: expanded={}, fixed-point-free examined={}, "
@@ -205,32 +235,28 @@ public final class ExtremalPipeline {
         final var completedParents = new AtomicLong();
         try (final var parents = new ClassStore(
                 e17Stage.resolve("classes"), E17_DOMAIN, false);
-             final var processedParents = new ClassStore(
-                     stage.resolve("processed-parents"), E17_DOMAIN, true);
-             final var processedCandidates = new ClassStore(
-                     stage.resolve("processed-candidates"), E18_DOMAIN, true);
              final var candidates = new ClassStore(
                      stage.resolve("classes"), E18_DOMAIN, true);
              final var witnesses = new WitnessStore(
                      stage.resolve("witnesses"), true)) {
-            forEachQualifiedChild(parents, processedParents, examined,
-                    completedParents, "TD(18)", qualified, null, child -> {
-                final var canonical = child.canonicalRepresentative();
-                processedCandidates.processIfAbsent(canonical, () -> {
-                    final var witness = sorter.sort(canonical, 10)
+            forEachQualifiedChild(parents, examined,
+                    completedParents, "TD(18)", qualified, null, children -> {
+                final var entries = new ArrayList<WitnessStore.Entry>(children.size());
+                for (final var child : children) {
+                    final var witness = sorter.sort(child, 10)
                             .orElseThrow(() -> new IllegalStateException(
                                     "Unresolved TD(18) candidate: "
-                                            + canonical.extendedToricClassKey()));
+                                            + child.extendedToricClassKey()));
                     if (witness.isEmpty()) {
                         throw new IllegalStateException(
                                 "An order-18 candidate unexpectedly represents "
                                         + "the identity");
                     }
-                    witnesses.put(canonical, witness);
-                    if (candidates.add(canonical)) {
-                        qualified.increment();
-                    }
-                });
+                    entries.add(new WitnessStore.Entry(child, witness));
+                }
+                witnesses.putAll(entries);
+                candidates.putAll(children);
+                qualified.add(children.size());
             });
             final var summary = candidates.summarize();
             StageManifest.complete(
@@ -275,25 +301,25 @@ public final class ExtremalPipeline {
         final var completedParents = new AtomicLong();
         try (final var parents = new ClassStore(
                 parentStage.resolve("classes"), parentDomain, false);
-             final var processedParents = new ClassStore(
-                     childStage.resolve("processed-parents"), parentDomain, true);
-             final var processedCandidates = new ClassStore(
-                     childStage.resolve("processed-candidates"), childDomain, true);
              final var classes = new ClassStore(
                      childStage.resolve("classes"), childDomain, true);
              final var witnesses = new WitnessStore(
                      childStage.resolve("witnesses"), true)) {
-            forEachQualifiedChild(parents, processedParents, examined,
-                    completedParents, childName, qualified, retained, child -> {
-                final var canonical = child.canonicalRepresentative();
-                processedCandidates.processIfAbsent(canonical, () -> {
-                    qualified.increment();
-                    if (retainExactDistance(
-                            canonical, excludedDepth, exactDepth,
-                            classes, witnesses)) {
-                        retained.increment();
-                    }
-                });
+            forEachQualifiedChild(parents, examined,
+                    completedParents, childName, qualified, retained, children -> {
+                qualified.add(children.size());
+                final var entries = new ArrayList<WitnessStore.Entry>();
+                final var retainedClasses = new ArrayList<CyclicTargetPair>();
+                for (final var child : children) {
+                    exactDistanceWitness(child, excludedDepth, exactDepth)
+                            .ifPresent(witness -> {
+                                entries.add(new WitnessStore.Entry(child, witness));
+                                retainedClasses.add(child);
+                            });
+                }
+                witnesses.putAll(entries);
+                classes.putAll(retainedClasses);
+                retained.add(retainedClasses.size());
             });
             final var summary = classes.summarize();
             StageManifest.complete(
@@ -307,13 +333,12 @@ public final class ExtremalPipeline {
 
     private void forEachQualifiedChild(
             final ClassStore parents,
-            final ClassStore processedParents,
             final LongAdder examined,
             final AtomicLong completedParents,
             final String stageName,
             final LongAdder qualified,
             final LongAdder retained,
-            final Consumer<CyclicTargetPair> consumer
+            final Consumer<List<CyclicTargetPair>> consumer
     ) {
         final var childrenPerParent = parents.domainSize() * parents.domainSize();
         final var parentBatchSize = 1 + (lookupBatchSize - 1) / childrenPerParent;
@@ -321,25 +346,18 @@ public final class ExtremalPipeline {
         log.info("{} propagation: workers={}, lookup batch size={}, parents/batch={}",
                 stageName, availableProcessors(), lookupBatchSize, parentBatchSize);
         parents.forEachBatchParallel(availableProcessors(), parentBatchSize, batch -> {
-            final var alreadyProcessed = processedParents.containsMany(batch);
-            final var pendingParents = new ArrayList<CyclicTargetPair>(batch.size());
-            final var children = new ArrayList<CyclicTargetPair>();
-            for (var index = 0; index < batch.size(); index++) {
-                if (alreadyProcessed[index]) {
-                    continue;
-                }
-                final var parent = batch.get(index);
-                pendingParents.add(parent);
-                for (final var insertion : CircularClassOperations.insertions(parent)) {
-                    children.add(insertion.child());
-                }
+            final var ownedQualifiedChildren = new ArrayList<CyclicTargetPair>();
+            for (final var parent : batch) {
+                examined.add(childrenPerParent);
+                RemovalMembershipFilter.forEachQualifiedOwnedBy(
+                        parent,
+                        CircularClassOperations.childClasses(parent),
+                        parents,
+                        lookupBatchSize,
+                        ownedQualifiedChildren::add);
             }
-            examined.add(children.size());
-            RemovalMembershipFilter.forEachQualified(
-                    children, parents, lookupBatchSize, consumer);
-            // Mark parents only after every child in this batch has been classified.
-            for (final var parent : pendingParents) {
-                processedParents.add(parent);
+            consumer.accept(List.copyOf(ownedQualifiedChildren));
+            for (final var ignored : batch) {
                 final var completed = completedParents.incrementAndGet();
                 if (completed % PROPAGATION_LOG_INTERVAL == 0) {
                     final var elapsedSeconds = (System.nanoTime() - startedAt) / 1.0e9;
@@ -353,21 +371,16 @@ public final class ExtremalPipeline {
         });
     }
 
-    private boolean retainThresholdDistance(
+    private Optional<List<Cycle>> thresholdDistanceWitness(
             final CyclicTargetPair pair,
             final int excludedDepth,
-            final int witnessDepth,
-            final ClassStore classes,
-            final WitnessStore witnesses
+            final int witnessDepth
     ) {
         final var canonical = pair.canonicalRepresentative();
-        if (classes.contains(canonical)) {
-            return false;
-        }
         if (ApproximationBound.guaranteedMoves(canonical.getThreeNorm())
                 <= excludedDepth
                 || sorter.sort(canonical, excludedDepth).isPresent()) {
-            return false;
+            return Optional.empty();
         }
         final var witness = sorter.sort(canonical, witnessDepth)
                 .orElseThrow(() -> new IllegalStateException(
@@ -377,27 +390,21 @@ public final class ExtremalPipeline {
             throw new IllegalStateException(
                     "A threshold class unexpectedly represents the identity");
         }
-        witnesses.put(canonical, witness);
-        return classes.add(canonical);
+        return Optional.of(witness);
     }
 
-    private boolean retainExactDistance(
+    private Optional<List<Cycle>> exactDistanceWitness(
             final CyclicTargetPair pair,
             final int excludedDepth,
-            final int exactDepth,
-            final ClassStore classes,
-            final WitnessStore witnesses
+            final int exactDepth
     ) {
         final var canonical = pair.canonicalRepresentative();
-        if (classes.contains(canonical) && witnesses.contains(canonical)) {
-            return false;
-        }
         if (ApproximationBound.guaranteedMoves(canonical.getThreeNorm())
                 <= excludedDepth) {
-            return false;
+            return Optional.empty();
         }
         if (sorter.sort(canonical, excludedDepth).isPresent()) {
-            return false;
+            return Optional.empty();
         }
         final var witness = sorter.sort(canonical, exactDepth)
                 .orElseThrow(() -> new IllegalStateException(
@@ -407,8 +414,7 @@ public final class ExtremalPipeline {
             throw new IllegalStateException(
                     "An extremal candidate unexpectedly represents the identity");
         }
-        witnesses.put(canonical, witness);
-        return classes.add(canonical);
+        return Optional.of(witness);
     }
 
     private static void addFixedPointExpansions(
@@ -423,14 +429,15 @@ public final class ExtremalPipeline {
                     "Fixed-point expansion domain mismatch");
         }
         parents.forEachParallel(availableProcessors(),
-                parent -> CircularClassOperations.fixedPointInsertions(parent).stream()
-                .map(CircularClassOperations.Insertion::child)
-                .map(CyclicTargetPair::canonicalRepresentative)
-                .forEach(child -> {
-                    if (children.add(child)) {
-                        added.increment();
-                    }
-                }));
+                parent -> {
+                    final var expansions = CircularClassOperations
+                            .fixedPointInsertions(parent).stream()
+                            .map(CircularClassOperations.Insertion::child)
+                            .map(CyclicTargetPair::canonicalRepresentative)
+                            .toList();
+                    children.putAll(expansions);
+                    added.add(expansions.size());
+                });
     }
 
     private Path stage(final String name) {

@@ -20,8 +20,19 @@ public final class FixedPointFreeClassGenerator {
             final Path checkpointFile,
             final Consumer<CyclicTargetPair> consumer
     ) {
+        generate(domainSize, checkpointFile, consumer, () -> { });
+    }
+
+    /** Generates classes and flushes caller state before each durable checkpoint. */
+    public static void generate(
+            final int domainSize,
+            final Path checkpointFile,
+            final Consumer<CyclicTargetPair> consumer,
+            final Runnable beforeCheckpoint
+    ) {
         Objects.requireNonNull(checkpointFile);
         Objects.requireNonNull(consumer);
+        Objects.requireNonNull(beforeCheckpoint);
         final var checkpoints = new CheckpointSet(checkpointFile);
         final var planned = plannedCheckpoints(domainSize);
         if (!planned.containsAll(checkpoints.snapshot())) {
@@ -39,6 +50,7 @@ public final class FixedPointFreeClassGenerator {
                         annotated.oriented(),
                         () -> { },
                         consumer);
+                beforeCheckpoint.run();
                 checkpoints.add(checkpoint);
             }
         }

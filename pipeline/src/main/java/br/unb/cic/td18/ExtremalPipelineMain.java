@@ -37,7 +37,8 @@ public final class ExtremalPipelineMain {
                 Long.parseLong(options.getOrDefault("gpu-budget-mib", "1024")));
         try {
             final var pipeline = new ExtremalPipeline(work, sorter,
-                    Integer.parseInt(options.getOrDefault("lookup-batch-size", "500")));
+                    Integer.parseInt(options.getOrDefault("lookup-batch-size", "500")),
+                    Integer.parseInt(options.getOrDefault("write-batch-size", "500")));
             switch (args[0]) {
                 case "e12" -> pipeline.runE12();
                 case "e13" -> pipeline.runE13();
@@ -85,6 +86,7 @@ public final class ExtremalPipelineMain {
                   --gpu-stats-seconds=NUMBER  statistics period (default: 60)
                   --generator-workers=NUMBER  generator workers (default: auto)
                   --lookup-batch-size=NUMBER  removal lookups per batch (default: 500)
+                  --write-batch-size=NUMBER   output records per batch (default: 500)
                   --rocksdb-cache-mib=NUMBER   block cache per store (default: 256)
                 """);
     }

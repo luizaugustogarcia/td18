@@ -19,10 +19,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DirectTwistedBraceletGeneratorTest {
+
+    @Test
+    void emittedRepresentativesAreMarkedAndActuallyCanonical() {
+        DirectTwistedBraceletGenerator.generateRepresentatives(
+                new int[]{5, 3}, new boolean[]{true, false}, pair -> {
+                    assertSame(pair, pair.canonicalRepresentative());
+                    assertEquals(pair, CyclicTargetPair.fromEncodingWord(
+                            pair.twistedBraceletKey().canonicalWord()));
+                });
+    }
 
     @Test
     void defaultWorkerCountIncludesOneWorkerForEveryGpuSlot() {

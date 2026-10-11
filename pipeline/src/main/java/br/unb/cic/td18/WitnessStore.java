@@ -6,6 +6,7 @@ import br.unb.cic.tdp.base.CyclicTargetPair;
 import br.unb.cic.tdp.permutation.Cycle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteBatch;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,6 +54,29 @@ public final class WitnessStore implements AutoCloseable {
         }
     }
 
+    /** Stores validated witnesses in one WAL-free RocksDB write batch. */
+    public void putAll(final List<Entry> entries) {
+        if (!writable) {
+            throw new IllegalStateException("Witness store is read-only");
+        }
+        if (entries.isEmpty()) {
+            return;
+        }
+        try (final var writes = new WriteBatch()) {
+            for (final var entry : entries) {
+                final var canonical = entry.pair().canonicalRepresentative();
+                CertificateValidator.validate(
+                        canonical, entry.moves(), entry.moves().size());
+                writes.put(CertificateCodec.keyFor(canonical),
+                        CertificateCodec.valueFor(entry.moves()));
+            }
+            database.write(resources.writes, writes);
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException(
+                    "Cannot persist sorting-witness batch", failure);
+        }
+    }
+
     public Optional<List<Cycle>> find(
             final CyclicTargetPair pair,
             final int maximumMoves
@@ -86,5 +110,13 @@ public final class WitnessStore implements AutoCloseable {
     public void close() {
         database.close();
         resources.close();
+    }
+
+    public record Entry(CyclicTargetPair pair, List<Cycle> moves) {
+        public Entry {
+            if (pair == null || moves == null) {
+                throw new NullPointerException();
+            }
+        }
     }
 }
