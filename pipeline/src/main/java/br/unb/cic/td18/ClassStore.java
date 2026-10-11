@@ -81,7 +81,7 @@ public final class ClassStore implements AutoCloseable {
                 if (database.get(resources.reads, key) != null) {
                     return false;
                 }
-                database.put(key, PRESENT);
+                database.put(resources.writes, key, PRESENT);
                 return true;
             } catch (final RocksDBException failure) {
                 throw new IllegalStateException("Cannot update class store", failure);

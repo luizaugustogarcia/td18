@@ -46,7 +46,7 @@ public final class WitnessStore implements AutoCloseable {
         final var canonical = pair.canonicalRepresentative();
         CertificateValidator.validate(canonical, moves, moves.size());
         try {
-            database.put(CertificateCodec.keyFor(canonical),
+            database.put(resources.writes, CertificateCodec.keyFor(canonical),
                     CertificateCodec.valueFor(moves));
         } catch (final RocksDBException failure) {
             throw new IllegalStateException("Cannot persist sorting witness", failure);
