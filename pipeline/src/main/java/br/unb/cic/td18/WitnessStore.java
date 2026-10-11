@@ -4,8 +4,6 @@ import br.unb.cic.tdp.base.CertificateCodec;
 import br.unb.cic.tdp.base.CertificateValidator;
 import br.unb.cic.tdp.base.CyclicTargetPair;
 import br.unb.cic.tdp.permutation.Cycle;
-import org.rocksdb.Options;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -21,26 +19,22 @@ public final class WitnessStore implements AutoCloseable {
     }
 
     private final boolean writable;
-    private final Options options;
-    private final ReadOptions readOptions = new ReadOptions()
-            .setVerifyChecksums(true)
-            .setFillCache(false);
+    private final RocksStoreResources resources;
     private final RocksDB database;
 
     public WitnessStore(final Path directory, final boolean writable) {
         this.writable = writable;
-        options = new Options().setCreateIfMissing(writable).setMaxOpenFiles(-1);
+        resources = new RocksStoreResources(writable);
         try {
             if (writable) {
                 Files.createDirectories(directory);
-                database = RocksDB.open(options, directory.toAbsolutePath().toString());
+                database = RocksDB.open(resources.options, directory.toAbsolutePath().toString());
             } else {
                 database = RocksDB.openReadOnly(
-                        options, directory.toAbsolutePath().toString());
+                        resources.options, directory.toAbsolutePath().toString());
             }
         } catch (final Exception failure) {
-            readOptions.close();
-            options.close();
+            resources.close();
             throw new IllegalStateException("Cannot open witness store " + directory, failure);
         }
     }
@@ -66,7 +60,7 @@ public final class WitnessStore implements AutoCloseable {
         final var canonical = pair.canonicalRepresentative();
         final byte[] encoded;
         try {
-            encoded = database.get(readOptions, CertificateCodec.keyFor(canonical));
+            encoded = database.get(resources.reads, CertificateCodec.keyFor(canonical));
         } catch (final RocksDBException failure) {
             throw new IllegalStateException("Cannot query witness store", failure);
         }
@@ -81,7 +75,7 @@ public final class WitnessStore implements AutoCloseable {
     public boolean contains(final CyclicTargetPair pair) {
         final var canonical = pair.canonicalRepresentative();
         try {
-            return database.get(readOptions,
+            return database.get(resources.reads,
                     CertificateCodec.keyFor(canonical)) != null;
         } catch (final RocksDBException failure) {
             throw new IllegalStateException("Cannot query witness store", failure);
@@ -91,7 +85,6 @@ public final class WitnessStore implements AutoCloseable {
     @Override
     public void close() {
         database.close();
-        readOptions.close();
-        options.close();
+        resources.close();
     }
 }

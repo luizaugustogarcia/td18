@@ -404,6 +404,15 @@ that could have larger distance.}
 \label{tab:pipeline}
 \end{table}
 
+The deletion criterion can be evaluated in rounds over a bounded batch of
+children.  In each round, one further symbol is deleted from every surviving
+child, and the resulting classes are tested for membership in the parent
+set.  A failed membership test rejects that child immediately; later
+deletions need not be constructed.  A child survives exactly when all of its
+deletions belong to the parent set, so batching does not change the candidate
+set.  A parent is recorded as processed only after all of its children have
+been classified; an interrupted batch may therefore be repeated safely.
+
 \subsection{Computing \texorpdfstring{$\En_{12}$}{E12}}
 
 Since $TD(12)=7>TD(11)=6$, every member of $\En_{12}$ is

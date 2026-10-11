@@ -4,6 +4,8 @@ import br.unb.cic.tdp.base.CyclicTargetPair;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.function.Consumer;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -21,13 +23,26 @@ public final class ExtremalPipeline {
 
     private final Path workDirectory;
     private final BoundedSorter sorter;
+    private final int lookupBatchSize;
 
     public ExtremalPipeline(
             final Path workDirectory,
             final BoundedSorter sorter
     ) {
+        this(workDirectory, sorter, 500);
+    }
+
+    public ExtremalPipeline(
+            final Path workDirectory,
+            final BoundedSorter sorter,
+            final int lookupBatchSize
+    ) {
+        if (lookupBatchSize < 1) {
+            throw new IllegalArgumentException("Lookup batch size must be positive");
+        }
         this.workDirectory = workDirectory.toAbsolutePath();
         this.sorter = sorter;
+        this.lookupBatchSize = lookupBatchSize;
     }
 
     /** Enumerates every fixed-point-free order-12 class and retains distance 7. */
@@ -198,42 +213,26 @@ public final class ExtremalPipeline {
                      stage.resolve("classes"), E18_DOMAIN, true);
              final var witnesses = new WitnessStore(
                      stage.resolve("witnesses"), true)) {
-            parents.forEachParallel(availableProcessors(), parent -> {
-                if (processedParents.contains(parent)) {
+            forEachQualifiedChild(parents, processedParents, examined,
+                    completedParents, "TD(18)", qualified, null, child -> {
+                final var canonical = child.canonicalRepresentative();
+                if (processedCandidates.contains(canonical)) {
                     return;
                 }
-                for (final var insertion : CircularClassOperations.insertions(parent)) {
-                    examined.increment();
-                    final var child = insertion.child();
-                    if (!allRemovalsBelongTo(child, parents)) {
-                        continue;
-                    }
-                    final var canonical = child.canonicalRepresentative();
-                    if (processedCandidates.contains(canonical)) {
-                        continue;
-                    }
-                    final var witness = sorter.sort(canonical, 10)
-                            .orElseThrow(() -> new IllegalStateException(
-                                    "Unresolved TD(18) candidate: "
-                                            + canonical.extendedToricClassKey()));
-                    if (witness.isEmpty()) {
-                        throw new IllegalStateException(
-                                "An order-18 candidate unexpectedly represents "
-                                        + "the identity");
-                    }
-                    witnesses.put(canonical, witness);
-                    if (candidates.add(canonical)) {
-                        qualified.increment();
-                    }
-                    processedCandidates.add(canonical);
+                final var witness = sorter.sort(canonical, 10)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Unresolved TD(18) candidate: "
+                                        + canonical.extendedToricClassKey()));
+                if (witness.isEmpty()) {
+                    throw new IllegalStateException(
+                            "An order-18 candidate unexpectedly represents "
+                                    + "the identity");
                 }
-                processedParents.add(parent);
-                final var completed = completedParents.incrementAndGet();
-                if (completed % PROPAGATION_LOG_INTERVAL == 0) {
-                    log.info("TD(18) propagation progress: new parents={}, "
-                                    + "raw children={}, qualified={}",
-                            completed, examined.sum(), qualified.sum());
+                witnesses.put(canonical, witness);
+                if (candidates.add(canonical)) {
+                    qualified.increment();
                 }
+                processedCandidates.add(canonical);
             });
             final var summary = candidates.summarize();
             StageManifest.complete(
@@ -286,37 +285,19 @@ public final class ExtremalPipeline {
                      childStage.resolve("classes"), childDomain, true);
              final var witnesses = new WitnessStore(
                      childStage.resolve("witnesses"), true)) {
-            parents.forEachParallel(availableProcessors(), parent -> {
-                if (processedParents.contains(parent)) {
+            forEachQualifiedChild(parents, processedParents, examined,
+                    completedParents, childName, qualified, retained, child -> {
+                final var canonical = child.canonicalRepresentative();
+                if (processedCandidates.contains(canonical)) {
                     return;
                 }
-                for (final var insertion : CircularClassOperations.insertions(parent)) {
-                    examined.increment();
-                    final var child = insertion.child();
-                    if (!allRemovalsBelongTo(child, parents)) {
-                        continue;
-                    }
-                    final var canonical = child.canonicalRepresentative();
-                    if (processedCandidates.contains(canonical)) {
-                        continue;
-                    }
-                    qualified.increment();
-                    if (retainExactDistance(
-                            canonical, excludedDepth, exactDepth,
-                            classes, witnesses)) {
-                        retained.increment();
-                    }
-                    processedCandidates.add(canonical);
+                qualified.increment();
+                if (retainExactDistance(
+                        canonical, excludedDepth, exactDepth,
+                        classes, witnesses)) {
+                    retained.increment();
                 }
-                processedParents.add(parent);
-                final var completed = completedParents.incrementAndGet();
-                if (completed % PROPAGATION_LOG_INTERVAL == 0) {
-                    log.info("{} propagation progress: new parents={}, "
-                                    + "raw children={}, removal-qualified={}, "
-                                    + "retained={}",
-                            childName, completed, examined.sum(),
-                            qualified.sum(), retained.sum());
-                }
+                processedCandidates.add(canonical);
             });
             final var summary = classes.summarize();
             StageManifest.complete(
@@ -326,6 +307,54 @@ public final class ExtremalPipeline {
                     childName, examined.sum(), qualified.sum(), retained.sum(),
                     summary.count());
         }
+    }
+
+    private void forEachQualifiedChild(
+            final ClassStore parents,
+            final ClassStore processedParents,
+            final LongAdder examined,
+            final AtomicLong completedParents,
+            final String stageName,
+            final LongAdder qualified,
+            final LongAdder retained,
+            final Consumer<CyclicTargetPair> consumer
+    ) {
+        final var childrenPerParent = parents.domainSize() * parents.domainSize();
+        final var parentBatchSize = 1 + (lookupBatchSize - 1) / childrenPerParent;
+        final var startedAt = System.nanoTime();
+        log.info("{} propagation: workers={}, lookup batch size={}, parents/batch={}",
+                stageName, availableProcessors(), lookupBatchSize, parentBatchSize);
+        parents.forEachBatchParallel(availableProcessors(), parentBatchSize, batch -> {
+            final var alreadyProcessed = processedParents.containsMany(batch);
+            final var pendingParents = new ArrayList<CyclicTargetPair>(batch.size());
+            final var children = new ArrayList<CyclicTargetPair>();
+            for (var index = 0; index < batch.size(); index++) {
+                if (alreadyProcessed[index]) {
+                    continue;
+                }
+                final var parent = batch.get(index);
+                pendingParents.add(parent);
+                for (final var insertion : CircularClassOperations.insertions(parent)) {
+                    children.add(insertion.child());
+                }
+            }
+            examined.add(children.size());
+            RemovalMembershipFilter.forEachQualified(
+                    children, parents, lookupBatchSize, consumer);
+            // Mark parents only after every child in this batch has been classified.
+            for (final var parent : pendingParents) {
+                processedParents.add(parent);
+                final var completed = completedParents.incrementAndGet();
+                if (completed % PROPAGATION_LOG_INTERVAL == 0) {
+                    final var elapsedSeconds = (System.nanoTime() - startedAt) / 1.0e9;
+                    log.info("{} propagation progress: new parents={}, raw children={}, "
+                                    + "removal-qualified={}, retained={}, raw children/s={}",
+                            stageName, completed, examined.sum(), qualified.sum(),
+                            retained == null ? qualified.sum() : retained.sum(),
+                            Math.round(examined.sum() / elapsedSeconds));
+                }
+            }
+        });
     }
 
     private boolean retainThresholdDistance(
@@ -406,18 +435,6 @@ public final class ExtremalPipeline {
                         added.increment();
                     }
                 }));
-    }
-
-    private static boolean allRemovalsBelongTo(
-            final CyclicTargetPair candidate,
-            final ClassStore previous
-    ) {
-        for (final var removal : CircularClassOperations.removals(candidate)) {
-            if (!previous.contains(removal)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private Path stage(final String name) {

@@ -210,6 +210,19 @@ GPU acceleration of the `N^2` insertion/canonicalization step is parked; CUDA
 is used only for exact bounded sorting. Profiling the persisted candidate
 counts should precede any GPU implementation of propagation.
 
+All propagated stages share bounded parent batches and round-based deletion
+filtering. Each round constructs one deletion per surviving child and queries
+membership with RocksDB `MultiGet`; a miss discards that child before later
+deletions are constructed. This changes neither the deletion criterion nor
+the set of generated children. Parents are checkpointed only after the entire
+batch is classified, so interrupted batches can safely be replayed.
+
+All RocksDB stores share the same configurable cache policy: cached point
+reads, a bounded native block cache per store, prioritized index/filter
+blocks, and non-polluting sequential scans. Bloom filters affect newly built
+tables, not old tables merely reopened with the new options. Cache and batch
+budgets are order-independent performance settings, not proof assumptions.
+
 ## Data products
 
 Each stage should produce:

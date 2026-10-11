@@ -2,8 +2,6 @@ package br.unb.cic.td18;
 
 import br.unb.cic.tdp.base.CertificateCodec;
 import br.unb.cic.tdp.base.CyclicTargetPair;
-import org.rocksdb.Options;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -11,7 +9,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
@@ -31,10 +31,7 @@ public final class ClassStore implements AutoCloseable {
 
     private final int domainSize;
     private final boolean writable;
-    private final Options options;
-    private final ReadOptions readOptions = new ReadOptions()
-            .setVerifyChecksums(true)
-            .setFillCache(false);
+    private final RocksStoreResources resources;
     private final RocksDB database;
     private final Object[] locks = new Object[LOCK_COUNT];
 
@@ -51,20 +48,17 @@ public final class ClassStore implements AutoCloseable {
         for (var index = 0; index < locks.length; index++) {
             locks[index] = new Object();
         }
-        options = new Options()
-                .setCreateIfMissing(writable)
-                .setMaxOpenFiles(-1);
+        resources = new RocksStoreResources(writable);
         try {
             if (writable) {
                 Files.createDirectories(directory);
-                database = RocksDB.open(options, directory.toAbsolutePath().toString());
+                database = RocksDB.open(resources.options, directory.toAbsolutePath().toString());
             } else {
                 database = RocksDB.openReadOnly(
-                        options, directory.toAbsolutePath().toString());
+                        resources.options, directory.toAbsolutePath().toString());
             }
         } catch (final Exception failure) {
-            readOptions.close();
-            options.close();
+            resources.close();
             throw new IllegalStateException("Cannot open class store " + directory, failure);
         }
     }
@@ -81,7 +75,7 @@ public final class ClassStore implements AutoCloseable {
                 % locks.length];
         synchronized (lock) {
             try {
-                if (database.get(key) != null) {
+                if (database.get(resources.reads, key) != null) {
                     return false;
                 }
                 database.put(key, PRESENT);
@@ -95,15 +89,35 @@ public final class ClassStore implements AutoCloseable {
     public boolean contains(final CyclicTargetPair pair) {
         final var key = keyFor(pair);
         try {
-            return database.get(readOptions, key) != null;
+            return database.get(resources.reads, key) != null;
         } catch (final RocksDBException failure) {
             throw new IllegalStateException("Cannot query class store", failure);
         }
     }
 
+    /** Exact batched membership; results retain the input order, including duplicates. */
+    public boolean[] containsMany(final List<CyclicTargetPair> pairs) {
+        Objects.requireNonNull(pairs);
+        final var present = new boolean[pairs.size()];
+        if (pairs.isEmpty()) {
+            return present;
+        }
+        final var keys = new ArrayList<byte[]>(pairs.size());
+        pairs.forEach(pair -> keys.add(keyFor(pair)));
+        try {
+            final var values = database.multiGetAsList(resources.reads, keys);
+            for (var index = 0; index < values.size(); index++) {
+                present[index] = values.get(index) != null;
+            }
+            return present;
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot query class-store batch", failure);
+        }
+    }
+
     public void forEach(final Consumer<CyclicTargetPair> consumer) {
         Objects.requireNonNull(consumer);
-        try (final var iterator = database.newIterator(readOptions)) {
+        try (final var iterator = database.newIterator(resources.scans)) {
             iterator.seekToFirst();
             while (iterator.isValid()) {
                 consumer.accept(CertificateCodec.pairForKey(
@@ -125,15 +139,25 @@ public final class ClassStore implements AutoCloseable {
             final int workerCount,
             final Consumer<CyclicTargetPair> consumer
     ) {
+        Objects.requireNonNull(consumer);
+        forEachBatchParallel(workerCount, 1,
+                batch -> consumer.accept(batch.getFirst()));
+    }
+
+    /** Visits bounded batches with at most four batches per worker in flight. */
+    public void forEachBatchParallel(
+            final int workerCount,
+            final int batchSize,
+            final Consumer<List<CyclicTargetPair>> consumer
+    ) {
         if (workerCount < 1) {
             throw new IllegalArgumentException(
                     "Worker count must be positive");
         }
-        Objects.requireNonNull(consumer);
-        if (workerCount == 1) {
-            forEach(consumer);
-            return;
+        if (batchSize < 1) {
+            throw new IllegalArgumentException("Batch size must be positive");
         }
+        Objects.requireNonNull(consumer);
 
         final var executor = Executors.newFixedThreadPool(
                 workerCount,
@@ -145,13 +169,18 @@ public final class ClassStore implements AutoCloseable {
         long submitted = 0;
         long completed = 0;
         try {
-            try (final var iterator = database.newIterator(readOptions)) {
+            try (final var iterator = database.newIterator(resources.scans)) {
                 iterator.seekToFirst();
                 while (iterator.isValid()) {
-                    final var pair = CertificateCodec.pairForKey(
-                            iterator.key(), domainSize);
+                    final var batch = new ArrayList<CyclicTargetPair>(batchSize);
+                    while (iterator.isValid() && batch.size() < batchSize) {
+                        batch.add(CertificateCodec.pairForKey(
+                                iterator.key(), domainSize));
+                        iterator.next();
+                    }
+                    final var immutableBatch = List.copyOf(batch);
                     completion.submit(() -> {
-                        consumer.accept(pair);
+                        consumer.accept(immutableBatch);
                         return null;
                     });
                     submitted++;
@@ -159,7 +188,6 @@ public final class ClassStore implements AutoCloseable {
                         awaitOne(completion);
                         completed++;
                     }
-                    iterator.next();
                 }
                 iterator.status();
             } catch (final RocksDBException failure) {
@@ -196,7 +224,7 @@ public final class ClassStore implements AutoCloseable {
             throw new AssertionError(impossible);
         }
         long count = 0;
-        try (final var iterator = database.newIterator(readOptions)) {
+        try (final var iterator = database.newIterator(resources.scans)) {
             iterator.seekToFirst();
             while (iterator.isValid()) {
                 digest.update(iterator.key());
@@ -251,8 +279,7 @@ public final class ClassStore implements AutoCloseable {
     @Override
     public void close() {
         database.close();
-        readOptions.close();
-        options.close();
+        resources.close();
     }
 
     public record Summary(long count, String sha256) {

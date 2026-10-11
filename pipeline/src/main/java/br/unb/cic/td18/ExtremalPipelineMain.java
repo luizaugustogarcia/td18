@@ -28,12 +28,15 @@ public final class ExtremalPipelineMain {
                 options.getOrDefault("gpu-stats-seconds", "600"));
         System.setProperty("tdp.twistedBraceletWorkers",
                 options.getOrDefault("generator-workers", "auto"));
+        System.setProperty("td18.rocksdbCacheMiB",
+                options.getOrDefault("rocksdb-cache-mib", "256"));
         final BoundedSorter sorter = new GpuBoundedSorter(
                 gpuDevices,
                 Integer.parseInt(gpuSlots),
                 Long.parseLong(options.getOrDefault("gpu-budget-mib", "1024")));
         try {
-            final var pipeline = new ExtremalPipeline(work, sorter);
+            final var pipeline = new ExtremalPipeline(work, sorter,
+                    Integer.parseInt(options.getOrDefault("lookup-batch-size", "500")));
             switch (args[0]) {
                 case "e12" -> pipeline.runE12();
                 case "e13" -> pipeline.runE13();
@@ -79,6 +82,8 @@ public final class ExtremalPipelineMain {
                   --gpu-queue=NUMBER          queued searches (default: 0)
                   --gpu-stats-seconds=NUMBER  statistics period (default: 600)
                   --generator-workers=NUMBER  generator workers (default: auto)
+                  --lookup-batch-size=NUMBER  removal lookups per batch (default: 500)
+                  --rocksdb-cache-mib=NUMBER   block cache per store (default: 256)
                 """);
     }
 }

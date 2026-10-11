@@ -73,6 +73,12 @@ materialize the much larger unfiltered child sets. GPU acceleration of child
 generation and canonicalization is deliberately outside the current scope;
 the CUDA code is used only by exact bounded sorting.
 
+All propagated stages process bounded batches across the available CPUs.
+Deletion checks use RocksDB `MultiGet` in rounds: each round constructs just
+one deletion per surviving child, rejecting misses before computing any
+further deletions. Persistent deduplication and restart checkpoints are
+unchanged; a parent is marked complete only after all its children are classified.
+
 See [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md) for the proof obligations
 and validation corpus.
 
@@ -109,8 +115,34 @@ mvn -Pgpu -pl pipeline compile exec:java \
   -Dexec.args="verify --work=/data/td18 --gpu-devices=0,1,2,3 --gpu-slots=16 --gpu-budget-mib=850"
 ```
 
-Additional options control the GPU queue, statistics period, and generator
-worker count; run the main class with `help` to list them.
+Additional options control the GPU queue, statistics period, generator
+worker count, lookup batch size, and RocksDB cache; run the main class with
+`help` to list them. `--lookup-batch-size=500` is the default for every
+propagated stage; `1` selects scalar deletion lookups.
+
+`--rocksdb-cache-mib=256` sets a bounded native-memory block cache **per open
+store**, separate from the Java heap. Membership and witness reads populate
+the cache. Index and Bloom-filter blocks use its high-priority pool, with
+level-zero metadata pinned. Sequential scans do not populate the cache.
+Increase this budget to accommodate larger working sets, allowing for all
+concurrently open stores. Bloom filters are written into new tables; opening
+an existing database does not retrofit filters into its old tables or rewrite
+the data. The cache policy applies immediately to existing tables.
+
+For a read-only comparison of uncached scalar, cached scalar, and cached
+batched lookups at any parent order:
+
+```bash
+mvn -q -pl pipeline compile dependency:build-classpath -Dmdep.outputFile=target/runtime-classpath.txt
+java --class-path "pipeline/target/classes:$(<pipeline/target/runtime-classpath.txt)" \
+  tools/LookupBenchmark.java /data/td18/e12/classes 13
+```
+
+The benchmark takes the cyclic domain size (ordinary order plus one), not a
+hard-coded stage. Optional positional arguments control workers, sampled
+parents, repetitions, batch size, cache MiB, and passes. It compares identical
+query multisets with separate caches and verifies equal hit counts. Its
+lookup throughput excludes canonicalization and is not an end-to-end stage rate.
 
 The `e13` and `h13` commands are separate resumable stages. Run `e13` first
 to obtain the small extremal set through removal-filtered propagation; run
