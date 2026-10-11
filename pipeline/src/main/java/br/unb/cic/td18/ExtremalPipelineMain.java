@@ -26,7 +26,7 @@ public final class ExtremalPipelineMain {
         System.setProperty("tdp.gpuQueueCapacity",
                 options.getOrDefault("gpu-queue", "0"));
         System.setProperty("tdp.gpuStatsPeriodSeconds",
-                options.getOrDefault("gpu-stats-seconds", "600"));
+                options.getOrDefault("gpu-stats-seconds", "60"));
         System.setProperty("tdp.twistedBraceletWorkers",
                 options.getOrDefault("generator-workers", "auto"));
         System.setProperty("td18.rocksdbCacheMiB",
@@ -82,7 +82,7 @@ public final class ExtremalPipelineMain {
                   --gpu-slots=NUMBER          slots per device (default: 7)
                   --gpu-budget-mib=NUMBER     memory per slot (default: 1024)
                   --gpu-queue=NUMBER          queued searches (default: 0)
-                  --gpu-stats-seconds=NUMBER  statistics period (default: 600)
+                  --gpu-stats-seconds=NUMBER  statistics period (default: 60)
                   --generator-workers=NUMBER  generator workers (default: auto)
                   --lookup-batch-size=NUMBER  removal lookups per batch (default: 500)
                   --rocksdb-cache-mib=NUMBER   block cache per store (default: 256)

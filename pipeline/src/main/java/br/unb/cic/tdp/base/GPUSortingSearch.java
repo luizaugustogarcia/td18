@@ -170,10 +170,6 @@ public class GPUSortingSearch {
 
     private void logWindowStats() {
         final var snapshot = stats.snapshot(System.nanoTime());
-        if (snapshot.started() == 0 && snapshot.completed() == 0 && snapshot.busyNanos() == 0) {
-            return;
-        }
-
         final double elapsedSeconds = snapshot.elapsedNanos() / 1_000_000_000.0;
         final double throughput = snapshot.completed() / elapsedSeconds;
         final double occupancy = snapshot.busyNanos()
