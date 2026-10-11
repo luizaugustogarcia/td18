@@ -325,7 +325,10 @@ $\rho$.  Contracting the corresponding edge deletes the fixed symbol from
 both cycles and preserves transposition distance~\cite{SilvaEtAl2026}.
 Conversely, inserting a symbol into the same corresponding gap of both cycles
 restores a fixed point and preserves distance.  We denote the classes obtained
-in this way by $\operatorname{Expand}(A)$.
+in this way by $\operatorname{Expand}(A)$.  For a fixed parent, these are only
+$N$ insertions: choose the common predecessor symbol in $\beta$ and $\rho$.
+The implementation processes different parents concurrently while retaining
+bounded memory.
 
 \begin{proposition}[Fixed-point part of $\Hn_{13}(7)$]
 The classes in $\Hn_{13}(7)$ with an algebraic fixed point are exactly

@@ -394,10 +394,14 @@ public final class ExtremalPipeline {
             final ClassStore children,
             final LongAdder added
     ) {
-        parents.forEach(parent -> CircularClassOperations.insertions(parent).stream()
+        if (parents.domainSize() + 1 != childDomain
+                || children.domainSize() != childDomain) {
+            throw new IllegalArgumentException(
+                    "Fixed-point expansion domain mismatch");
+        }
+        parents.forEachParallel(availableProcessors(),
+                parent -> CircularClassOperations.fixedPointInsertions(parent).stream()
                 .map(CircularClassOperations.Insertion::child)
-                .filter(child -> child.getOmega().image(childDomain - 1)
-                        == childDomain - 1)
                 .map(CyclicTargetPair::canonicalRepresentative)
                 .forEach(child -> {
                     if (children.add(child)) {
@@ -443,6 +447,10 @@ public final class ExtremalPipeline {
 
     private Path stage(final String name) {
         return workDirectory.resolve(name);
+    }
+
+    private static int availableProcessors() {
+        return Math.max(1, Runtime.getRuntime().availableProcessors());
     }
 
     private record LayerResult(boolean inLayer, boolean inE13) {

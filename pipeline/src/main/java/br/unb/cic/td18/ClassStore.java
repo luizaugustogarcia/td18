@@ -13,6 +13,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Objects;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /** Persistent set of canonical extended-toric class representatives. */
@@ -111,6 +116,78 @@ public final class ClassStore implements AutoCloseable {
         }
     }
 
+    /**
+     * Visits the persisted classes with bounded parallelism.  Iteration and
+     * decoding remain single-threaded, while at most four tasks per worker
+     * are retained so the store is never materialized in memory.
+     */
+    public void forEachParallel(
+            final int workerCount,
+            final Consumer<CyclicTargetPair> consumer
+    ) {
+        if (workerCount < 1) {
+            throw new IllegalArgumentException(
+                    "Worker count must be positive");
+        }
+        Objects.requireNonNull(consumer);
+        if (workerCount == 1) {
+            forEach(consumer);
+            return;
+        }
+
+        final var executor = Executors.newFixedThreadPool(
+                workerCount,
+                Thread.ofPlatform().daemon().name(
+                        "class-store-worker-", 0).factory());
+        final CompletionService<Void> completion =
+                new ExecutorCompletionService<>(executor);
+        final var maximumInFlight = Math.multiplyExact(workerCount, 4);
+        long submitted = 0;
+        long completed = 0;
+        try {
+            try (final var iterator = database.newIterator(readOptions)) {
+                iterator.seekToFirst();
+                while (iterator.isValid()) {
+                    final var pair = CertificateCodec.pairForKey(
+                            iterator.key(), domainSize);
+                    completion.submit(() -> {
+                        consumer.accept(pair);
+                        return null;
+                    });
+                    submitted++;
+                    if (submitted - completed >= maximumInFlight) {
+                        awaitOne(completion);
+                        completed++;
+                    }
+                    iterator.next();
+                }
+                iterator.status();
+            } catch (final RocksDBException failure) {
+                throw new IllegalStateException(
+                        "Cannot iterate class store", failure);
+            }
+            while (completed < submitted) {
+                awaitOne(completion);
+                completed++;
+            }
+        } finally {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(
+                        Long.MAX_VALUE, TimeUnit.NANOSECONDS)) {
+                    throw new IllegalStateException(
+                            "Class-store workers did not terminate");
+                }
+            } catch (final InterruptedException failure) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(
+                        "Interrupted while stopping class-store workers",
+                        failure);
+            }
+        }
+    }
+
     public Summary summarize() {
         final MessageDigest digest;
         try {
@@ -141,6 +218,28 @@ public final class ClassStore implements AutoCloseable {
                             + " does not match store domain " + domainSize);
         }
         return CertificateCodec.keyFor(pair.canonicalRepresentative());
+    }
+
+    private static void awaitOne(
+            final CompletionService<Void> completion
+    ) {
+        try {
+            completion.take().get();
+        } catch (final InterruptedException failure) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "Interrupted while processing class store", failure);
+        } catch (final ExecutionException failure) {
+            final var cause = failure.getCause();
+            if (cause instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            if (cause instanceof Error error) {
+                throw error;
+            }
+            throw new IllegalStateException(
+                    "Class-store worker failed", cause);
+        }
     }
 
     private void requireWritable() {

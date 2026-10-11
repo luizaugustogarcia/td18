@@ -35,6 +35,7 @@ The single `pipeline` module contains only code used by this computation:
 - cyclic-target algebra and extended-toric canonicalization;
 - direct twisted-bracelet generation of fixed-point-free classes;
 - circular deletion and `N^2` child insertion;
+- direct `N`-child fixed-point expansion across all available CPUs;
 - piecewise approximation pruning: the Bafna–Pevzner `1.5` guarantee below
   3-norm eight and the `1.375` guarantee from 3-norm eight onward;
 - exact CUDA bounded search through domain size 19 and depth 10;

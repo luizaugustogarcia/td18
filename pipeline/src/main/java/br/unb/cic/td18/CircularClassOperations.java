@@ -94,6 +94,32 @@ public final class CircularClassOperations {
     }
 
     /**
+     * Returns the {@code N} raw insertions that make the new symbol a fixed
+     * point.  Such an insertion must use gaps with the same predecessor
+     * symbol in {@code beta} and {@code rho}.
+     */
+    public static List<Insertion> fixedPointInsertions(
+            final CyclicTargetPair pair
+    ) {
+        Objects.requireNonNull(pair);
+        final var domainSize = pair.getBeta().size();
+        final var result = new ArrayList<Insertion>(domainSize);
+        for (var predecessor = 0;
+             predecessor < domainSize;
+             predecessor++) {
+            final var betaGap = pair.getBeta().indexOf(predecessor);
+            final var rhoGap = pair.getRho().indexOf(predecessor);
+            final var beta = Cycle.of(insertAfter(
+                    pair.getBeta().getSymbols(), betaGap, domainSize));
+            final var rho = Cycle.of(insertAfter(
+                    pair.getRho().getSymbols(), rhoGap, domainSize));
+            result.add(new Insertion(
+                    betaGap, rhoGap, pairFromCycles(beta, rho)));
+        }
+        return List.copyOf(result);
+    }
+
+    /**
      * Canonicalizes the raw insertions at the child order and returns one
      * representative per extended-toric class in deterministic key order.
      */

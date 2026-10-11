@@ -458,10 +458,15 @@ public final class PipelineVerifier {
             final ClassStore children,
             final String failureMessage
     ) {
-        parents.forEach(parent -> CircularClassOperations.insertions(parent).stream()
+        if (parents.domainSize() + 1 != childDomain
+                || children.domainSize() != childDomain) {
+            throw new IllegalArgumentException(
+                    "Fixed-point expansion domain mismatch");
+        }
+        parents.forEachParallel(
+                Math.max(1, Runtime.getRuntime().availableProcessors()),
+                parent -> CircularClassOperations.fixedPointInsertions(parent).stream()
                 .map(CircularClassOperations.Insertion::child)
-                .filter(child -> child.getOmega().image(childDomain - 1)
-                        == childDomain - 1)
                 .forEach(child -> {
                     if (!children.contains(child)) {
                         throw new IllegalStateException(failureMessage);

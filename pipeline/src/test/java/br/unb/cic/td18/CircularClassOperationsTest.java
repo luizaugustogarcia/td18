@@ -18,6 +18,7 @@ import java.util.Set;
 
 import static br.unb.cic.td18.CircularClassOperations.algebraicFixedPointCount;
 import static br.unb.cic.td18.CircularClassOperations.childClasses;
+import static br.unb.cic.td18.CircularClassOperations.fixedPointInsertions;
 import static br.unb.cic.td18.CircularClassOperations.insertions;
 import static br.unb.cic.td18.CircularClassOperations.removalClassMultiset;
 import static br.unb.cic.td18.CircularClassOperations.removeSymbol;
@@ -49,6 +50,28 @@ class CircularClassOperationsTest {
         assertTrue(fixedPointChildren.stream()
                 .allMatch(insertion -> algebraicFixedPointCount(
                         insertion.child()) == 1));
+    }
+
+    @Test
+    void directFixedPointInsertionsEqualFilteredQuadraticInsertions() {
+        for (final var parent : List.of(threeSymbolPair(), eightSymbolPair())) {
+            final var newSymbol = parent.getBeta().size();
+            final var expected = insertions(parent).stream()
+                    .map(CircularClassOperations.Insertion::child)
+                    .filter(child -> child.getOmega().image(newSymbol)
+                            == newSymbol)
+                    .collect(java.util.stream.Collectors.toSet());
+            final var actual = fixedPointInsertions(parent).stream()
+                    .map(CircularClassOperations.Insertion::child)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            assertEquals(parent.getBeta().size(), actual.size());
+            assertEquals(expected, actual);
+            actual.forEach(child -> {
+                assertEquals(newSymbol, child.getOmega().image(newSymbol));
+                assertEquals(parent, removeSymbol(child, newSymbol));
+            });
+        }
     }
 
     @Test

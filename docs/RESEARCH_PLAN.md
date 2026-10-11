@@ -184,6 +184,10 @@ distance eleven.
 The current design keeps twisted-bracelet generation at ordinary orders 12,
 13, and 16. Child generation at orders 14, 15, 17, and 18 is CPU-side and
 fused with early removal rejection so raw child sets are never materialized.
+Fixed-point expansion is a special case: matching predecessor gaps in the two
+cycles directly generates its `N` children, and parents are processed in
+parallel across all available CPUs. It does not enumerate and filter `N^2`
+general insertions.
 GPU acceleration of the `N^2` insertion/canonicalization step is parked; CUDA
 is used only for exact bounded sorting. Profiling the persisted candidate
 counts should precede any GPU implementation of propagation.
