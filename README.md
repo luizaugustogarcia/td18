@@ -75,13 +75,19 @@ generation and canonicalization is deliberately outside the current scope;
 the CUDA code is used only by exact bounded sorting.
 
 All propagated stages process bounded batches across the available CPUs.
+Raw insertions are deduplicated by canonical child keys while retaining their
+inserted symbol. Deleting that symbol is known to recover the parent, whose
+membership is checked once; the filter skips constructing and looking up this
+inverse deletion for each child. Qualified children are emitted canonically.
 Deletion checks use RocksDB `MultiGet` in rounds: each round constructs just
 one deletion per surviving child, rejecting misses before computing any
 further deletions. A child is classified only by the parent with the least
 canonical removal key. Insertion class sets are representative-invariant, so
-that owner always generates the child. Per-parent canonical deduplication and
-this ownership rule eliminate global candidate membership reads. Propagated
-stages recompute interrupted work and overwrite identical keys.
+that owner always generates the child. As soon as a smaller removal key is
+found, the current parent stops processing that child, skipping its membership
+lookup and all later deletions. Per-parent canonical deduplication and this
+ownership rule eliminate global candidate membership reads. Propagated stages
+recompute interrupted work and overwrite identical keys.
 
 The CUDA sorter also shares overlapping requests for the same canonical class
 and depth bound. Calls that need the result wait for that one search; different

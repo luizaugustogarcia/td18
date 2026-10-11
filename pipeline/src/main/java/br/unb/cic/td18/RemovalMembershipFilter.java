@@ -62,6 +62,8 @@ public final class RemovalMembershipFilter {
      * The owner is the lexicographically least canonical removal class. Since
      * insertion class sets are representative-invariant, that parent always
      * regenerates the child even when its raw insertion is not canonical.
+     * A smaller removal key rejects this parent's claim before the membership
+     * lookup and all later deletion rounds.
      */
     public static void forEachQualifiedOwnedBy(
             final CyclicTargetPair parent,
@@ -70,8 +72,32 @@ public final class RemovalMembershipFilter {
             final int batchSize,
             final Consumer<CyclicTargetPair> consumer
     ) {
+        forEachQualifiedOwnedBy(parent, canonicalChildren, parents,
+                batchSize, -1, consumer);
+    }
+
+    /** Checks unique raw insertions, reusing their known inverse parent. */
+    static void forEachQualifiedInsertionOwnedBy(
+            final CyclicTargetPair parent,
+            final ClassStore parents,
+            final int batchSize,
+            final Consumer<CyclicTargetPair> consumer
+    ) {
+        forEachQualifiedOwnedBy(parent,
+                CircularClassOperations.childInsertionRepresentatives(parent),
+                parents, batchSize, parent.getBeta().size(), consumer);
+    }
+
+    private static void forEachQualifiedOwnedBy(
+            final CyclicTargetPair parent,
+            final List<CyclicTargetPair> children,
+            final ClassStore parents,
+            final int batchSize,
+            final int knownInverseSymbol,
+            final Consumer<CyclicTargetPair> consumer
+    ) {
         Objects.requireNonNull(parent);
-        Objects.requireNonNull(canonicalChildren);
+        Objects.requireNonNull(children);
         Objects.requireNonNull(parents);
         Objects.requireNonNull(consumer);
         if (batchSize < 1) {
@@ -82,29 +108,54 @@ public final class RemovalMembershipFilter {
         }
         final var childDomain = parents.domainSize() + 1;
         final var parentKey = EncodedClassKey.of(parent);
-        for (var offset = 0; offset < canonicalChildren.size();) {
+        if (knownInverseSymbol >= 0
+                && !parents.containsEncoded(List.of(parentKey))[0]) {
+            return;
+        }
+        for (var offset = 0; offset < children.size();) {
             final var end = offset + Math.min(
-                    batchSize, canonicalChildren.size() - offset);
+                    batchSize, children.size() - offset);
             var survivors = new ArrayList<OwnedCandidate>(end - offset);
             for (var index = offset; index < end; index++) {
-                final var child = canonicalChildren.get(index)
-                        .canonicalRepresentative();
+                final var child = knownInverseSymbol < 0
+                        ? children.get(index).canonicalRepresentative()
+                        : children.get(index);
                 if (child.getBeta().size() != childDomain) {
                     throw new IllegalArgumentException(
                             "Child domain does not match parent store");
                 }
-                survivors.add(new OwnedCandidate(child));
+                final var candidate = new OwnedCandidate(child);
+                if (knownInverseSymbol >= 0) {
+                    candidate.includeRemoval(parentKey);
+                }
+                survivors.add(candidate);
             }
 
             for (var symbol = 0;
                  symbol < childDomain && !survivors.isEmpty();
                  symbol++) {
+                if (symbol == knownInverseSymbol) {
+                    continue;
+                }
                 final var removalKeys = new ArrayList<EncodedClassKey>(
                         survivors.size());
-                for (final var candidate : survivors) {
+                var eligibleCount = 0;
+                for (var index = 0; index < survivors.size(); index++) {
+                    final var candidate = survivors.get(index);
                     final var removal = CircularClassOperations.removeSymbol(
                             candidate.child, symbol);
-                    removalKeys.add(EncodedClassKey.of(removal));
+                    final var removalKey = EncodedClassKey.of(removal);
+                    // A smaller removal either owns the qualified child or
+                    // fails membership; this parent cannot emit it in either case.
+                    if (removalKey.compareTo(parentKey) < 0) {
+                        continue;
+                    }
+                    survivors.set(eligibleCount++, candidate);
+                    removalKeys.add(removalKey);
+                }
+                survivors.subList(eligibleCount, survivors.size()).clear();
+                if (survivors.isEmpty()) {
+                    break;
                 }
                 final var present = parents.containsEncoded(removalKeys);
                 final var next = new ArrayList<OwnedCandidate>(survivors.size());
@@ -119,7 +170,7 @@ public final class RemovalMembershipFilter {
             }
             for (final var candidate : survivors) {
                 if (parentKey.equals(candidate.minimumRemoval)) {
-                    consumer.accept(candidate.child);
+                    consumer.accept(candidate.child.canonicalRepresentative());
                 }
             }
             offset = end;

@@ -340,9 +340,8 @@ public final class ExtremalPipeline {
             final var ownedQualifiedChildren = new ArrayList<CyclicTargetPair>();
             for (final var parent : batch) {
                 examined.add(childrenPerParent);
-                RemovalMembershipFilter.forEachQualifiedOwnedBy(
+                RemovalMembershipFilter.forEachQualifiedInsertionOwnedBy(
                         parent,
-                        CircularClassOperations.childClasses(parent),
                         parents,
                         lookupBatchSize,
                         ownedQualifiedChildren::add);

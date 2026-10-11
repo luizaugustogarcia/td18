@@ -216,17 +216,27 @@ is used only for exact bounded sorting. Profiling the persisted candidate
 counts should precede any GPU implementation of propagation.
 
 All propagated stages share bounded parent batches and round-based deletion
-filtering. Each round constructs one deletion per surviving child and queries
-membership with RocksDB `MultiGet`; a miss discards that child before later
-deletions are constructed. This changes neither the deletion criterion nor
+filtering. Deduplication retains one raw insertion per canonical child class,
+so the new largest symbol still identifies the inverse deletion. After
+checking the generating parent's membership once, the filter reuses that
+known removal without reconstructing or querying it for each child. Other
+deletions may be evaluated on the raw representative because their class
+multiset and its minimum are representative-invariant; qualified children are
+emitted canonically. Each round constructs one deletion per surviving child
+and queries membership with RocksDB `MultiGet`; a miss discards that child
+before later deletions are constructed. This changes neither the deletion criterion nor
 the set of generated children. Propagation recomputes interrupted parent
 batches and overwrites identical output keys.
 
 Each qualified canonical child is classified only by the parent with the
 least canonical removal key. Insertion class sets are representative-invariant,
-so the owner always regenerates the child. Per-parent deduplication and this
-ownership rule require no global candidate membership table. The independent
-verifier regenerates insertions and repeats removal checks separately.
+so the owner always regenerates the child. A removal key smaller than the
+current parent's key rejects that child from this parent's work before its
+membership lookup and all later deletion rounds. If the smaller removal is
+absent, the child fails the deletion criterion; if present, this parent cannot
+be the owner. Per-parent deduplication and this ownership rule require no global
+candidate membership table. The independent verifier regenerates insertions
+and repeats removal checks separately.
 Overlapping bounded-search requests share one backend result per class and
 depth. Known-diameter stages perform only exclusion searches; order 18 retains
 the witness search needed for its new upper bound.

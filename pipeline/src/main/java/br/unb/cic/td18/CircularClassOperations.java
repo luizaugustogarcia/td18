@@ -123,10 +123,22 @@ public final class CircularClassOperations {
      * representative per extended-toric class in deterministic key order.
      */
     public static List<CyclicTargetPair> childClasses(final CyclicTargetPair pair) {
+        return childInsertionRepresentatives(pair).stream()
+                .map(CyclicTargetPair::canonicalRepresentative)
+                .toList();
+    }
+
+    /**
+     * Deduplicates child classes while retaining one raw insertion per class.
+     * The new largest symbol still identifies the known inverse deletion.
+     */
+    static List<CyclicTargetPair> childInsertionRepresentatives(
+            final CyclicTargetPair pair
+    ) {
         final Map<EncodedClassKey, CyclicTargetPair> byKey =
                 new LinkedHashMap<>();
         for (final var insertion : insertions(pair)) {
-            final var child = insertion.child().canonicalRepresentative();
+            final var child = insertion.child();
             byKey.putIfAbsent(EncodedClassKey.of(child), child);
         }
         return byKey.entrySet().stream()

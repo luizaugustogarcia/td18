@@ -66,16 +66,20 @@ class RemovalMembershipFilterTest {
             final var actual = new ArrayList<CyclicTargetPair>();
             RemovalMembershipFilter.forEachQualified(children, store, 500, actual::add);
             assertTrue(actual.isEmpty());
+            RemovalMembershipFilter.forEachQualifiedInsertionOwnedBy(
+                    parent, store, 500, actual::add);
+            assertTrue(actual.isEmpty());
             assertThrows(IllegalArgumentException.class, () ->
                     RemovalMembershipFilter.forEachQualified(children, store, 0, actual::add));
         }
     }
 
-    @Test
-    void canonicalOwnershipEmitsEveryQualifiedChildExactlyOnce() {
+    @ParameterizedTest
+    @ValueSource(ints = {3, 4})
+    void canonicalOwnershipEmitsEveryQualifiedChildExactlyOnce(final int order) {
         final Map<br.unb.cic.tdp.base.ExtendedToricClassKey, CyclicTargetPair>
                 parentClasses = new LinkedHashMap<>();
-        ordinaryPairs(3).forEach(pair -> parentClasses.putIfAbsent(
+        ordinaryPairs(order).forEach(pair -> parentClasses.putIfAbsent(
                 pair.extendedToricClassKey(), pair.canonicalRepresentative()));
         final Map<br.unb.cic.tdp.base.ExtendedToricClassKey, Integer> expected =
                 new LinkedHashMap<>();
@@ -84,9 +88,9 @@ class RemovalMembershipFilterTest {
                         expected.put(child.extendedToricClassKey(), 1)));
 
         try (final var store = new ClassStore(
-                temporaryDirectory.resolve("owner-parents"), 4, true)) {
+                temporaryDirectory.resolve("owner-parents"), order + 1, true)) {
             store.putAll(parentClasses.values().stream().toList());
-            for (final var batchSize : List.of(1, 500)) {
+            for (final var batchSize : List.of(1, 2, 9, 500)) {
                 final Map<br.unb.cic.tdp.base.ExtendedToricClassKey, Integer>
                         actual = new LinkedHashMap<>();
                 final var ownedWithoutRawCanonicalInsertion = new boolean[1];
@@ -107,8 +111,77 @@ class RemovalMembershipFilterTest {
                                 }));
                 assertEquals(expected, actual);
                 assertTrue(ownedWithoutRawCanonicalInsertion[0]);
+                final Map<br.unb.cic.tdp.base.ExtendedToricClassKey, Integer>
+                        fromInsertions = new LinkedHashMap<>();
+                parentClasses.values().forEach(parent ->
+                        RemovalMembershipFilter.forEachQualifiedInsertionOwnedBy(
+                                parent, store, batchSize,
+                                child -> fromInsertions.merge(
+                                        child.extendedToricClassKey(), 1, Integer::sum)));
+                assertEquals(expected, fromInsertions);
             }
         }
+    }
+
+    @Test
+    void ownedBatchesMatchScalarOwnershipWithMissingParentClasses() {
+        final Map<br.unb.cic.tdp.base.ExtendedToricClassKey, CyclicTargetPair>
+                parentClasses = new LinkedHashMap<>();
+        ordinaryPairs(4).forEach(pair -> parentClasses.putIfAbsent(
+                pair.extendedToricClassKey(), pair.canonicalRepresentative()));
+        final var orderedParents = parentClasses.values().stream()
+                .sorted((left, right) -> EncodedClassKey.of(left)
+                        .compareTo(EncodedClassKey.of(right)))
+                .toList();
+        final var selectedParents = orderedParents.subList(
+                0, orderedParents.size() - 1);
+        var sawMissingRemoval = false;
+        var sawQualifiedNonOwner = false;
+        try (final var store = new ClassStore(
+                temporaryDirectory.resolve("partial-owner-parents"), 5, true)) {
+            store.putAll(selectedParents);
+            // Include noncanonical representatives to exercise the different
+            // deletion orders used by raw and canonical child representatives.
+            for (final var parent : ordinaryPairs(4).stream()
+                    .filter(store::contains).toList()) {
+                final var parentKey = EncodedClassKey.of(parent);
+                final var children = CircularClassOperations.childClasses(parent);
+                final var expected = new ArrayList<
+                        br.unb.cic.tdp.base.ExtendedToricClassKey>();
+                for (final var child : children) {
+                    final var removals = CircularClassOperations.removals(child);
+                    if (!removals.stream().allMatch(store::contains)) {
+                        sawMissingRemoval = true;
+                        continue;
+                    }
+                    final var owner = removals.stream()
+                            .map(EncodedClassKey::of)
+                            .min(EncodedClassKey::compareTo)
+                            .orElseThrow();
+                    if (parentKey.equals(owner)) {
+                        expected.add(child.extendedToricClassKey());
+                    } else {
+                        sawQualifiedNonOwner = true;
+                    }
+                }
+                for (final var batchSize : List.of(1, 2, 9, 500)) {
+                    final var actual = new ArrayList<
+                            br.unb.cic.tdp.base.ExtendedToricClassKey>();
+                    RemovalMembershipFilter.forEachQualifiedOwnedBy(
+                            parent, children, store, batchSize,
+                            child -> actual.add(child.extendedToricClassKey()));
+                    assertEquals(expected, actual);
+                    final var fromInsertions = new ArrayList<
+                            br.unb.cic.tdp.base.ExtendedToricClassKey>();
+                    RemovalMembershipFilter.forEachQualifiedInsertionOwnedBy(
+                            parent, store, batchSize,
+                            child -> fromInsertions.add(child.extendedToricClassKey()));
+                    assertEquals(expected, fromInsertions);
+                }
+            }
+        }
+        assertTrue(sawMissingRemoval);
+        assertTrue(sawQualifiedNonOwner);
     }
 
     private static List<CyclicTargetPair> ordinaryPairs(final int order) {
