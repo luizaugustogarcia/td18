@@ -2,6 +2,7 @@ package br.unb.cic.td18;
 
 import br.unb.cic.tdp.base.CertificateCodec;
 import br.unb.cic.tdp.base.CyclicTargetPair;
+import br.unb.cic.tdp.base.ExtendedToricClassKey;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -34,6 +35,8 @@ public final class ClassStore implements AutoCloseable {
     private final RocksStoreResources resources;
     private final RocksDB database;
     private final Object[] locks = new Object[LOCK_COUNT];
+    private final InFlightTasks<ExtendedToricClassKey, Boolean> processing =
+            new InFlightTasks<>();
 
     public ClassStore(
             final Path directory,
@@ -93,6 +96,31 @@ public final class ClassStore implements AutoCloseable {
         } catch (final RocksDBException failure) {
             throw new IllegalStateException("Cannot query class store", failure);
         }
+    }
+
+    /**
+     * Claims a class without blocking other classes or duplicate callers.
+     * Returns false for completed or in-flight classes. Only the owner runs
+     * the action and records completion, and only after the action succeeds.
+     * A failed owner remains unmarked and can be retried. Callers must not
+     * checkpoint the owning parent until this action returns successfully.
+     * The action must not recursively process the same class in this store.
+     */
+    public boolean processIfAbsent(final CyclicTargetPair pair, final Runnable action) {
+        requireWritable();
+        Objects.requireNonNull(action);
+        final var canonical = Objects.requireNonNull(pair).canonicalRepresentative();
+        if (canonical.getBeta().size() != domainSize) {
+            throw new IllegalArgumentException("Pair domain does not match store domain");
+        }
+        return processing.tryRun(canonical.extendedToricClassKey(), () -> {
+            if (contains(canonical)) {
+                return false;
+            }
+            action.run();
+            add(canonical);
+            return true;
+        }).orElse(false);
     }
 
     /** Exact batched membership; results retain the input order, including duplicates. */

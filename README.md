@@ -76,8 +76,19 @@ the CUDA code is used only by exact bounded sorting.
 All propagated stages process bounded batches across the available CPUs.
 Deletion checks use RocksDB `MultiGet` in rounds: each round constructs just
 one deletion per surviving child, rejecting misses before computing any
-further deletions. Persistent deduplication and restart checkpoints are
-unchanged; a parent is marked complete only after all its children are classified.
+further deletions. A nonblocking in-flight claim admits one classification
+owner per canonical child class; duplicate workers skip immediately. The owner
+persists completion only after classification and witness storage succeed.
+Its parent batch remains uncheckpointed until then, so failed or interrupted
+owners are retried on resume even if a duplicate worker completed another
+parent batch. These claims use memory proportional to active workers, not the
+number of generated children, and do not change the persisted format.
+
+The CUDA sorter also shares overlapping requests for the same canonical class
+and depth bound. Calls that need the result wait for that one search; different
+depth bounds remain separate searches. A class may therefore need both a
+lower-depth exclusion search and a higher-depth witness search, but duplicate
+propagation workers do not repeat its classification.
 
 See [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md) for the proof obligations
 and validation corpus.

@@ -306,19 +306,17 @@ public final class PipelineVerifier {
                             continue;
                         }
                         final var canonical = child.canonicalRepresentative();
-                        if (processedCandidates.contains(canonical)) {
-                            continue;
-                        }
-                        final var expected = liesBeyondDepth(
-                                canonical, excludedDepth);
-                        if (expected != classes.contains(canonical)) {
-                            throw new IllegalStateException(
-                                    childName + " propagation mismatch");
-                        }
-                        if (expected) {
-                            requireWitness(canonical, exactDepth, witnesses);
-                        }
-                        processedCandidates.add(canonical);
+                        processedCandidates.processIfAbsent(canonical, () -> {
+                            final var expected = liesBeyondDepth(
+                                    canonical, excludedDepth);
+                            if (expected != classes.contains(canonical)) {
+                                throw new IllegalStateException(
+                                        childName + " propagation mismatch");
+                            }
+                            if (expected) {
+                                requireWitness(canonical, exactDepth, witnesses);
+                            }
+                        });
                     }
                     processedParents.add(parent);
                 });
@@ -363,15 +361,13 @@ public final class PipelineVerifier {
                         continue;
                     }
                     final var canonical = child.canonicalRepresentative();
-                    if (processedCandidates.contains(canonical)) {
-                        continue;
-                    }
-                    if (!candidates.contains(canonical)) {
-                        throw new IllegalStateException(
-                                "TD(18) certificate omits a qualified child class");
-                    }
-                    requireWitness(canonical, 10, witnesses);
-                    processedCandidates.add(canonical);
+                    processedCandidates.processIfAbsent(canonical, () -> {
+                        if (!candidates.contains(canonical)) {
+                            throw new IllegalStateException(
+                                    "TD(18) certificate omits a qualified child class");
+                        }
+                        requireWitness(canonical, 10, witnesses);
+                    });
                 }
                 processedParents.add(parent);
             });

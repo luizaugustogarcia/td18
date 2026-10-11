@@ -216,23 +216,21 @@ public final class ExtremalPipeline {
             forEachQualifiedChild(parents, processedParents, examined,
                     completedParents, "TD(18)", qualified, null, child -> {
                 final var canonical = child.canonicalRepresentative();
-                if (processedCandidates.contains(canonical)) {
-                    return;
-                }
-                final var witness = sorter.sort(canonical, 10)
-                        .orElseThrow(() -> new IllegalStateException(
-                                "Unresolved TD(18) candidate: "
-                                        + canonical.extendedToricClassKey()));
-                if (witness.isEmpty()) {
-                    throw new IllegalStateException(
-                            "An order-18 candidate unexpectedly represents "
-                                    + "the identity");
-                }
-                witnesses.put(canonical, witness);
-                if (candidates.add(canonical)) {
-                    qualified.increment();
-                }
-                processedCandidates.add(canonical);
+                processedCandidates.processIfAbsent(canonical, () -> {
+                    final var witness = sorter.sort(canonical, 10)
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Unresolved TD(18) candidate: "
+                                            + canonical.extendedToricClassKey()));
+                    if (witness.isEmpty()) {
+                        throw new IllegalStateException(
+                                "An order-18 candidate unexpectedly represents "
+                                        + "the identity");
+                    }
+                    witnesses.put(canonical, witness);
+                    if (candidates.add(canonical)) {
+                        qualified.increment();
+                    }
+                });
             });
             final var summary = candidates.summarize();
             StageManifest.complete(
@@ -288,16 +286,14 @@ public final class ExtremalPipeline {
             forEachQualifiedChild(parents, processedParents, examined,
                     completedParents, childName, qualified, retained, child -> {
                 final var canonical = child.canonicalRepresentative();
-                if (processedCandidates.contains(canonical)) {
-                    return;
-                }
-                qualified.increment();
-                if (retainExactDistance(
-                        canonical, excludedDepth, exactDepth,
-                        classes, witnesses)) {
-                    retained.increment();
-                }
-                processedCandidates.add(canonical);
+                processedCandidates.processIfAbsent(canonical, () -> {
+                    qualified.increment();
+                    if (retainExactDistance(
+                            canonical, excludedDepth, exactDepth,
+                            classes, witnesses)) {
+                        retained.increment();
+                    }
+                });
             });
             final var summary = classes.summarize();
             StageManifest.complete(

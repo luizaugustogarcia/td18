@@ -10,8 +10,9 @@ import br.unb.cic.tdp.permutation.OneLinePermutation;
 import java.util.List;
 import java.util.Optional;
 
-/** CUDA-backed exact bounded sorter used by all four pipeline stages. */
+/** CUDA-backed exact bounded sorter with shared in-flight requests. */
 public final class GpuBoundedSorter implements BoundedSorter {
+    private final BoundedSorter requests = new CoalescingBoundedSorter(this::searchCanonical);
 
     public GpuBoundedSorter(
             final String devices,
@@ -32,10 +33,13 @@ public final class GpuBoundedSorter implements BoundedSorter {
             final CyclicTargetPair pair,
             final int maximumMoves
     ) {
-        if (maximumMoves < 0) {
-            throw new IllegalArgumentException("Maximum moves must not be negative");
-        }
-        final var canonical = pair.canonicalRepresentative();
+        return requests.sort(pair, maximumMoves);
+    }
+
+    private Optional<List<Cycle>> searchCanonical(
+            final CyclicTargetPair canonical,
+            final int maximumMoves
+    ) {
         if (canonical.getOmega().isIdentity()) {
             return Optional.of(List.of());
         }

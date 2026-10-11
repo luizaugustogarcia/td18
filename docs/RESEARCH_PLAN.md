@@ -217,6 +217,15 @@ deletions are constructed. This changes neither the deletion criterion nor
 the set of generated children. Parents are checkpointed only after the entire
 batch is classified, so interrupted batches can safely be replayed.
 
+Canonical child classes have nonblocking in-flight ownership. Duplicate
+workers skip; the owner records completion only after successful classification
+and witness persistence. The owner's parent batch is not checkpointed until
+that succeeds, so skipping another parent's duplicate does not remove the
+restart path after failure. The independent propagation verifier uses the same
+ownership protocol without changing its independent removal checks. Overlapping
+bounded-search requests also share one backend result per class and depth;
+exclusion and witness searches at different bounds remain distinct.
+
 All RocksDB stores share the same configurable cache policy: cached point
 reads, a bounded native block cache per store, prioritized index/filter
 blocks, and non-polluting sequential scans. Bloom filters affect newly built
