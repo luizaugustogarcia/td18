@@ -1,0 +1,349 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[margin=25mm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,longtable}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\TD}{\operatorname{TD}}
+\newcommand{\ctype}[1]{\ensuremath{\bigl(#1\bigr)}}
+\newcommand{\cyc}[2]{\ensuremath{#1_{\mathrm{#2}}}}
+
+\title{Three Recursive Reductions Toward $\TD(18)=10$\\
+\large A conditional count of annotated cycle types}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Assuming the odd-length-cycle reduction is available through length $19$,
+we count the annotated cycle types that remain after at most three
+successive structural reductions. The reductions use fixed-point
+contraction, known diameter bounds, and a piecewise upper bound in terms
+of the $3$-norm. Under the selection policy specified below, the
+enumeration starts with $360$ annotated types on $19$ symbols and leaves
+$107$ cases when move budgets are distinguished. One type occurs with
+two budgets, so $106$ distinct annotated types require exhaustive
+generation and sorting. This calculation is conditional on the local
+reduction hypothesis; it does not establish $\TD(18)=10$.
+\end{abstract}
+
+\section{States and hypotheses}
+
+An ordinary sorting-by-transpositions instance of order $18$ has a
+cyclic-target representation $(\omega,\beta)$ on $N=19$ symbols, where
+$\omega$ is even and both $\beta$ and $\rho=\omega\beta$ are full cycles.
+An annotated cycle type records each cycle length and whether the cycle
+is oriented or unoriented relative to $\beta$. We denote these
+annotations by $\mathrm{O}$ and $\mathrm{U}$. A $2$-cycle is always
+unoriented. Equal-length cycles are indistinguishable, so their
+annotations are recorded with unoriented cycles before oriented cycles.
+
+Fixed-point contraction preserves sorting distance. If a root instance
+already has a fixed point, contraction gives an instance of ordinary
+order at most $17$, whose distance is at most $\TD(17)=10$. Thus only
+fixed-point-free root types need further consideration.
+
+Let $T$ be a contracted annotated type with cycle lengths
+$\lambda_1,\ldots,\lambda_r$, all at least $2$. Define its number of
+nonfixed symbols and its $3$-norm by
+\begin{equation}
+  M(T)=\sum_{i=1}^r\lambda_i,
+  \qquad
+  \kappa(T)=\sum_{i=1}^r\left\lfloor\frac{\lambda_i}{2}\right\rfloor.
+  \label{eq:mass-norm}
+\end{equation}
+Equivalently, $\kappa(T)=(M(T)-c_{\mathrm{odd}}(T))/2$, where
+$c_{\mathrm{odd}}(T)$ counts odd-length cycles. A state is a pair $(T,s)$,
+where $s$ moves have already been used and the remaining budget is
+$10-s$.
+
+The local hypothesis for this count is that every oriented odd-length
+cycle of length $k\in\{5,7,9,11,13,15,17,19\}$ admits either a qualifying
+$2$-move supported on that cycle or a support-clearing sequence of at
+most $(k+1)/2$ moves. All exceptional local configurations, including
+the exceptional length-$9$ configuration, must be covered for this
+hypothesis to hold. Their verification is outside this counting calculation.
+
+\section{Bounds used to close a state}
+
+Use the following piecewise upper bound on the number of sorting moves:
+\begin{equation}
+  A(k)=
+  \begin{cases}
+    \left\lfloor\dfrac{11k}{8}\right\rfloor, & k\geq8,\\[4pt]
+    \left\lfloor\dfrac{3k}{2}\right\rfloor, & 0\leq k<8.
+  \end{cases}
+  \label{eq:approximation}
+\end{equation}
+The floors account for the integral number of moves. Let $D(M)$ be the
+known diameter bound for a contracted cyclic domain of $M$ symbols,
+with $D(M)=\TD(M-1)$ for $2\leq M\leq18$ and $D(M)=0$ for $M\leq1$.
+For the unreduced domain, set $D(19)=+\infty$, so that the target equality
+is not used as a premise. The known values used here are
+\[
+  \bigl(\TD(0),\TD(1),\ldots,\TD(17)\bigr)
+  = (0,0,1,2,3,3,4,4,5,5,6,6,7,8,8,9,9,10).
+\]
+The value at order $0$ is the trivial empty-instance convention.
+Define the combined tail bound by
+\begin{equation}
+  B(T)=\min\{D(M(T)),A(\kappa(T))\}.
+  \label{eq:tail-bound}
+\end{equation}
+A state closes whenever $s+B(T)\leq10$. This condition is tested at
+every depth, including immediately after the third reduction.
+
+The same bound must also be applied to the companions left after a
+support-clearing sequence. For example, at a state with $s=1$ and type
+\ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}}, clearing the
+$9$-cycle costs at most $5$ moves. The remaining three $3$-cycles have
+$3$-norm $3$, so their tail bound is at most $A(3)=4$. Consequently,
+$1+5+4=10$, and this alternative closes. Using only the diameter of the
+remaining domain would give $1+5+\TD(8)=11$.
+
+\section{Reduction policy and recursion}
+
+At each open state, choose one available reduction in the following
+priority order.
+
+\begin{enumerate}
+  \item If an oriented $3$-cycle is present, clear it in one move.
+  Its three symbols become fixed points and are contracted.
+
+  \item Otherwise, among oriented odd-length cycles of length $k\geq5$,
+  select the smallest length whose support-clearing alternative closes.
+  More precisely, if $T\setminus k$ denotes the companion type obtained
+  by removing one such cycle, require
+  \begin{equation}
+    s+\frac{k+1}{2}+B(T\setminus k)\leq10.
+    \label{eq:eligible-odd}
+  \end{equation}
+  The support-clearing alternative closes. Enumerate the possible
+  qualifying $2$-moves. After contraction,
+  they replace $k$ by either $k-2$, fixing two symbols, or by two
+  odd lengths $a,b\geq3$ satisfying $a+b=k-1$, fixing one symbol.
+  Unordered pairs $(a,b)$ are enumerated once.
+
+  \item Otherwise, if two even-length cycles are present, select the
+  two largest lengths $x,y$. An even-pair reduction replaces them by
+  lengths $x+y-1$ and $1$ in one move. Contract the new fixed point.
+
+  \item If none of these reductions is available, retain the state for
+  exhaustive generation and sorting.
+\end{enumerate}
+
+After every move, enumerate all admissible orientation annotations of
+the resulting cycle-length partition afresh. In particular, orientations
+of companion cycles are not inherited from the parent. Remove fixed
+points and identify equal annotated types before continuing.
+
+Only the one-move alternatives recurse: every recursive edge uses one
+move and decreases the $3$-norm by one. Support-clearing alternatives
+are used only when Equation~\eqref{eq:eligible-odd} closes them.
+The recursion stops after three such edges, or earlier when no selected
+reduction is available. Every open terminal state is a generation task.
+The counts below depend on this selection policy; they do not claim
+optimality over all possible policies.
+
+\section{Enumeration and remaining work}
+
+Fixed-point-free root partitions of $19$ have parts at least $2$ and an
+even number of even parts. There are $53$ such partitions. If a length
+$j\geq3$ occurs $m_j$ times, its group has $m_j+1$ possible orientation
+multisets. Length-$2$ groups have one possible annotation. Hence the
+number of annotated roots is
+\begin{equation}
+  \sum_{\lambda}
+  \prod_{j\geq3}(m_j(\lambda)+1)=360,
+  \label{eq:root-count}
+\end{equation}
+where the sum ranges over the $53$ admissible partitions.
+
+The recursion yields $107$ distinct pairs $(T,10-s)$. Exactly one type,
+\ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}}, appears with both
+remaining budgets $7$ and $8$. A sorting witness of at most $7$ moves
+covers both obligations. Keeping the stricter budget for every repeated
+type therefore leaves $106$ distinct annotated types, distributed as
+shown in Table~\ref{tab:remaining}.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{rrrr}
+    \toprule
+    Moves used & Remaining moves & $3$-norm & Distinct types \\
+    \midrule
+    0 & 10 & 8 & 9 \\
+    0 & 10 & 9 & 1 \\
+    1 &  9 & 7 & 9 \\
+    1 &  9 & 8 & 12 \\
+    2 &  8 & 6 & 2 \\
+    2 &  8 & 7 & 16 \\
+    3 &  7 & 6 & 57 \\
+    \midrule
+    \multicolumn{3}{r}{Total} & \textbf{106} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Remaining annotated types after piecewise $3$-norm closure
+  and identification of repeated types using their stricter budgets.}
+  \label{tab:remaining}
+\end{table}
+
+The counts by recursion depth are consequently $10$, $21$, $18$, and
+$57$. At depth three, a type of $3$-norm $5$ closes because $A(5)=7$,
+whereas a type of $3$-norm $6$ has only the general guarantee $A(6)=9$,
+exceeding the remaining seven-move budget.
+
+Independent finite enumerations in Python and Java agree on the complete
+set of $107$ cases with their budgets and on its reduction to $106$
+distinct annotated types. As a consistency check, the root enumeration
+at domain size $17$ reproduces $33$ admissible partitions and $194$
+annotated types.
+
+These are counts of annotated types, rather than extended-toric classes.
+The enumeration deliberately includes types that might have no
+realizable cyclic-target pair. Direct generation must establish whether
+each retained type is empty and, otherwise, emit its realizable classes
+for sorting within the stated budget. The count alone does not imply
+that every required sorting witness exists.
+
+\clearpage
+\appendix
+\section{Complete list of the 106 distinct types}
+
+Fixed points are omitted from the displayed types. The columns $M$ and
+$f$ give the numbers of nonfixed and contracted fixed symbols,
+respectively, with $M+f=19$. The column $s$ gives the moves already used;
+$b=10-s$ is the stricter remaining budget for that type.
+
+\begingroup
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{longtable}{r l r r r r r}
+  \caption{Complete generation obligations under the specified policy.}
+  \label{tab:complete}\\
+  \toprule
+  No. & Annotated cycle type & $M$ & $f$ & $s$ & $b$ & $\kappa$ \\
+  \midrule
+  \endfirsthead
+  \multicolumn{7}{l}{\textit{Table~\ref{tab:complete} continued}}\\
+  \toprule
+  No. & Annotated cycle type & $M$ & $f$ & $s$ & $b$ & $\kappa$ \\
+  \midrule
+  \endhead
+  \midrule
+  \multicolumn{7}{r}{\textit{Continued on the next page}}\\
+  \endfoot
+  \bottomrule
+  \endlastfoot
+  1 & \ctype{\cyc{13}{U},\cyc{3}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 \\
+  2 & \ctype{\cyc{11}{U},\cyc{5}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 \\
+  3 & \ctype{\cyc{11}{U},\cyc{5}{O},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 \\
+  4 & \ctype{\cyc{9}{U},\cyc{7}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 \\
+  5 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 \\
+  6 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 \\
+  7 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 \\
+  8 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 \\
+  9 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 \\
+  10 & \ctype{\cyc{19}{U}} & 19 & 0 & 0 & 10 & 9 \\
+  11 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
+  12 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
+  13 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
+  14 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
+  15 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
+  16 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{5}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
+  17 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
+  18 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
+  19 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
+  20 & \ctype{\cyc{15}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 8 \\
+  21 & \ctype{\cyc{13}{U},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 \\
+  22 & \ctype{\cyc{13}{U},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 \\
+  23 & \ctype{\cyc{13}{O},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 \\
+  24 & \ctype{\cyc{13}{O},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 \\
+  25 & \ctype{\cyc{11}{U},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 \\
+  26 & \ctype{\cyc{11}{U},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 \\
+  27 & \ctype{\cyc{11}{O},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 \\
+  28 & \ctype{\cyc{11}{O},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 \\
+  29 & \ctype{\cyc{9}{U},\cyc{9}{U}} & 18 & 1 & 1 & 9 & 8 \\
+  30 & \ctype{\cyc{9}{U},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 \\
+  31 & \ctype{\cyc{9}{O},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 \\
+  32 & \ctype{\cyc{5}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 \\
+  33 & \ctype{\cyc{5}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 \\
+  34 & \ctype{\cyc{11}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  35 & \ctype{\cyc{11}{O},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  36 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  37 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  38 & \ctype{\cyc{9}{O},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  39 & \ctype{\cyc{9}{O},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  40 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  41 & \ctype{\cyc{7}{U},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  42 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  43 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 \\
+  44 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 \\
+  45 & \ctype{\cyc{7}{O},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  46 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 \\
+  47 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 \\
+  48 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 \\
+  49 & \ctype{\cyc{13}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 \\
+  50 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  51 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  52 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  53 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  54 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  55 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  56 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  57 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  58 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  59 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  60 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  61 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  62 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  63 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  64 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  65 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  66 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
+  67 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  68 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  69 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  70 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  71 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
+  72 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
+  73 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
+  74 & \ctype{\cyc{9}{U},\cyc{3}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
+  75 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
+  76 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
+  77 & \ctype{\cyc{9}{O},\cyc{3}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
+  78 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
+  79 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
+  80 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
+  81 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
+  82 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
+  83 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
+  84 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
+  85 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
+  86 & \ctype{\cyc{11}{U},\cyc{3}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  87 & \ctype{\cyc{11}{U},\cyc{3}{O}} & 14 & 5 & 3 & 7 & 6 \\
+  88 & \ctype{\cyc{11}{O},\cyc{3}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  89 & \ctype{\cyc{11}{O},\cyc{3}{O}} & 14 & 5 & 3 & 7 & 6 \\
+  90 & \ctype{\cyc{9}{U},\cyc{5}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  91 & \ctype{\cyc{9}{U},\cyc{5}{O}} & 14 & 5 & 3 & 7 & 6 \\
+  92 & \ctype{\cyc{9}{O},\cyc{5}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  93 & \ctype{\cyc{9}{O},\cyc{5}{O}} & 14 & 5 & 3 & 7 & 6 \\
+  94 & \ctype{\cyc{7}{U},\cyc{7}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  95 & \ctype{\cyc{7}{U},\cyc{7}{O}} & 14 & 5 & 3 & 7 & 6 \\
+  96 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  97 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  98 & \ctype{\cyc{7}{O},\cyc{7}{O}} & 14 & 5 & 3 & 7 & 6 \\
+  99 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  100 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  101 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  102 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  103 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  104 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  105 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  106 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+\end{longtable}
+\endgroup
+
+\end{document}

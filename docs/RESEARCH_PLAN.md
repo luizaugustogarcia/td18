@@ -266,3 +266,16 @@ and search-bound metadata remain required before archival proof runs.
 
 Large products belong under ignored `data/`, `certificates/`, or
 `checkpoints/` directories, never in Git.
+
+## Supplementary reduction enumeration
+
+The [three-reduction note](td18-reduction-count.tex) records a separate,
+conditional route through 106 annotated generation obligations under its
+stated selection policy. It assumes oriented odd-length sorting sequences
+through cyclic domain size 19. It does not certify the target diameter or
+replace any of the propagation stages described here.
+
+The [Burnside counting derivation](td18-burnside-counting.md) and the
+`CountTD18Bracelets` entry point count realizable twisted bracelets for every
+entry of that note's Table 2. They supply counts, not sorting witnesses.
+The root count log and supplementary run logs are local, untracked artifacts.

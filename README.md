@@ -32,10 +32,12 @@ at order `N + 1`.
 
 ## Implemented stages
 
-The single `pipeline` module contains only code used by this computation:
+The `pipeline` module contains the extremal-class computation and the
+supplementary annotated-type counter:
 
 - cyclic-target algebra and extended-toric canonicalization;
 - direct twisted-bracelet generation of fixed-point-free classes;
+- Burnside counting of the 106 types in the supplementary reduction note;
 - circular deletion and `N^2` child insertion;
 - direct `N`-child fixed-point expansion across all available CPUs;
 - piecewise approximation pruning: the Bafna–Pevzner `1.5` guarantee below
@@ -103,6 +105,37 @@ and validation corpus.
 The working paper is in [docs/paper/main.tex](docs/paper/main.tex). It states
 the deletion reduction and conditional certification theorem without claiming
 that the pending large computation has completed.
+
+## Count the TD(18) reduction types
+
+The supplementary [three-reduction note](docs/td18-reduction-count.tex)
+lists 106 annotated types under its stated selection policy and conditional
+sorting-sequence assumption through domain size 19. These counts are
+research obligations; they do not establish the target diameter.
+
+Count one realizable twisted-bracelet representative per class for every entry
+of Table 2 in `docs/td18-reduction-count.tex`:
+
+```bash
+mvn -pl pipeline compile exec:java \
+  -Dexec.mainClass=br.unb.cic.tdp.CountTD18Bracelets
+```
+
+The counter reads the types in table order and uses all available CPU cores.
+It applies Burnside's identity to every table entry, using character sums for
+the identity term and symmetry-constrained enumeration for rotations and
+twisted reflections. It counts without decoding encoding words or invoking
+sorting or certificate verification. Each run and entry records
+`method=burnside` in the log. See [the counting derivation](docs/td18-burnside-counting.md).
+It prints each completed count and immediately flushes it to
+`td18-bracelet-counts.log` in the project root. New runs append to that log.
+The counts concern the contracted, fixed-point-free types displayed in the
+table, with target realizability enforced by the generator.
+
+For a selected inclusive range of table entries, add
+`-Dexec.args="--rows=50-106"`. Optional `--table=path` and `--log=path`
+arguments select another source file or log destination. The parser also
+accepts a bracelet-count column added after the table's existing columns.
 
 ## Build and test
 

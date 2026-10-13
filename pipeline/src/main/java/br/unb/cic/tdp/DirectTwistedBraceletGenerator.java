@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
 /**
@@ -101,12 +102,37 @@ public final class DirectTwistedBraceletGenerator {
         return count[0];
     }
 
+    /** Counts realizable representatives on the shared CPU pool without decoding words. */
+    public static long countRepresentativesConcurrently(final int[] partition,
+                                                       final boolean[] orientedByPart) {
+        final var count = new LongAdder();
+        generateConcurrently(partition, orientedByPart, NO_CANCELLATION_CHECK,
+                null, count::increment);
+        return count.sum();
+    }
+
+    /** Exact Burnside count for fixed-point-free contracted domains of at most 19 symbols. */
+    public static long countRepresentativesByBurnside(final int[] partition,
+                                                     final boolean[] orientedByPart) {
+        validate(partition, orientedByPart);
+        return TwistedBraceletBurnsideCounter.count(partition, orientedByPart, EXECUTOR);
+    }
+
     /** Parallel generation for a thread-safe consumer. */
     public static void generateRepresentativesConcurrently(
             final int[] partition,
             final boolean[] orientedByPart,
             final Runnable cancellationCheck,
             final Consumer<CyclicTargetPair> consumer) {
+        generateConcurrently(partition, orientedByPart, cancellationCheck, consumer, null);
+    }
+
+    private static void generateConcurrently(
+            final int[] partition,
+            final boolean[] orientedByPart,
+            final Runnable cancellationCheck,
+            final Consumer<CyclicTargetPair> consumer,
+            final Runnable countConsumer) {
         validate(partition, orientedByPart);
         final var specs = normalizedSpecs(partition, orientedByPart);
         final var failure = new AtomicReference<Throwable>();
@@ -120,7 +146,7 @@ public final class DirectTwistedBraceletGenerator {
                 Integer.MAX_VALUE,
                 (long) WORKER_COUNT * FRONTIER_TASKS_PER_WORKER);
         final var branches = buildFrontier(
-                specs, consumer, branchCancellationCheck, targetTaskCount);
+                specs, consumer, countConsumer, branchCancellationCheck, targetTaskCount);
         if (branches.size() <= 1) {
             branches.forEach(GenerationTask::runToCompletion);
             return;
@@ -197,10 +223,11 @@ public final class DirectTwistedBraceletGenerator {
     private static List<GenerationTask> buildFrontier(
             final CycleSpec[] specs,
             final Consumer<CyclicTargetPair> consumer,
+            final Runnable countConsumer,
             final Runnable cancellationCheck,
             final int targetTaskCount) {
         final var generator = new Generator(
-                specs, consumer, null, null, cancellationCheck);
+                specs, consumer, null, countConsumer, cancellationCheck);
         final var initialTask = generator.initialTask();
         if (initialTask == null) {
             return List.of();

@@ -10,6 +10,10 @@
     </parent>
     <artifactId>pipeline</artifactId>
 
+    <properties>
+        <exec.mainClass>br.unb.cic.td18.ExtremalPipelineMain</exec.mainClass>
+    </properties>
+
     <dependencies>
         <dependency><groupId>org.rocksdb</groupId><artifactId>rocksdbjni</artifactId><version>10.4.2</version><classifier>linux64</classifier></dependency>
         <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><version>${lombok.version}</version><scope>provided</scope></dependency>
@@ -36,7 +40,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>br.unb.cic.td18.ExtremalPipelineMain</mainClass>
+                    <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
             <plugin>
