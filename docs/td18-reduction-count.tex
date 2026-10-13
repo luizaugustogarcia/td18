@@ -8,7 +8,7 @@
 \newcommand{\ctype}[1]{\ensuremath{\bigl(#1\bigr)}}
 \newcommand{\cyc}[2]{\ensuremath{#1_{\mathrm{#2}}}}
 
-\title{Three Recursive Reductions Toward $\TD(18)=10$\\
+\title{Two Recursive Reductions Toward $\TD(18)=10$\\
 \large A conditional count of annotated cycle types}
 \author{}
 \date{}
@@ -18,15 +18,16 @@
 
 \begin{abstract}
 Assuming the odd-length-cycle reduction is available through length $19$,
-we count the annotated cycle types that remain after at most three
+we count the annotated cycle types that remain after at most two
 successive structural reductions. The reductions use fixed-point
-contraction, known diameter bounds, and a piecewise upper bound in terms
-of the $3$-norm. Under the selection policy specified below, the
-enumeration starts with $360$ annotated types on $19$ symbols and leaves
-$107$ cases when move budgets are distinguished. One type occurs with
-two budgets, so $106$ distinct annotated types require exhaustive
-generation and sorting. This calculation is conditional on the local
-reduction hypothesis; it does not establish $\TD(18)=10$.
+contraction and known transposition-diameter bounds; a state is retained
+for generation whenever a known diameter does not already fit the
+remaining budget, while its $3$-norm lower bound still leaves sorting
+within that budget possible. Under the selection policy specified below,
+the enumeration starts with $360$ annotated types on $19$ symbols and
+leaves $204$ distinct annotated types that require exhaustive generation
+and sorting. This calculation is conditional on the local reduction
+hypothesis; it does not establish $\TD(18)=10$.
 \end{abstract}
 
 \section{States and hypotheses}
@@ -60,48 +61,52 @@ where $s$ moves have already been used and the remaining budget is
 $10-s$.
 
 The local hypothesis for this count is that every oriented odd-length
-cycle of length $k\in\{5,7,9,11,13,15,17,19\}$ admits either a qualifying
-$2$-move supported on that cycle or a support-clearing sequence of at
-most $(k+1)/2$ moves. All exceptional local configurations, including
-the exceptional length-$9$ configuration, must be covered for this
-hypothesis to hold. Their verification is outside this counting calculation.
+cycle of length $k\in\{5,7,9,11,13,15,17,19\}$ admits a qualifying
+$2$-move supported on that cycle, producing after contraction either a
+single shorter odd-length cycle or a pair of odd-length cycles. All
+exceptional local configurations, including the exceptional length-$9$
+configuration, must be covered for this hypothesis to hold. Their
+verification is outside this counting calculation.
 
-\section{Bounds used to close a state}
+\section{Closing a state and the risk principle}
 
-Use the following piecewise upper bound on the number of sorting moves:
-\begin{equation}
-  A(k)=
-  \begin{cases}
-    \left\lfloor\dfrac{11k}{8}\right\rfloor, & k\geq8,\\[4pt]
-    \left\lfloor\dfrac{3k}{2}\right\rfloor, & 0\leq k<8.
-  \end{cases}
-  \label{eq:approximation}
-\end{equation}
-The floors account for the integral number of moves. Let $D(M)$ be the
-known diameter bound for a contracted cyclic domain of $M$ symbols,
-with $D(M)=\TD(M-1)$ for $2\leq M\leq18$ and $D(M)=0$ for $M\leq1$.
-For the unreduced domain, set $D(19)=+\infty$, so that the target equality
-is not used as a premise. The known values used here are
+Let $D(M)$ be the known transposition-diameter bound for a contracted
+cyclic domain of $M$ symbols, with $D(M)=\TD(M-1)$ for $2\leq M\leq18$
+and $D(M)=0$ for $M\leq1$. For the unreduced domain, set $D(19)=+\infty$,
+so that the target equality is not used as a premise. The known values
+used here are
 \[
   \bigl(\TD(0),\TD(1),\ldots,\TD(17)\bigr)
   = (0,0,1,2,3,3,4,4,5,5,6,6,7,8,8,9,9,10).
 \]
 The value at order $0$ is the trivial empty-instance convention.
-Define the combined tail bound by
-\begin{equation}
-  B(T)=\min\{D(M(T)),A(\kappa(T))\}.
-  \label{eq:tail-bound}
-\end{equation}
-A state closes whenever $s+B(T)\leq10$. This condition is tested at
-every depth, including immediately after the third reduction.
 
-The same bound must also be applied to the companions left after a
-support-clearing sequence. For example, at a state with $s=1$ and type
-\ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}}, clearing the
-$9$-cycle costs at most $5$ moves. The remaining three $3$-cycles have
-$3$-norm $3$, so their tail bound is at most $A(3)=4$. Consequently,
-$1+5+4=10$, and this alternative closes. Using only the diameter of the
-remaining domain would give $1+5+\TD(8)=11$.
+A state $(T,s)$ closes whenever a known diameter already fits the
+remaining budget,
+\begin{equation}
+  s+D(M(T))\leq10.
+  \label{eq:diameter-closure}
+\end{equation}
+This is the only rule that discharges a state. It is tested at every
+depth, including immediately after the second reduction. No approximation
+guarantee is used to close a state; a state that is not closed by a known
+diameter is retained for generation and sorting rather than pruned.
+
+Retention is justified by the $3$-norm lower bound. A transposition
+changes the $3$-norm by at most one, so $\kappa(T)$ is a lower bound on
+the number of moves needed to sort any instance of type $T$, and sorting
+within the remaining budget $b=10-s$ is possible only if $\kappa(T)\leq
+b$. This necessary condition always holds at a reachable state. Each
+reduction edge spends one move and lowers the $3$-norm by exactly one, so
+$\kappa(T)-b$ is invariant along every path. A fixed-point-free root on
+$19$ symbols has an odd number of odd-length cycles, hence at least one,
+so $\kappa\leq(19-1)/2=9<10=b$ at every root. Therefore $\kappa(T)<b$ at
+every state the recursion reaches, and the budget never falls below the
+$3$-norm lower bound. Whenever a known diameter does not close a state,
+the budget still leaves sorting within reach, and we take the risk of
+searching for a sorting sequence. Any state for which the search exhibits
+an obstruction is recorded as a residual obligation, handled by separate
+means outside this calculation.
 
 \section{Reduction policy and recursion}
 
@@ -113,18 +118,11 @@ priority order.
   Its three symbols become fixed points and are contracted.
 
   \item Otherwise, among oriented odd-length cycles of length $k\geq5$,
-  select the smallest length whose support-clearing alternative closes.
-  More precisely, if $T\setminus k$ denotes the companion type obtained
-  by removing one such cycle, require
-  \begin{equation}
-    s+\frac{k+1}{2}+B(T\setminus k)\leq10.
-    \label{eq:eligible-odd}
-  \end{equation}
-  The support-clearing alternative closes. Enumerate the possible
-  qualifying $2$-moves. After contraction,
-  they replace $k$ by either $k-2$, fixing two symbols, or by two
-  odd lengths $a,b\geq3$ satisfying $a+b=k-1$, fixing one symbol.
-  Unordered pairs $(a,b)$ are enumerated once.
+  select the smallest length and enumerate the possible qualifying
+  $2$-moves on it. After contraction, they replace $k$ by either $k-2$,
+  fixing two symbols, or by two odd lengths $a,b\geq3$ satisfying
+  $a+b=k-1$, fixing one symbol. Unordered pairs $(a,b)$ are enumerated
+  once.
 
   \item Otherwise, if two even-length cycles are present, select the
   two largest lengths $x,y$. An even-pair reduction replaces them by
@@ -139,13 +137,11 @@ the resulting cycle-length partition afresh. In particular, orientations
 of companion cycles are not inherited from the parent. Remove fixed
 points and identify equal annotated types before continuing.
 
-Only the one-move alternatives recurse: every recursive edge uses one
-move and decreases the $3$-norm by one. Support-clearing alternatives
-are used only when Equation~\eqref{eq:eligible-odd} closes them.
-The recursion stops after three such edges, or earlier when no selected
-reduction is available. Every open terminal state is a generation task.
-The counts below depend on this selection policy; they do not claim
-optimality over all possible policies.
+Every recursive edge uses one move and decreases the $3$-norm by one.
+The recursion stops after two such edges, or earlier when no selected
+reduction is available or a known diameter closes the state. Every open
+terminal state is a generation task. The counts below depend on this
+selection policy; they do not claim optimality over all possible policies.
 
 \section{Enumeration and remaining work}
 
@@ -161,12 +157,10 @@ number of annotated roots is
 \end{equation}
 where the sum ranges over the $53$ admissible partitions.
 
-The recursion yields $107$ distinct pairs $(T,10-s)$. Exactly one type,
-\ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}}, appears with both
-remaining budgets $7$ and $8$. A sorting witness of at most $7$ moves
-covers both obligations. Keeping the stricter budget for every repeated
-type therefore leaves $106$ distinct annotated types, distributed as
-shown in Table~\ref{tab:remaining}.
+The recursion yields $204$ distinct annotated types. Under this policy
+each type is reached at a single remaining budget, so no identification
+of repeated types across budgets is required. The distribution is shown
+in Table~\ref{tab:remaining}.
 
 \begin{table}[htbp]
   \centering
@@ -174,31 +168,31 @@ shown in Table~\ref{tab:remaining}.
     \toprule
     Moves used & Remaining moves & $3$-norm & Distinct types \\
     \midrule
-    0 & 10 & 8 & 9 \\
+    0 & 10 & 7 & 2 \\
+    0 & 10 & 8 & 5 \\
     0 & 10 & 9 & 1 \\
-    1 &  9 & 7 & 9 \\
-    1 &  9 & 8 & 12 \\
-    2 &  8 & 6 & 2 \\
-    2 &  8 & 7 & 16 \\
-    3 &  7 & 6 & 57 \\
+    1 &  9 & 6 & 1 \\
+    1 &  9 & 7 & 3 \\
+    1 &  9 & 8 & 4 \\
+    2 &  8 & 6 & 32 \\
+    2 &  8 & 7 & 156 \\
     \midrule
-    \multicolumn{3}{r}{Total} & \textbf{106} \\
+    \multicolumn{3}{r}{Total} & \textbf{204} \\
     \bottomrule
   \end{tabular}
-  \caption{Remaining annotated types after piecewise $3$-norm closure
-  and identification of repeated types using their stricter budgets.}
+  \caption{Remaining annotated types after known-diameter closure at
+  recursion depth at most two.}
   \label{tab:remaining}
 \end{table}
 
-The counts by recursion depth are consequently $10$, $21$, $18$, and
-$57$. At depth three, a type of $3$-norm $5$ closes because $A(5)=7$,
-whereas a type of $3$-norm $6$ has only the general guarantee $A(6)=9$,
-exceeding the remaining seven-move budget.
+The counts by recursion depth are consequently $8$, $8$, and $188$.
+No type closes by an approximation guarantee; a type is retained
+precisely when no known diameter fits its budget, which the $3$-norm
+lower bound shows still leaves sorting within reach.
 
-Independent finite enumerations in Python and Java agree on the complete
-set of $107$ cases with their budgets and on its reduction to $106$
-distinct annotated types. As a consistency check, the root enumeration
-at domain size $17$ reproduces $33$ admissible partitions and $194$
+A finite enumeration in Java yields the complete set of $204$ cases
+with their budgets. As a consistency check, the root enumeration at
+domain size $17$ reproduces $33$ admissible partitions and $194$
 annotated types.
 
 These are counts of annotated types, rather than extended-toric classes.
@@ -210,16 +204,16 @@ that every required sorting witness exists.
 
 \clearpage
 \appendix
-\section{Complete list of the 106 distinct types}
+\section{Complete list of the 204 distinct types}
 
 Fixed points are omitted from the displayed types. The columns $M$ and
 $f$ give the numbers of nonfixed and contracted fixed symbols,
 respectively, with $M+f=19$. The column $s$ gives the moves already used;
-$b=10-s$ is the stricter remaining budget for that type. The column $R$
+$b=10-s$ is the remaining budget for that type. The column $R$
 gives the number of realizable extended-toric classes of the type, one
 twisted bracelet per class, obtained by Burnside's identity on the
 contracted, fixed-point-free domain; a value of $0$ marks an empty type
-with no realizable cyclic-target pair. The $664\,820\,570\,423$ classes
+with no realizable cyclic-target pair. The $33\,544\,626\,415$ classes
 in total are the complete generation obligation under the stated policy.
 
 \begingroup
@@ -242,114 +236,212 @@ in total are the complete generation obligation under the stated policy.
   \endfoot
   \bottomrule
   \endlastfoot
-  1 & \ctype{\cyc{13}{U},\cyc{3}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 0 \\
-  2 & \ctype{\cyc{11}{U},\cyc{5}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 0 \\
-  3 & \ctype{\cyc{11}{U},\cyc{5}{O},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 0 \\
-  4 & \ctype{\cyc{9}{U},\cyc{7}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 28 \\
-  5 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 & 43 \\
-  6 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 & 1\,610 \\
-  7 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 & 18\,699 \\
-  8 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 & 544 \\
-  9 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 & 13\,832 \\
-  10 & \ctype{\cyc{19}{U}} & 19 & 0 & 0 & 10 & 9 & 0 \\
-  11 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 0 \\
-  12 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 11\,365 \\
-  13 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 383\,027 \\
-  14 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 79\,932\,971 \\
-  15 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 4\,994\,968\,093 \\
-  16 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{5}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 23\,288 \\
-  17 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 2\,798\,124 \\
-  18 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 142\,122\,408 \\
-  19 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 3\,243\,941\,876 \\
-  20 & \ctype{\cyc{15}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 8 & 0 \\
-  21 & \ctype{\cyc{13}{U},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 & 0 \\
-  22 & \ctype{\cyc{13}{U},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 & 0 \\
-  23 & \ctype{\cyc{13}{O},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 & 3\,805\,523\,712 \\
-  24 & \ctype{\cyc{13}{O},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 & 284\,235\,604\,416 \\
-  25 & \ctype{\cyc{11}{U},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 & 0 \\
-  26 & \ctype{\cyc{11}{U},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 & 0 \\
-  27 & \ctype{\cyc{11}{O},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 & 13\,314\,240 \\
-  28 & \ctype{\cyc{11}{O},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 & 243\,117\,785\,088 \\
-  29 & \ctype{\cyc{9}{U},\cyc{9}{U}} & 18 & 1 & 1 & 9 & 8 & 1 \\
-  30 & \ctype{\cyc{9}{U},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 & 2\,437 \\
-  31 & \ctype{\cyc{9}{O},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 & 115\,561\,900\,003 \\
-  32 & \ctype{\cyc{5}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 & 63\,364 \\
-  33 & \ctype{\cyc{5}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 & 3\,617\,940 \\
-  34 & \ctype{\cyc{11}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 0 \\
-  35 & \ctype{\cyc{11}{O},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 978\,668\,256 \\
-  36 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 0 \\
-  37 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 0 \\
-  38 & \ctype{\cyc{9}{O},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 46\,448\,640 \\
-  39 & \ctype{\cyc{9}{O},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 3\,409\,459\,200 \\
-  40 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 37 \\
-  41 & \ctype{\cyc{7}{U},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 152\,578 \\
-  42 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 & 146 \\
-  43 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 7\,420 \\
-  44 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 119\,538 \\
-  45 & \ctype{\cyc{7}{O},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 1\,586\,888\,793 \\
-  46 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 & 706\,790 \\
-  47 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 78\,347\,300 \\
-  48 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 3\,243\,290\,550 \\
-  49 & \ctype{\cyc{13}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
-  50 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 243 \\
-  51 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 693 \\
-  52 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 693 \\
-  53 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 243 \\
-  54 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 4\,657\,685 \\
-  55 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 19\,035\,905 \\
-  56 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 28\,166\,747 \\
-  57 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 16\,381\,551 \\
-  58 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 3\,959 \\
-  59 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 8\,031 \\
-  60 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 4\,332 \\
-  61 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 372\,456 \\
-  62 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 877\,591 \\
-  63 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 543\,237 \\
-  64 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 13\,496\,745 \\
-  65 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 38\,757\,604 \\
-  66 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 31\,801\,005 \\
-  67 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 147\,022 \\
-  68 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 771\,205 \\
-  69 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 1\,616\,766 \\
-  70 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 1\,645\,027 \\
-  71 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 721\,146 \\
-  72 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 0 \\
-  73 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 0 \\
-  74 & \ctype{\cyc{9}{U},\cyc{3}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 0 \\
-  75 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 5\,295\,172 \\
-  76 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 15\,415\,692 \\
-  77 & \ctype{\cyc{9}{O},\cyc{3}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 13\,093\,886 \\
-  78 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 15 \\
-  79 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 15 \\
-  80 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 345 \\
-  81 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 345 \\
-  82 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 221\,409 \\
-  83 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 261\,729 \\
-  84 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 19\,835\,703 \\
-  85 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 31\,711\,671 \\
-  86 & \ctype{\cyc{11}{U},\cyc{3}{U}} & 14 & 5 & 3 & 7 & 6 & 0 \\
-  87 & \ctype{\cyc{11}{U},\cyc{3}{O}} & 14 & 5 & 3 & 7 & 6 & 0 \\
-  88 & \ctype{\cyc{11}{O},\cyc{3}{U}} & 14 & 5 & 3 & 7 & 6 & 4\,755\,508 \\
-  89 & \ctype{\cyc{11}{O},\cyc{3}{O}} & 14 & 5 & 3 & 7 & 6 & 7\,866\,444 \\
-  90 & \ctype{\cyc{9}{U},\cyc{5}{U}} & 14 & 5 & 3 & 7 & 6 & 0 \\
-  91 & \ctype{\cyc{9}{U},\cyc{5}{O}} & 14 & 5 & 3 & 7 & 6 & 0 \\
-  92 & \ctype{\cyc{9}{O},\cyc{5}{U}} & 14 & 5 & 3 & 7 & 6 & 73\,104 \\
-  93 & \ctype{\cyc{9}{O},\cyc{5}{O}} & 14 & 5 & 3 & 7 & 6 & 9\,164\,272 \\
-  94 & \ctype{\cyc{7}{U},\cyc{7}{U}} & 14 & 5 & 3 & 7 & 6 & 1 \\
-  95 & \ctype{\cyc{7}{U},\cyc{7}{O}} & 14 & 5 & 3 & 7 & 6 & 77 \\
-  96 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 0 \\
-  97 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 0 \\
-  98 & \ctype{\cyc{7}{O},\cyc{7}{O}} & 14 & 5 & 3 & 7 & 6 & 4\,245\,196 \\
-  99 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 932\,182 \\
-  100 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 1\,493\,928 \\
-  101 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 161 \\
-  102 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 17\,153 \\
-  103 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 1\,001\,744 \\
-  104 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 9\,295 \\
-  105 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 26\,874 \\
-  106 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 22\,259 \\
+  1 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 7 & 96\,726 \\
+  2 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 7 & 1\,151\,518 \\
+  3 & \ctype{\cyc{13}{U},\cyc{3}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 0 \\
+  4 & \ctype{\cyc{11}{U},\cyc{5}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 0 \\
+  5 & \ctype{\cyc{9}{U},\cyc{7}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 28 \\
+  6 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 & 43 \\
+  7 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 & 544 \\
+  8 & \ctype{\cyc{19}{U}} & 19 & 0 & 0 & 10 & 9 & 0 \\
+  9 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 6 & 224\,616 \\
+  10 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 0 \\
+  11 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 11\,365 \\
+  12 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{5}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 23\,288 \\
+  13 & \ctype{\cyc{15}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 8 & 0 \\
+  14 & \ctype{\cyc{13}{U},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 & 0 \\
+  15 & \ctype{\cyc{11}{U},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 & 0 \\
+  16 & \ctype{\cyc{9}{U},\cyc{9}{U}} & 18 & 1 & 1 & 9 & 8 & 1 \\
+  17 & \ctype{\cyc{5}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 & 63\,364 \\
+  18 & \ctype{\cyc{5}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 6 & 289\,248 \\
+  19 & \ctype{\cyc{5}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 6 & 512\,744 \\
+  20 & \ctype{\cyc{5}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 6 & 422\,688 \\
+  21 & \ctype{\cyc{5}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 6 & 137\,860 \\
+  22 & \ctype{\cyc{5}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 & 3\,617\,940 \\
+  23 & \ctype{\cyc{5}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 6 & 18\,958\,624 \\
+  24 & \ctype{\cyc{5}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 6 & 39\,249\,704 \\
+  25 & \ctype{\cyc{5}{O},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 6 & 39\,361\,504 \\
+  26 & \ctype{\cyc{5}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 6 & 17\,793\,780 \\
+  27 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 6 & 243 \\
+  28 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 693 \\
+  29 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 693 \\
+  30 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 243 \\
+  31 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 6 & 4\,657\,685 \\
+  32 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 19\,035\,905 \\
+  33 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 28\,166\,747 \\
+  34 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 16\,381\,551 \\
+  35 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 6 & 3\,959 \\
+  36 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 8\,031 \\
+  37 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 4\,332 \\
+  38 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 6 & 372\,456 \\
+  39 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 877\,591 \\
+  40 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 543\,237 \\
+  41 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 6 & 13\,496\,745 \\
+  42 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 38\,757\,604 \\
+  43 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 6 & 31\,801\,005 \\
+  44 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 6 & 147\,022 \\
+  45 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 6 & 771\,205 \\
+  46 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 6 & 1\,616\,766 \\
+  47 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 6 & 1\,645\,027 \\
+  48 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 6 & 721\,146 \\
+  49 & \ctype{\cyc{11}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  50 & \ctype{\cyc{11}{U},\cyc{3}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  51 & \ctype{\cyc{11}{U},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  52 & \ctype{\cyc{11}{O},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 978\,668\,256 \\
+  53 & \ctype{\cyc{11}{O},\cyc{3}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 2\,755\,468\,800 \\
+  54 & \ctype{\cyc{11}{O},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 2\,154\,445\,664 \\
+  55 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  56 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  57 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  58 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  59 & \ctype{\cyc{9}{O},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 46\,448\,640 \\
+  60 & \ctype{\cyc{9}{O},\cyc{5}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 56\,609\,280 \\
+  61 & \ctype{\cyc{9}{O},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 3\,409\,459\,200 \\
+  62 & \ctype{\cyc{9}{O},\cyc{5}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 5\,112\,092\,160 \\
+  63 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 37 \\
+  64 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 29 \\
+  65 & \ctype{\cyc{7}{U},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 152\,578 \\
+  66 & \ctype{\cyc{7}{U},\cyc{7}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 158\,350 \\
+  67 & \ctype{\cyc{7}{O},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 1\,586\,888\,793 \\
+  68 & \ctype{\cyc{7}{O},\cyc{7}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 2\,372\,791\,637 \\
+  69 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 & 146 \\
+  70 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 7\,420 \\
+  71 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 119\,538 \\
+  72 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 & 706\,790 \\
+  73 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 78\,347\,300 \\
+  74 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 3\,243\,290\,550 \\
+  75 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 10\,896 \\
+  76 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 21\,600 \\
+  77 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 10\,896 \\
+  78 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 191\,923\,424 \\
+  79 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 537\,588\,000 \\
+  80 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 410\,008\,288 \\
+  81 & \ctype{\cyc{6}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 61\,200 \\
+  82 & \ctype{\cyc{6}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 199\,200 \\
+  83 & \ctype{\cyc{6}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 224\,400 \\
+  84 & \ctype{\cyc{6}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 86\,400 \\
+  85 & \ctype{\cyc{6}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 42\,342\,000 \\
+  86 & \ctype{\cyc{6}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 171\,295\,200 \\
+  87 & \ctype{\cyc{6}{O},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 248\,079\,600 \\
+  88 & \ctype{\cyc{6}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 133\,641\,600 \\
+  89 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 99\,948 \\
+  90 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 107\,476 \\
+  91 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 10\,489\,472 \\
+  92 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 12\,954\,056 \\
+  93 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 376\,353\,716 \\
+  94 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 556\,197\,172 \\
+  95 & \ctype{\cyc{5}{U},\cyc{4}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 485\,968 \\
+  96 & \ctype{\cyc{5}{U},\cyc{4}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 1\,093\,984 \\
+  97 & \ctype{\cyc{5}{U},\cyc{4}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 628\,688 \\
+  98 & \ctype{\cyc{5}{U},\cyc{4}{O},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 3\,525\,872 \\
+  99 & \ctype{\cyc{5}{U},\cyc{4}{O},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 8\,468\,576 \\
+  100 & \ctype{\cyc{5}{U},\cyc{4}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 5\,338\,672 \\
+  101 & \ctype{\cyc{5}{O},\cyc{4}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 27\,093\,584 \\
+  102 & \ctype{\cyc{5}{O},\cyc{4}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 69\,330\,272 \\
+  103 & \ctype{\cyc{5}{O},\cyc{4}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 47\,070\,544 \\
+  104 & \ctype{\cyc{5}{O},\cyc{4}{O},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 237\,808\,816 \\
+  105 & \ctype{\cyc{5}{O},\cyc{4}{O},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 676\,663\,648 \\
+  106 & \ctype{\cyc{5}{O},\cyc{4}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 528\,920\,816 \\
+  107 & \ctype{\cyc{4}{U},\cyc{4}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 199\,054 \\
+  108 & \ctype{\cyc{4}{U},\cyc{4}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 701\,906 \\
+  109 & \ctype{\cyc{4}{U},\cyc{4}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 842\,370 \\
+  110 & \ctype{\cyc{4}{U},\cyc{4}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 346\,742 \\
+  111 & \ctype{\cyc{4}{U},\cyc{4}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 3\,006\,060 \\
+  112 & \ctype{\cyc{4}{U},\cyc{4}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 11\,299\,220 \\
+  113 & \ctype{\cyc{4}{U},\cyc{4}{O},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 14\,751\,380 \\
+  114 & \ctype{\cyc{4}{U},\cyc{4}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 6\,921\,100 \\
+  115 & \ctype{\cyc{4}{O},\cyc{4}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 12\,706\,086 \\
+  116 & \ctype{\cyc{4}{O},\cyc{4}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 52\,404\,402 \\
+  117 & \ctype{\cyc{4}{O},\cyc{4}{O},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 78\,044\,618 \\
+  118 & \ctype{\cyc{4}{O},\cyc{4}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 17 & 2 & 2 & 8 & 7 & 43\,827\,414 \\
+  119 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 1\,325\,494 \\
+  120 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 5\,338\,890 \\
+  121 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 7\,632\,258 \\
+  122 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 17 & 2 & 2 & 8 & 7 & 3\,947\,478 \\
+  123 & \ctype{\cyc{13}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  124 & \ctype{\cyc{13}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  125 & \ctype{\cyc{13}{O},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 778\,423\,808 \\
+  126 & \ctype{\cyc{13}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 1\,197\,556\,864 \\
+  127 & \ctype{\cyc{11}{U},\cyc{5}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  128 & \ctype{\cyc{11}{U},\cyc{5}{O}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  129 & \ctype{\cyc{11}{O},\cyc{5}{U}} & 16 & 3 & 2 & 8 & 7 & 14\,976\,176 \\
+  130 & \ctype{\cyc{11}{O},\cyc{5}{O}} & 16 & 3 & 2 & 8 & 7 & 1\,384\,025\,296 \\
+  131 & \ctype{\cyc{9}{U},\cyc{7}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  132 & \ctype{\cyc{9}{U},\cyc{7}{O}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  133 & \ctype{\cyc{9}{O},\cyc{7}{U}} & 16 & 3 & 2 & 8 & 7 & 30\,624 \\
+  134 & \ctype{\cyc{9}{O},\cyc{7}{O}} & 16 & 3 & 2 & 8 & 7 & 1\,221\,159\,648 \\
+  135 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  136 & \ctype{\cyc{9}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  137 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 139\,921\,988 \\
+  138 & \ctype{\cyc{9}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 210\,987\,490 \\
+  139 & \ctype{\cyc{8}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  140 & \ctype{\cyc{8}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  141 & \ctype{\cyc{8}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  142 & \ctype{\cyc{8}{O},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 43\,296\,998 \\
+  143 & \ctype{\cyc{8}{O},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 123\,782\,400 \\
+  144 & \ctype{\cyc{8}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 98\,638\,194 \\
+  145 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 240 \\
+  146 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 5\,280 \\
+  147 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 3\,052\,152 \\
+  148 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 267\,299\,646 \\
+  149 & \ctype{\cyc{7}{U},\cyc{4}{U},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 900 \\
+  150 & \ctype{\cyc{7}{U},\cyc{4}{U},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 900 \\
+  151 & \ctype{\cyc{7}{U},\cyc{4}{O},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 4\,500 \\
+  152 & \ctype{\cyc{7}{U},\cyc{4}{O},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 4\,500 \\
+  153 & \ctype{\cyc{7}{O},\cyc{4}{U},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 16\,910\,100 \\
+  154 & \ctype{\cyc{7}{O},\cyc{4}{U},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 22\,504\,500 \\
+  155 & \ctype{\cyc{7}{O},\cyc{4}{O},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 163\,455\,300 \\
+  156 & \ctype{\cyc{7}{O},\cyc{4}{O},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 251\,691\,300 \\
+  157 & \ctype{\cyc{6}{U},\cyc{5}{U},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 3\,700 \\
+  158 & \ctype{\cyc{6}{U},\cyc{5}{U},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 3\,625 \\
+  159 & \ctype{\cyc{6}{U},\cyc{5}{O},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 151\,700 \\
+  160 & \ctype{\cyc{6}{U},\cyc{5}{O},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 164\,375 \\
+  161 & \ctype{\cyc{6}{O},\cyc{5}{U},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 2\,094\,620 \\
+  162 & \ctype{\cyc{6}{O},\cyc{5}{U},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 2\,535\,695 \\
+  163 & \ctype{\cyc{6}{O},\cyc{5}{O},\cyc{3}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 166\,055\,740 \\
+  164 & \ctype{\cyc{6}{O},\cyc{5}{O},\cyc{3}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 253\,479\,505 \\
+  165 & \ctype{\cyc{6}{U},\cyc{4}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 4\,260 \\
+  166 & \ctype{\cyc{6}{U},\cyc{4}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 8\,700 \\
+  167 & \ctype{\cyc{6}{U},\cyc{4}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 4\,710 \\
+  168 & \ctype{\cyc{6}{U},\cyc{4}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 26\,626 \\
+  169 & \ctype{\cyc{6}{U},\cyc{4}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 57\,900 \\
+  170 & \ctype{\cyc{6}{U},\cyc{4}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 32\,476 \\
+  171 & \ctype{\cyc{6}{O},\cyc{4}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 2\,868\,805 \\
+  172 & \ctype{\cyc{6}{O},\cyc{4}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 7\,305\,180 \\
+  173 & \ctype{\cyc{6}{O},\cyc{4}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 4\,956\,119 \\
+  174 & \ctype{\cyc{6}{O},\cyc{4}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 25\,982\,773 \\
+  175 & \ctype{\cyc{6}{O},\cyc{4}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 75\,460\,620 \\
+  176 & \ctype{\cyc{6}{O},\cyc{4}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 61\,867\,251 \\
+  177 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{4}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 4\,890 \\
+  178 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{4}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 30\,811 \\
+  179 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{4}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 459\,990 \\
+  180 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{4}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 3\,663\,006 \\
+  181 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{4}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 16\,123\,356 \\
+  182 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{4}{O},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 170\,398\,479 \\
+  183 & \ctype{\cyc{5}{U},\cyc{4}{U},\cyc{4}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 11\,908 \\
+  184 & \ctype{\cyc{5}{U},\cyc{4}{U},\cyc{4}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 12\,801 \\
+  185 & \ctype{\cyc{5}{U},\cyc{4}{U},\cyc{4}{O},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 159\,996 \\
+  186 & \ctype{\cyc{5}{U},\cyc{4}{U},\cyc{4}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 179\,710 \\
+  187 & \ctype{\cyc{5}{U},\cyc{4}{O},\cyc{4}{O},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 604\,712 \\
+  188 & \ctype{\cyc{5}{U},\cyc{4}{O},\cyc{4}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 739\,145 \\
+  189 & \ctype{\cyc{5}{O},\cyc{4}{U},\cyc{4}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 619\,800 \\
+  190 & \ctype{\cyc{5}{O},\cyc{4}{U},\cyc{4}{U},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 744\,199 \\
+  191 & \ctype{\cyc{5}{O},\cyc{4}{U},\cyc{4}{O},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 10\,352\,352 \\
+  192 & \ctype{\cyc{5}{O},\cyc{4}{U},\cyc{4}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 13\,907\,426 \\
+  193 & \ctype{\cyc{5}{O},\cyc{4}{O},\cyc{4}{O},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 51\,541\,792 \\
+  194 & \ctype{\cyc{5}{O},\cyc{4}{O},\cyc{4}{O},\cyc{3}{O}} & 16 & 3 & 2 & 8 & 7 & 81\,523\,953 \\
+  195 & \ctype{\cyc{5}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 68\,352 \\
+  196 & \ctype{\cyc{5}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 84\,760 \\
+  197 & \ctype{\cyc{5}{O},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 5\,150\,104 \\
+  198 & \ctype{\cyc{5}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 7\,664\,618 \\
+  199 & \ctype{\cyc{4}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 362\,768 \\
+  200 & \ctype{\cyc{4}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 933\,660 \\
+  201 & \ctype{\cyc{4}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 642\,761 \\
+  202 & \ctype{\cyc{4}{O},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 3\,241\,841 \\
+  203 & \ctype{\cyc{4}{O},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 9\,303\,840 \\
+  204 & \ctype{\cyc{4}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 7\,303\,106 \\
   \midrule
-  \multicolumn{7}{r}{\textbf{Total}} & \textbf{664\,820\,570\,423} \\
+  \multicolumn{7}{r}{\textbf{Total}} & \textbf{33\,544\,626\,415} \\
 \end{longtable}
 \endgroup
 

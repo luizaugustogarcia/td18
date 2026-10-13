@@ -23,7 +23,7 @@ import java.util.stream.IntStream;
  */
 public final class CountTD18Bracelets {
     private static final String TABLE_LABEL = "\\label{tab:complete}";
-    private static final int EXPECTED_ENTRIES = 106;
+    private static final int EXPECTED_ENTRIES = 204;
     private static final Pattern TABLE_ROW = Pattern.compile(
             "^\\s*(\\d+)\\s*&\\s*\\\\ctype\\{(.*)}"
                     + "\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)"

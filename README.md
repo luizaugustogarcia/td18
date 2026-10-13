@@ -37,7 +37,7 @@ supplementary annotated-type counter:
 
 - cyclic-target algebra and extended-toric canonicalization;
 - direct twisted-bracelet generation of fixed-point-free classes;
-- Burnside counting of the 106 types in the supplementary reduction note;
+- Burnside counting of the 204 types in the supplementary reduction note;
 - circular deletion and `N^2` child insertion;
 - direct `N`-child fixed-point expansion across all available CPUs;
 - piecewise approximation pruning: the Bafna–Pevzner `1.5` guarantee below
@@ -108,8 +108,8 @@ that the pending large computation has completed.
 
 ## Count the TD(18) reduction types
 
-The supplementary [three-reduction note](docs/td18-reduction-count.tex)
-lists 106 annotated types under its stated selection policy and conditional
+The supplementary [two-reduction note](docs/td18-reduction-count.tex)
+lists 204 annotated types under its stated selection policy and conditional
 sorting-sequence assumption through domain size 19. These counts are
 research obligations; they do not establish the target diameter.
 
@@ -133,7 +133,7 @@ The counts concern the contracted, fixed-point-free types displayed in the
 table, with target realizability enforced by the generator.
 
 For a selected inclusive range of table entries, add
-`-Dexec.args="--rows=50-106"`. Optional `--table=path` and `--log=path`
+`-Dexec.args="--rows=50-204"`. Optional `--table=path` and `--log=path`
 arguments select another source file or log destination. The parser also
 accepts a bracelet-count column added after the table's existing columns.
 

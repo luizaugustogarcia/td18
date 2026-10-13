@@ -269,8 +269,8 @@ Large products belong under ignored `data/`, `certificates/`, or
 
 ## Supplementary reduction enumeration
 
-The [three-reduction note](td18-reduction-count.tex) records a separate,
-conditional route through 106 annotated generation obligations under its
+The [two-reduction note](td18-reduction-count.tex) records a separate,
+conditional route through 204 annotated generation obligations under its
 stated selection policy. It assumes oriented odd-length sorting sequences
 through cyclic domain size 19. It does not certify the target diameter or
 replace any of the propagation stages described here.
