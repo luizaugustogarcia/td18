@@ -104,9 +104,15 @@ so $\kappa\leq(19-1)/2=9<10=b$ at every root. Therefore $\kappa(T)<b$ at
 every state the recursion reaches, and the budget never falls below the
 $3$-norm lower bound. Whenever a known diameter does not close a state,
 the budget still leaves sorting within reach, and we take the risk of
-searching for a sorting sequence. Any state for which the search exhibits
-an obstruction is recorded as a residual obligation, handled by separate
-means outside this calculation.
+searching for a sorting sequence. Whenever the search exhibits an
+obstruction for an instance of a terminal type, we record both the
+obstructing instance and the full reduction path that produced its type:
+the fixed-point-free root on $19$ symbols, the ordered sequence of applied
+reductions, and the intermediate annotated types down to the terminal
+type. Each such record is a residual obligation reserved for separate
+treatment. The recorded reduction path is exactly the data a later
+class-level inverse-family treatment consumes; no such emitter or
+treatment is carried out here.
 
 \section{Reduction policy and recursion}
 

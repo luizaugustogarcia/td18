@@ -275,6 +275,15 @@ stated selection policy. It assumes oriented odd-length sorting sequences
 through cyclic domain size 19. It does not certify the target diameter or
 replace any of the propagation stages described here.
 
+Whenever the conditional sorting search of that route hits an obstruction, it
+must record the obstructing instance together with its full reduction path
+(root annotated type on 19 symbols, the ordered sequence of applied reductions,
+and the intermediate annotated types down to the terminal type) as a residual
+obligation reserved for separate treatment. This recording is a methodological
+obligation; no emitter or downstream treatment is implemented yet. These
+records are distinct from the historical TD(16) residual-obstruction regression
+corpus listed under Stage 4.
+
 The [Burnside counting derivation](td18-burnside-counting.md) and the
 `CountTD18Bracelets` entry point count realizable twisted bracelets for every
 entry of that note's Table 2. They supply counts, not sorting witnesses.
