@@ -215,134 +215,141 @@ that every required sorting witness exists.
 Fixed points are omitted from the displayed types. The columns $M$ and
 $f$ give the numbers of nonfixed and contracted fixed symbols,
 respectively, with $M+f=19$. The column $s$ gives the moves already used;
-$b=10-s$ is the stricter remaining budget for that type.
+$b=10-s$ is the stricter remaining budget for that type. The column $R$
+gives the number of realizable extended-toric classes of the type, one
+twisted bracelet per class, obtained by Burnside's identity on the
+contracted, fixed-point-free domain; a value of $0$ marks an empty type
+with no realizable cyclic-target pair. The $664\,820\,570\,423$ classes
+in total are the complete generation obligation under the stated policy.
 
 \begingroup
 \small
 \setlength{\tabcolsep}{5pt}
-\begin{longtable}{r l r r r r r}
+\begin{longtable}{r l r r r r r r}
   \caption{Complete generation obligations under the specified policy.}
   \label{tab:complete}\\
   \toprule
-  No. & Annotated cycle type & $M$ & $f$ & $s$ & $b$ & $\kappa$ \\
+  No. & Annotated cycle type & $M$ & $f$ & $s$ & $b$ & $\kappa$ & $R$ \\
   \midrule
   \endfirsthead
-  \multicolumn{7}{l}{\textit{Table~\ref{tab:complete} continued}}\\
+  \multicolumn{8}{l}{\textit{Table~\ref{tab:complete} continued}}\\
   \toprule
-  No. & Annotated cycle type & $M$ & $f$ & $s$ & $b$ & $\kappa$ \\
+  No. & Annotated cycle type & $M$ & $f$ & $s$ & $b$ & $\kappa$ & $R$ \\
   \midrule
   \endhead
   \midrule
-  \multicolumn{7}{r}{\textit{Continued on the next page}}\\
+  \multicolumn{8}{r}{\textit{Continued on the next page}}\\
   \endfoot
   \bottomrule
   \endlastfoot
-  1 & \ctype{\cyc{13}{U},\cyc{3}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 \\
-  2 & \ctype{\cyc{11}{U},\cyc{5}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 \\
-  3 & \ctype{\cyc{11}{U},\cyc{5}{O},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 \\
-  4 & \ctype{\cyc{9}{U},\cyc{7}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 \\
-  5 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 \\
-  6 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 \\
-  7 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 \\
-  8 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 \\
-  9 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 \\
-  10 & \ctype{\cyc{19}{U}} & 19 & 0 & 0 & 10 & 9 \\
-  11 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
-  12 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
-  13 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
-  14 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
-  15 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
-  16 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{5}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
-  17 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
-  18 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
-  19 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 \\
-  20 & \ctype{\cyc{15}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 8 \\
-  21 & \ctype{\cyc{13}{U},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 \\
-  22 & \ctype{\cyc{13}{U},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 \\
-  23 & \ctype{\cyc{13}{O},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 \\
-  24 & \ctype{\cyc{13}{O},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 \\
-  25 & \ctype{\cyc{11}{U},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 \\
-  26 & \ctype{\cyc{11}{U},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 \\
-  27 & \ctype{\cyc{11}{O},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 \\
-  28 & \ctype{\cyc{11}{O},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 \\
-  29 & \ctype{\cyc{9}{U},\cyc{9}{U}} & 18 & 1 & 1 & 9 & 8 \\
-  30 & \ctype{\cyc{9}{U},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 \\
-  31 & \ctype{\cyc{9}{O},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 \\
-  32 & \ctype{\cyc{5}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 \\
-  33 & \ctype{\cyc{5}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 \\
-  34 & \ctype{\cyc{11}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  35 & \ctype{\cyc{11}{O},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  36 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  37 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  38 & \ctype{\cyc{9}{O},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  39 & \ctype{\cyc{9}{O},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  40 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  41 & \ctype{\cyc{7}{U},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  42 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  43 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 \\
-  44 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 \\
-  45 & \ctype{\cyc{7}{O},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  46 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 \\
-  47 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 \\
-  48 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 \\
-  49 & \ctype{\cyc{13}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 \\
-  50 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  51 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  52 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  53 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  54 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  55 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  56 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  57 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  58 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  59 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  60 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  61 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  62 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  63 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  64 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  65 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  66 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 \\
-  67 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  68 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  69 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  70 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  71 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 \\
-  72 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
-  73 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
-  74 & \ctype{\cyc{9}{U},\cyc{3}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
-  75 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
-  76 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
-  77 & \ctype{\cyc{9}{O},\cyc{3}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
-  78 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
-  79 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
-  80 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
-  81 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
-  82 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
-  83 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
-  84 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 \\
-  85 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 \\
-  86 & \ctype{\cyc{11}{U},\cyc{3}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  87 & \ctype{\cyc{11}{U},\cyc{3}{O}} & 14 & 5 & 3 & 7 & 6 \\
-  88 & \ctype{\cyc{11}{O},\cyc{3}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  89 & \ctype{\cyc{11}{O},\cyc{3}{O}} & 14 & 5 & 3 & 7 & 6 \\
-  90 & \ctype{\cyc{9}{U},\cyc{5}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  91 & \ctype{\cyc{9}{U},\cyc{5}{O}} & 14 & 5 & 3 & 7 & 6 \\
-  92 & \ctype{\cyc{9}{O},\cyc{5}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  93 & \ctype{\cyc{9}{O},\cyc{5}{O}} & 14 & 5 & 3 & 7 & 6 \\
-  94 & \ctype{\cyc{7}{U},\cyc{7}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  95 & \ctype{\cyc{7}{U},\cyc{7}{O}} & 14 & 5 & 3 & 7 & 6 \\
-  96 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  97 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  98 & \ctype{\cyc{7}{O},\cyc{7}{O}} & 14 & 5 & 3 & 7 & 6 \\
-  99 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  100 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  101 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  102 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  103 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  104 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  105 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
-  106 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 \\
+  1 & \ctype{\cyc{13}{U},\cyc{3}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 0 \\
+  2 & \ctype{\cyc{11}{U},\cyc{5}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 0 \\
+  3 & \ctype{\cyc{11}{U},\cyc{5}{O},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 0 \\
+  4 & \ctype{\cyc{9}{U},\cyc{7}{U},\cyc{3}{U}} & 19 & 0 & 0 & 10 & 8 & 28 \\
+  5 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 & 43 \\
+  6 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 & 1\,610 \\
+  7 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 & 18\,699 \\
+  8 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{5}{U}} & 19 & 0 & 0 & 10 & 8 & 544 \\
+  9 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{5}{O}} & 19 & 0 & 0 & 10 & 8 & 13\,832 \\
+  10 & \ctype{\cyc{19}{U}} & 19 & 0 & 0 & 10 & 9 & 0 \\
+  11 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 0 \\
+  12 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 11\,365 \\
+  13 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 383\,027 \\
+  14 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 79\,932\,971 \\
+  15 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 4\,994\,968\,093 \\
+  16 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{5}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 23\,288 \\
+  17 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 2\,798\,124 \\
+  18 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 142\,122\,408 \\
+  19 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{5}{O},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 7 & 3\,243\,941\,876 \\
+  20 & \ctype{\cyc{15}{U},\cyc{3}{U}} & 18 & 1 & 1 & 9 & 8 & 0 \\
+  21 & \ctype{\cyc{13}{U},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 & 0 \\
+  22 & \ctype{\cyc{13}{U},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 & 0 \\
+  23 & \ctype{\cyc{13}{O},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 & 3\,805\,523\,712 \\
+  24 & \ctype{\cyc{13}{O},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 & 284\,235\,604\,416 \\
+  25 & \ctype{\cyc{11}{U},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 & 0 \\
+  26 & \ctype{\cyc{11}{U},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 & 0 \\
+  27 & \ctype{\cyc{11}{O},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 & 13\,314\,240 \\
+  28 & \ctype{\cyc{11}{O},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 & 243\,117\,785\,088 \\
+  29 & \ctype{\cyc{9}{U},\cyc{9}{U}} & 18 & 1 & 1 & 9 & 8 & 1 \\
+  30 & \ctype{\cyc{9}{U},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 & 2\,437 \\
+  31 & \ctype{\cyc{9}{O},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 & 115\,561\,900\,003 \\
+  32 & \ctype{\cyc{5}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 & 63\,364 \\
+  33 & \ctype{\cyc{5}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 6 & 3\,617\,940 \\
+  34 & \ctype{\cyc{11}{U},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  35 & \ctype{\cyc{11}{O},\cyc{3}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 978\,668\,256 \\
+  36 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  37 & \ctype{\cyc{9}{U},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 0 \\
+  38 & \ctype{\cyc{9}{O},\cyc{5}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 46\,448\,640 \\
+  39 & \ctype{\cyc{9}{O},\cyc{5}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 3\,409\,459\,200 \\
+  40 & \ctype{\cyc{7}{U},\cyc{7}{U},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 37 \\
+  41 & \ctype{\cyc{7}{U},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 152\,578 \\
+  42 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 & 146 \\
+  43 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 7\,420 \\
+  44 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 119\,538 \\
+  45 & \ctype{\cyc{7}{O},\cyc{7}{O},\cyc{3}{U}} & 17 & 2 & 2 & 8 & 7 & 1\,586\,888\,793 \\
+  46 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{U}} & 17 & 2 & 2 & 8 & 7 & 706\,790 \\
+  47 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 78\,347\,300 \\
+  48 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{5}{O}} & 17 & 2 & 2 & 8 & 7 & 3\,243\,290\,550 \\
+  49 & \ctype{\cyc{13}{U},\cyc{3}{U}} & 16 & 3 & 2 & 8 & 7 & 0 \\
+  50 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 243 \\
+  51 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 693 \\
+  52 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 693 \\
+  53 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 243 \\
+  54 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 4\,657\,685 \\
+  55 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 19\,035\,905 \\
+  56 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 28\,166\,747 \\
+  57 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 16\,381\,551 \\
+  58 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 3\,959 \\
+  59 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 8\,031 \\
+  60 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 4\,332 \\
+  61 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 372\,456 \\
+  62 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 877\,591 \\
+  63 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 543\,237 \\
+  64 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{U}} & 16 & 3 & 3 & 7 & 6 & 13\,496\,745 \\
+  65 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{U},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 38\,757\,604 \\
+  66 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{3}{O},\cyc{3}{O}} & 16 & 3 & 3 & 7 & 6 & 31\,801\,005 \\
+  67 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 147\,022 \\
+  68 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 771\,205 \\
+  69 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 1\,616\,766 \\
+  70 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 1\,645\,027 \\
+  71 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 3 & 7 & 6 & 721\,146 \\
+  72 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 0 \\
+  73 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 0 \\
+  74 & \ctype{\cyc{9}{U},\cyc{3}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 0 \\
+  75 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 5\,295\,172 \\
+  76 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 15\,415\,692 \\
+  77 & \ctype{\cyc{9}{O},\cyc{3}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 13\,093\,886 \\
+  78 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 15 \\
+  79 & \ctype{\cyc{7}{U},\cyc{5}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 15 \\
+  80 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 345 \\
+  81 & \ctype{\cyc{7}{U},\cyc{5}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 345 \\
+  82 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 221\,409 \\
+  83 & \ctype{\cyc{7}{O},\cyc{5}{U},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 261\,729 \\
+  84 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{U}} & 15 & 4 & 3 & 7 & 6 & 19\,835\,703 \\
+  85 & \ctype{\cyc{7}{O},\cyc{5}{O},\cyc{3}{O}} & 15 & 4 & 3 & 7 & 6 & 31\,711\,671 \\
+  86 & \ctype{\cyc{11}{U},\cyc{3}{U}} & 14 & 5 & 3 & 7 & 6 & 0 \\
+  87 & \ctype{\cyc{11}{U},\cyc{3}{O}} & 14 & 5 & 3 & 7 & 6 & 0 \\
+  88 & \ctype{\cyc{11}{O},\cyc{3}{U}} & 14 & 5 & 3 & 7 & 6 & 4\,755\,508 \\
+  89 & \ctype{\cyc{11}{O},\cyc{3}{O}} & 14 & 5 & 3 & 7 & 6 & 7\,866\,444 \\
+  90 & \ctype{\cyc{9}{U},\cyc{5}{U}} & 14 & 5 & 3 & 7 & 6 & 0 \\
+  91 & \ctype{\cyc{9}{U},\cyc{5}{O}} & 14 & 5 & 3 & 7 & 6 & 0 \\
+  92 & \ctype{\cyc{9}{O},\cyc{5}{U}} & 14 & 5 & 3 & 7 & 6 & 73\,104 \\
+  93 & \ctype{\cyc{9}{O},\cyc{5}{O}} & 14 & 5 & 3 & 7 & 6 & 9\,164\,272 \\
+  94 & \ctype{\cyc{7}{U},\cyc{7}{U}} & 14 & 5 & 3 & 7 & 6 & 1 \\
+  95 & \ctype{\cyc{7}{U},\cyc{7}{O}} & 14 & 5 & 3 & 7 & 6 & 77 \\
+  96 & \ctype{\cyc{7}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 0 \\
+  97 & \ctype{\cyc{7}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 0 \\
+  98 & \ctype{\cyc{7}{O},\cyc{7}{O}} & 14 & 5 & 3 & 7 & 6 & 4\,245\,196 \\
+  99 & \ctype{\cyc{7}{O},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 932\,182 \\
+  100 & \ctype{\cyc{7}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 1\,493\,928 \\
+  101 & \ctype{\cyc{5}{U},\cyc{5}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 161 \\
+  102 & \ctype{\cyc{5}{U},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 17\,153 \\
+  103 & \ctype{\cyc{5}{O},\cyc{5}{O},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 1\,001\,744 \\
+  104 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 9\,295 \\
+  105 & \ctype{\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 26\,874 \\
+  106 & \ctype{\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 14 & 5 & 3 & 7 & 6 & 22\,259 \\
+  \midrule
+  \multicolumn{7}{r}{\textbf{Total}} & \textbf{664\,820\,570\,423} \\
 \end{longtable}
 \endgroup
 
