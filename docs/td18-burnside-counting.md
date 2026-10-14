@@ -6,8 +6,8 @@ annotated cycle type for which \(\rho=\omega\beta\) is an \(N\)-cycle.
 Unoriented cycles follow the restriction of \(\beta^{-1}\) to their
 supports; every other cyclic order is oriented.
 
-The decoder-equivariance proposition and the Burnside corollary in the
-manuscript in `../td/docs/paper/main.tex` identify bracelets with the orbits
+The decoder-equivariance and Burnside results of the upstream
+twisted-bracelet framework in `../td` identify bracelets with the orbits
 of these permutations under the twisted dihedral action. Auxiliary color
 permutations and rank-origin shifts have already been quotiented out.
 Consequently, the number of realizable bracelets is
@@ -139,7 +139,7 @@ records `method=burnside`.
 
 Tests compare the two methods on every annotated partition through nine
 symbols, including empty types and both even-domain reflection classes.
-They also check the independently enumerated manuscript example
+They also check the independently enumerated example
 \(I=9702\), \(R_\nu=0\) for \(\nu\ne0\), \(S_\nu=76\), and
 \(B=479\) for \((5_O,3_U,3_U)\). A separate initial validation also
 matched the previously generated count \(284235604416\) for

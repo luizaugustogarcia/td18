@@ -102,10 +102,6 @@ because proving its ten-move bound is the objective.
 See [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md) for the proof obligations
 and validation corpus.
 
-The working paper is in [docs/paper/main.tex](docs/paper/main.tex). It states
-the deletion reduction and conditional certification theorem without claiming
-that the pending large computation has completed.
-
 ## Count the TD(18) reduction types
 
 The supplementary [two-reduction note](docs/td18-reduction-count.tex)

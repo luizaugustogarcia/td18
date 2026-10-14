@@ -75,7 +75,7 @@ public final class StandardizedEncodingWord extends EncodingWord {
     /**
      * Applies {@code r_shift}, or {@code r_shift s} when reflected, and
      * restandardizes auxiliary color names and oriented-rank origins.
-     * The distinguished reflection is the paper's {@code s(j) = -j}.
+     * The distinguished reflection is {@code s(j) = -j}.
      */
     public StandardizedEncodingWord transform(final int shift, final boolean reflected) {
         final var cycleSizes = new int[length() + 1];

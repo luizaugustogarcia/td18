@@ -7,7 +7,7 @@ import java.util.Arrays;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Independent fixed-set enumeration for the paper's 5O+3U+3U example. */
+/** Independent fixed-set enumeration for the 5O+3U+3U example. */
 class TwistedBraceletBurnsideTest {
 
     private static final int N = 11;

@@ -28,7 +28,7 @@ import java.util.TreeMap;
  * oriented 3-cycle clearing, the oriented-odd qualifying 2-move, or the
  * even-pair merge. Fixed points created by a reduction are contracted, and the
  * resulting cycle-length partition is re-annotated afresh. Obstruction handling
- * (the inverse-family propagation of the TD(16) paper) is downstream work and is
+ * (the inverse-family propagation of the upstream TD(16) framework) is downstream work and is
  * not an enumeration edge here; unclosed states are recorded as obligations.</p>
  *
  * <p>The {@link Policy} record selects between the historical baseline (depth

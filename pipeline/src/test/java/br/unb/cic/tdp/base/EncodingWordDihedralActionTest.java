@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class EncodingWordDihedralActionTest {
 
     @Test
-    void distinguishedTwistedReflectionMatchesThePaperExample() {
+    void distinguishedTwistedReflectionMatchesTheWorkedExample() {
         final var word = StandardizedEncodingWord.of(
                 new int[]{1, 2, 1, 2, 2, 1, 2, 2},
                 new int[]{0, 1, 0, 3, 5, 0, 2, 4});
@@ -30,7 +30,7 @@ class EncodingWordDihedralActionTest {
     }
 
     @Test
-    void implementationUsesThePaperDihedralIndexingAndDecoderAction() {
+    void implementationUsesTheTwistedDihedralIndexingAndDecoderAction() {
         final var word = StandardizedEncodingWord.of(
                 new int[]{1, 2, 1, 2, 2, 1, 2, 2},
                 new int[]{0, 1, 0, 3, 5, 0, 2, 4});

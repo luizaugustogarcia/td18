@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TwistedBraceletBurnsideCounterTest {
     @Test
-    void reproducesThePapersIndependentlyEnumeratedFixedSets() {
+    void reproducesIndependentlyEnumeratedFixedSets() {
         try (final var executor = Executors.newFixedThreadPool(4)) {
             final var partition = new int[]{5, 3, 3};
             final var oriented = new boolean[]{true, false, false};

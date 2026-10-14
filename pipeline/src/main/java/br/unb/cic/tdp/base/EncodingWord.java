@@ -10,7 +10,7 @@ import java.util.Arrays;
  *
  * <p>Each position stores a positive cycle label and either rank zero for an
  * unranked color or a rank in {@code 1..m} for a ranked color of multiplicity
- * {@code m}. The paper uses ranks in {@code 0..m-1}; adding one internally keeps
+ * {@code m}. The mathematical encoding uses ranks in {@code 0..m-1}; adding one internally keeps
  * rank zero available to distinguish unranked colors without floating-point
  * sentinels.
  */
