@@ -111,7 +111,7 @@ public final class DirectTwistedBraceletGenerator {
         return count.sum();
     }
 
-    /** Exact Burnside count for fixed-point-free contracted domains of at most 19 symbols. */
+    /** Exact Burnside count for fixed-point-free contracted domains of at most 30 symbols. */
     public static long countRepresentativesByBurnside(final int[] partition,
                                                      final boolean[] orientedByPart) {
         validate(partition, orientedByPart);

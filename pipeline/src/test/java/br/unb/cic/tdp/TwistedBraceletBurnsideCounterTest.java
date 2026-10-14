@@ -77,6 +77,6 @@ class TwistedBraceletBurnsideCounterTest {
                 new int[]{3}, new boolean[]{true}));
         assertThrows(IllegalArgumentException.class, () ->
                 DirectTwistedBraceletGenerator.countRepresentativesByBurnside(
-                        new int[]{20}, new boolean[]{true}));
+                        new int[]{31}, new boolean[]{true}));
     }
 }

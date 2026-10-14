@@ -12,8 +12,9 @@ import java.util.concurrent.ExecutorService;
 
 /**
  * Exact Burnside counting on algebraic permutations, after quotienting the
- * auxiliary word action. Supports contracted domains of at most 19 symbols.
- * See docs/td18-burnside-counting.md for the identity-term derivation.
+ * auxiliary word action. The contracted domain is encoded in {@code int}
+ * bitmasks, so counting is exact for domains of at most 30 symbols. See
+ * docs/td18-burnside-counting.md for the identity-term derivation.
  */
 final class TwistedBraceletBurnsideCounter {
     private static final Map<Integer, int[][]> SUPPORTS = new ConcurrentHashMap<>();
@@ -24,8 +25,8 @@ final class TwistedBraceletBurnsideCounter {
     static long count(final int[] partition, final boolean[] oriented,
                       final ExecutorService executor) {
         final var n = Arrays.stream(partition).sum();
-        if (n > 19) {
-            throw new IllegalArgumentException("Burnside counting supports at most 19 symbols");
+        if (n > 30) {
+            throw new IllegalArgumentException("Burnside counting supports at most 30 symbols");
         }
         if (Arrays.stream(partition).filter(k -> (k & 1) == 0).count() % 2 != 0) {
             return 0;
