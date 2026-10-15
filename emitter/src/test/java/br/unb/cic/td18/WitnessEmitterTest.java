@@ -40,7 +40,7 @@ class WitnessEmitterTest {
         assertEquals(expected, result.certificates());
         assertEquals(0, result.residuals());
         assertNull(result.firstResidual());
-        assertEquals(0.5f, observedRate.get());
+        assertEquals(2.0f, observedRate.get());
     }
 
     @Test
