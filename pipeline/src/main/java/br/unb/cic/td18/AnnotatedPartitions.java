@@ -59,13 +59,5 @@ public final class AnnotatedPartitions {
         public boolean[] oriented() {
             return oriented.clone();
         }
-
-        public String checkpointKey() {
-            final var bits = new StringBuilder(oriented.length);
-            for (final var value : oriented) {
-                bits.append(value ? '1' : '0');
-            }
-            return Arrays.toString(partition) + ':' + bits;
-        }
     }
 }

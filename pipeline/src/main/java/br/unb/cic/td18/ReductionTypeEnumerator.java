@@ -18,68 +18,57 @@ import java.util.TreeMap;
 
 /**
  * Finite enumeration of the annotated cycle types that survive the recursive
- * reduction policy of the TD(18) reduction note.
+ * reduction policy of the TD(18) two-reduction method.
  *
  * <p>States are pairs {@code (T, s)}: a contracted, fixed-point-free annotated
  * cycle type {@code T} on at most {@link #ROOT_SYMBOLS} symbols, and the number
  * {@code s} of transposition moves already spent. The remaining budget is
- * {@code b = MAX_BUDGET - s}. Each recursive edge applies one forward reduction
- * imported from the TD(16) framework and spends one move:
+ * {@code b = MAX_BUDGET - s}. Each recursive edge applies one reduction
+ * specified by that method and spends one move:
  * oriented 3-cycle clearing, the oriented-odd qualifying 2-move, or the
  * even-pair merge. Fixed points created by a reduction are contracted, and the
- * resulting cycle-length partition is re-annotated afresh. Obstruction handling
- * (the inverse-family propagation of the upstream TD(16) framework) is downstream work and is
- * not an enumeration edge here; unclosed states are recorded as obligations.</p>
- *
- * <p>The {@link Policy} record selects between the historical baseline (depth
- * three, combined diameter/approximation closure, support-clearing-gated odd
- * selection) used to reproduce the published 106-type count, and the current
- * policy (depth two, known-diameter-only closure, ungated odd selection).</p>
+ * resulting cycle-length partition is re-annotated afresh. The recursion stops
+ * after two reductions; unclosed states are recorded as generation
+ * obligations.</p>
  */
 public final class ReductionTypeEnumerator {
     /** Transposition-diameter budget targeted for order 18. */
     public static final int MAX_BUDGET = 10;
     /** Symbol count of an unreduced order-18 cyclic-target domain, {@code N = 19}. */
     public static final int ROOT_SYMBOLS = 19;
+    private static final int DEPTH_CAP = 2;
 
     /** Known transposition diameters {@code TD(0..17)}. */
     private static final int[] TD = {0, 0, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 8, 8, 9, 9, 10};
     private static final int UNBOUNDED = Integer.MAX_VALUE;
 
-    /**
-     * Reduction policy. The baseline reproduces the published count; the current
-     * policy is the risk-taking two-reduction recursion.
-     */
-    public record Policy(int depthCap, boolean diameterOnlyClosure, boolean supportClearingGate) {
-        public static final Policy BASELINE = new Policy(3, false, true);
-        public static final Policy CURRENT = new Policy(2, true, false);
+    enum Td16Disposition {
+        NOT_COVERED,
+        SETTLED,
+        PARTIAL
     }
 
     private ReductionTypeEnumerator() {
     }
 
     /** Known diameter {@code D(M) = TD(M-1)} for {@code 2 <= M <= 18}; 0 for {@code M <= 1}; unbounded for {@code M >= 19}. */
-    static int knownDiameter(final int mass) {
-        if (mass <= 1) {
+    static int knownDiameter(final int nonfixedSymbols) {
+        if (nonfixedSymbols <= 1) {
             return 0;
         }
-        if (mass >= ROOT_SYMBOLS) {
+        if (nonfixedSymbols >= ROOT_SYMBOLS) {
             return UNBOUNDED;
         }
-        return TD[mass - 1];
+        return TD[nonfixedSymbols - 1];
     }
 
-    /** True when state {@code (T, s)} closes without generating an obligation. */
-    private static boolean closes(final int mass, final int threeNorm, final int movesUsed, final Policy policy) {
-        final int diameter = knownDiameter(mass);
-        if (policy.diameterOnlyClosure()) {
-            return diameter != UNBOUNDED && movesUsed + diameter <= MAX_BUDGET;
-        }
-        final int bound = Math.min(diameter, ApproximationBound.guaranteedMoves(threeNorm));
-        return movesUsed + bound <= MAX_BUDGET;
+    /** True when state {@code (T, s)} closes before entering the terminal inventory. */
+    private static boolean closes(final int nonfixedSymbols, final int movesUsed) {
+        final int diameter = knownDiameter(nonfixedSymbols);
+        return diameter != UNBOUNDED && movesUsed + diameter <= MAX_BUDGET;
     }
 
-    private static int mass(final int[] lengths) {
+    private static int nonfixedSymbols(final int[] lengths) {
         return Arrays.stream(lengths).sum();
     }
 
@@ -94,8 +83,8 @@ public final class ReductionTypeEnumerator {
             oriented = oriented.clone();
         }
 
-        public int mass() {
-            return ReductionTypeEnumerator.mass(lengths);
+        public int nonfixedSymbols() {
+            return ReductionTypeEnumerator.nonfixedSymbols(lengths);
         }
 
         public int threeNorm() {
@@ -120,18 +109,98 @@ public final class ReductionTypeEnumerator {
     }
 
     /**
-     * Enumerates every generation obligation under {@code policy}. Each distinct
-     * annotated type is returned once, keeping the stricter (smaller) remaining
-     * budget when the recursion reaches it at more than one depth.
+     * Classifies the cases on 16 nonfixed symbols covered by the checked
+     * TD(16) successor computation. Types containing an oriented 3-cycle close
+     * directly; the other types are the 52 exhaustive eight-move searches.
      */
-    public static List<Obligation> enumerate(final Policy policy) {
+    static Td16Disposition td16Disposition(final Obligation obligation) {
+        if (!td16CoveredDomain(obligation)) {
+            return Td16Disposition.NOT_COVERED;
+        }
+        if (td16DirectClosure(obligation)) {
+            return Td16Disposition.SETTLED;
+        }
+        return td16ResidualClasses(obligation) == 0
+                ? Td16Disposition.SETTLED
+                : Td16Disposition.PARTIAL;
+    }
+
+    private static boolean td16CoveredDomain(final Obligation obligation) {
+        return obligation.nonfixedSymbols() == 16 && obligation.movesUsed() == 2;
+    }
+
+    /** True for the 52 covered types closed by clearing an oriented 3-cycle. */
+    static boolean td16DirectClosure(final Obligation obligation) {
+        if (!td16CoveredDomain(obligation)) {
+            return false;
+        }
+        final int[] lengths = obligation.lengths();
+        final boolean[] oriented = obligation.oriented();
+        for (var i = 0; i < lengths.length; i++) {
+            if (lengths[i] == 3 && oriented[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True for the 52 covered types checked by exhaustive eight-move search. */
+    static boolean td16SuccessorSearch(final Obligation obligation) {
+        return td16CoveredDomain(obligation) && !td16DirectClosure(obligation);
+    }
+
+    /**
+     * Residual class count reported by a checked eight-move successor search.
+     * The two nonzero counts are recorded in {@code ../td16/checker.log}.
+     */
+    static int td16ResidualClasses(final Obligation obligation) {
+        if (!td16SuccessorSearch(obligation)) {
+            throw new IllegalArgumentException(
+                    "TD(16) successor search requires a two-move type on 16 nonfixed symbols"
+                            + " without an oriented 3-cycle");
+        }
+        return switch (obligation.typeKey()) {
+            case "11O,5O" -> 495;
+            case "9O,7O" -> 1_541;
+            default -> 0;
+        };
+    }
+
+    /** Returns the row's class obligation after applying the checked TD(16) results. */
+    public static long remainingClassObligations(
+            final Obligation obligation,
+            final long realizableClasses
+    ) {
+        if (realizableClasses < 0) {
+            throw new IllegalArgumentException("Realizable-class count must be nonnegative");
+        }
+        return switch (td16Disposition(obligation)) {
+            case NOT_COVERED -> realizableClasses;
+            case SETTLED -> 0L;
+            case PARTIAL -> {
+                final long residual = td16ResidualClasses(obligation);
+                if (residual > realizableClasses) {
+                    throw new IllegalArgumentException(
+                            "TD(16) residual exceeds the realizable-class count");
+                }
+                yield residual;
+            }
+        };
+    }
+
+    /**
+     * Enumerates every generation obligation. Each distinct annotated type is
+     * returned once, keeping the stricter (smaller) remaining budget when the
+     * recursion reaches it at more than one depth.
+     */
+    public static List<Obligation> enumerate() {
         final var byType = new LinkedHashMap<String, Obligation>();
         for (final var partition : Partitions.generateValidPartitions(ROOT_SYMBOLS)) {
             final int[] descending = partition.clone();
             Arrays.sort(descending);
             reverse(descending);
             for (final var root : AnnotatedPartitions.of(descending)) {
-                recurse(root.partition(), root.oriented(), 0, policy, byType);
+                recurse(root.partition(), root.oriented(), 0, byType);
             }
         }
         final var obligations = new ArrayList<>(byType.values());
@@ -140,45 +209,45 @@ public final class ReductionTypeEnumerator {
     }
 
     /** Distinct {@code (type, budget)} pairs reached, before merging a repeated type's budgets. */
-    public static int distinctStatePairs(final Policy policy) {
+    public static int distinctStatePairs() {
         final var pairs = new java.util.HashSet<String>();
         for (final var partition : Partitions.generateValidPartitions(ROOT_SYMBOLS)) {
             final int[] descending = partition.clone();
             Arrays.sort(descending);
             reverse(descending);
             for (final var root : AnnotatedPartitions.of(descending)) {
-                collectPairs(root.partition(), root.oriented(), 0, policy, pairs);
+                collectPairs(root.partition(), root.oriented(), 0, pairs);
             }
         }
         return pairs.size();
     }
 
-    private static void collectPairs(final int[] lengths, final boolean[] oriented, final int movesUsed,
-                                     final Policy policy, final java.util.Set<String> pairs) {
-        final int mass = mass(lengths);
-        if (closes(mass, threeNorm(lengths), movesUsed, policy)) {
+    private static void collectPairs(final int[] lengths, final boolean[] oriented,
+                                     final int movesUsed, final java.util.Set<String> pairs) {
+        final int nonfixedSymbols = nonfixedSymbols(lengths);
+        if (closes(nonfixedSymbols, movesUsed)) {
             return;
         }
-        final var children = reduce(lengths, oriented, movesUsed, policy);
-        if (movesUsed >= policy.depthCap() || children == null) {
+        final var children = reduce(lengths, oriented);
+        if (movesUsed >= DEPTH_CAP || children == null) {
             pairs.add(key(lengths, oriented) + "@" + movesUsed);
             return;
         }
         for (final int[] childLengths : children) {
             for (final var child : AnnotatedPartitions.of(childLengths)) {
-                collectPairs(child.partition(), child.oriented(), movesUsed + 1, policy, pairs);
+                collectPairs(child.partition(), child.oriented(), movesUsed + 1, pairs);
             }
         }
     }
 
-    private static void recurse(final int[] lengths, final boolean[] oriented, final int movesUsed,
-                                final Policy policy, final Map<String, Obligation> byType) {
-        final int mass = mass(lengths);
-        if (closes(mass, threeNorm(lengths), movesUsed, policy)) {
+    private static void recurse(final int[] lengths, final boolean[] oriented,
+                                final int movesUsed, final Map<String, Obligation> byType) {
+        final int nonfixedSymbols = nonfixedSymbols(lengths);
+        if (closes(nonfixedSymbols, movesUsed)) {
             return;
         }
-        final var children = reduce(lengths, oriented, movesUsed, policy);
-        if (movesUsed >= policy.depthCap() || children == null) {
+        final var children = reduce(lengths, oriented);
+        if (movesUsed >= DEPTH_CAP || children == null) {
             final var obligation = new Obligation(lengths, oriented, movesUsed);
             byType.merge(obligation.typeKey(), obligation,
                     (existing, candidate) -> existing.movesUsed() >= candidate.movesUsed() ? existing : candidate);
@@ -186,7 +255,7 @@ public final class ReductionTypeEnumerator {
         }
         for (final int[] childLengths : children) {
             for (final var child : AnnotatedPartitions.of(childLengths)) {
-                recurse(child.partition(), child.oriented(), movesUsed + 1, policy, byType);
+                recurse(child.partition(), child.oriented(), movesUsed + 1, byType);
             }
         }
     }
@@ -196,8 +265,7 @@ public final class ReductionTypeEnumerator {
      * partitions (each non-increasing), re-annotated afresh by the caller.
      * Returns {@code null} when no reduction applies and the state is retained.
      */
-    private static List<int[]> reduce(final int[] lengths, final boolean[] oriented, final int movesUsed,
-                                      final Policy policy) {
+    private static List<int[]> reduce(final int[] lengths, final boolean[] oriented) {
         // Reduction R2: clear an oriented 3-cycle.
         for (var i = 0; i < lengths.length; i++) {
             if (lengths[i] == 3 && oriented[i]) {
@@ -205,7 +273,7 @@ public final class ReductionTypeEnumerator {
             }
         }
         // Reduction R4a: qualifying 2-move on the smallest oriented odd cycle of length >= 5.
-        final int oddLength = selectOrientedOdd(lengths, oriented, movesUsed, policy);
+        final int oddLength = selectOrientedOdd(lengths, oriented);
         if (oddLength > 0) {
             final int index = firstIndexOfLength(lengths, oddLength);
             final int[] others = withoutIndex(lengths, index);
@@ -233,16 +301,12 @@ public final class ReductionTypeEnumerator {
         return null;
     }
 
-    /** Smallest oriented odd length {@code >= 5} eligible under the policy, or 0. */
-    private static int selectOrientedOdd(final int[] lengths, final boolean[] oriented, final int movesUsed,
-                                         final Policy policy) {
+    /** Smallest oriented odd length {@code >= 5}, or 0 when none exists. */
+    private static int selectOrientedOdd(final int[] lengths, final boolean[] oriented) {
         int selected = 0;
         for (var i = 0; i < lengths.length; i++) {
             final int k = lengths[i];
             if (!oriented[i] || k < 5 || k % 2 == 0) {
-                continue;
-            }
-            if (policy.supportClearingGate() && !supportClearingCloses(lengths, i, movesUsed)) {
                 continue;
             }
             if (selected == 0 || k < selected) {
@@ -250,15 +314,6 @@ public final class ReductionTypeEnumerator {
             }
         }
         return selected;
-    }
-
-    /** Baseline gate: the support-clearing alternative for the length-{@code k} cycle closes. */
-    private static boolean supportClearingCloses(final int[] lengths, final int index, final int movesUsed) {
-        final int k = lengths[index];
-        final int[] companion = withoutIndex(lengths, index);
-        final int companionBound = Math.min(knownDiameter(mass(companion)),
-                ApproximationBound.guaranteedMoves(threeNorm(companion)));
-        return movesUsed + (k + 1) / 2 + companionBound <= MAX_BUDGET;
     }
 
     private static int[] twoLargestEvenIndices(final int[] lengths) {
@@ -327,12 +382,12 @@ public final class ReductionTypeEnumerator {
         return builder.toString();
     }
 
-    /** Table order: depth, then 3-norm, then mass descending, then lengths and orientations. */
+    /** Table order: depth, 3-norm, nonfixed symbols descending, then type. */
     private static Comparator<Obligation> tableOrder() {
         return Comparator
                 .comparingInt(Obligation::movesUsed)
                 .thenComparingInt(Obligation::threeNorm)
-                .thenComparing(Comparator.comparingInt(Obligation::mass).reversed())
+                .thenComparing(Comparator.comparingInt(Obligation::nonfixedSymbols).reversed())
                 .thenComparing(ReductionTypeEnumerator::compareLengthsDescending)
                 .thenComparing(ReductionTypeEnumerator::compareOrientations);
     }
@@ -386,37 +441,46 @@ public final class ReductionTypeEnumerator {
         return builder.toString();
     }
 
-    /** Renders the full {@code longtable} body (rows and total) with Burnside class counts. */
+    /**
+     * Renders the complete type inventory. R is the realizable-class count and
+     * Q is the remaining class obligation after checked TD(16) reuse.
+     */
     public static String renderTable(final List<Obligation> obligations) {
         final var rows = new StringBuilder();
-        long total = 0L;
+        long totalRealizable = 0L;
+        long totalRemaining = 0L;
         try {
             var number = 1;
             for (final var obligation : obligations) {
                 final long classes = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(
                         obligation.lengths(), obligation.oriented());
-                total = Math.addExact(total, classes);
-                rows.append(String.format(Locale.ROOT, "  %d & %s & %d & %d & %d & %d & %d & %s \\\\%n",
-                        number++, renderType(obligation), obligation.mass(), ROOT_SYMBOLS - obligation.mass(),
+                final long remaining = remainingClassObligations(obligation, classes);
+                totalRealizable = Math.addExact(totalRealizable, classes);
+                totalRemaining = Math.addExact(totalRemaining, remaining);
+                rows.append(String.format(Locale.ROOT,
+                        "  %d & %s & %d & %d & %d & %d & %d & %s & %s \\\\%n",
+                        number++, renderType(obligation), obligation.nonfixedSymbols(),
+                        ROOT_SYMBOLS - obligation.nonfixedSymbols(),
                         obligation.movesUsed(), obligation.budget(), obligation.threeNorm(),
-                        groupThousands(classes)));
+                        groupThousands(classes), groupThousands(remaining)));
             }
         } finally {
             DirectTwistedBraceletGenerator.shutdownExecutor();
         }
         rows.append("  \\midrule\n");
         rows.append(String.format(Locale.ROOT,
-                "  \\multicolumn{7}{r}{\\textbf{Total}} & \\textbf{%s} \\\\%n", groupThousands(total)));
+                "  \\multicolumn{7}{r}{\\textbf{Total}} & \\textbf{%s} & \\textbf{%s} \\\\%n",
+                groupThousands(totalRealizable), groupThousands(totalRemaining)));
         return rows.toString();
     }
 
     public static void main(final String[] args) throws IOException {
         if (args.length > 0 && args[0].equals("--validate")) {
-            validateBaseline();
+            validate();
             return;
         }
         if (args.length > 0 && args[0].equals("--summary")) {
-            summarize(Policy.CURRENT);
+            summarize();
             return;
         }
         if (args.length > 0 && args[0].startsWith("--write-table=")) {
@@ -427,7 +491,7 @@ public final class ReductionTypeEnumerator {
         System.out.println("ReductionTypeEnumerator [--validate | --summary | --write-table=rows.tex]");
     }
 
-    private static void validateBaseline() {
+    private static void validate() {
         final var partitions = Partitions.generateValidPartitions(ROOT_SYMBOLS);
         var annotatedRoots = 0;
         for (final var partition : partitions) {
@@ -436,21 +500,21 @@ public final class ReductionTypeEnumerator {
             reverse(descending);
             annotatedRoots += AnnotatedPartitions.of(descending).size();
         }
-        final int pairs = distinctStatePairs(Policy.BASELINE);
-        final var obligations = enumerate(Policy.BASELINE);
+        final int pairs = distinctStatePairs();
+        final var obligations = enumerate();
         final var depth = new TreeMap<Integer, Integer>();
         for (final var obligation : obligations) {
             depth.merge(obligation.movesUsed(), 1, Integer::sum);
         }
         System.out.println("admissiblePartitions=" + partitions.size() + " (expected 53)");
         System.out.println("annotatedRoots=" + annotatedRoots + " (expected 360)");
-        System.out.println("distinctStatePairs=" + pairs + " (expected 107)");
-        System.out.println("distinctTypes=" + obligations.size() + " (expected 106)");
-        System.out.println("depthDistribution=" + depth + " (expected {0=10, 1=21, 2=18, 3=57})");
+        System.out.println("distinctStatePairs=" + pairs + " (expected 204)");
+        System.out.println("distinctTypes=" + obligations.size() + " (expected 204)");
+        System.out.println("depthDistribution=" + depth + " (expected {0=8, 1=8, 2=188})");
     }
 
-    private static void summarize(final Policy policy) {
-        final var obligations = enumerate(policy);
+    private static void summarize() {
+        final var obligations = enumerate();
         final var depth = new TreeMap<Integer, Integer>();
         final var budgetByDepth = new TreeMap<String, Integer>();
         for (final var obligation : obligations) {
@@ -458,7 +522,7 @@ public final class ReductionTypeEnumerator {
             budgetByDepth.merge(obligation.movesUsed() + "/" + obligation.budget() + "/" + obligation.threeNorm(),
                     1, Integer::sum);
         }
-        System.out.println("distinctStatePairs=" + distinctStatePairs(policy));
+        System.out.println("distinctStatePairs=" + distinctStatePairs());
         System.out.println("distinctTypes=" + obligations.size());
         System.out.println("depthDistribution=" + depth);
         System.out.println("budget/threeNorm breakdown (movesUsed/budget/threeNorm -> count):");
@@ -466,7 +530,7 @@ public final class ReductionTypeEnumerator {
     }
 
     private static void writeTable(final Path path) throws IOException {
-        final var obligations = enumerate(Policy.CURRENT);
+        final var obligations = enumerate();
         final var body = renderTable(obligations);
         Files.writeString(path, body, StandardCharsets.UTF_8);
         System.out.println("Wrote " + obligations.size() + " rows to " + path);

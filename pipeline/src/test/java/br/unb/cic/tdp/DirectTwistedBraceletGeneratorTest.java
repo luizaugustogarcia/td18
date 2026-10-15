@@ -264,7 +264,7 @@ class DirectTwistedBraceletGeneratorTest {
         assertRawWordsMatchBruteForce(new int[]{3, 2, 2}, new boolean[]{true, false, false},
                 List.of(new Annotation(3, true), new Annotation(2, false),
                         new Annotation(2, false)));
-        // Equal total group masses retain descending-size priority.
+        // Equal group symbol counts retain descending-size priority.
         assertRawWordsMatchBruteForce(new int[]{2, 4, 2}, new boolean[]{false, true, false},
                 List.of(new Annotation(4, true), new Annotation(2, false),
                         new Annotation(2, false)));

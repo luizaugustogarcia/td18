@@ -2,7 +2,7 @@
 **/target/
 *.class
 
-# Generated certificate database (RocksDB)
+# Generated computational artifacts
 certificates/
 data/
 checkpoints/

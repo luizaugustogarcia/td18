@@ -1,5 +1,7 @@
 package br.unb.cic.tdp;
 
+import br.unb.cic.td18.ReductionTypeEnumerator;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -17,7 +19,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Counts realizable twisted bracelets for each entry of Table 2 in the TD(18) note.
+ * Counts realizable twisted bracelets for each entry of Table 2 in the TD(18)
+ * two-reduction computation.
  * Uses all available CPU cores and Burnside counting for every type; no sorting
  * search, certificate lookup, or representative decoding is performed.
  */
@@ -28,7 +31,8 @@ public final class CountTD18Bracelets {
             "^\\s*(\\d+)\\s*&\\s*\\\\ctype\\{(.*)}"
                     + "\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)"
                     + "\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)"
-                    + "(?:\\s*&.*?)?\\s*\\\\\\\\\\s*$");
+                    + "(?:\\s*&\\s*([\\d\\\\,]+))?"
+                    + "(?:\\s*&\\s*([\\d\\\\,]+))?\\s*\\\\\\\\\\s*$");
     private static final Pattern CYCLE = Pattern.compile("\\\\cyc\\{(\\d+)}\\{([OU])}");
 
     private CountTD18Bracelets() {
@@ -91,6 +95,12 @@ public final class CountTD18Bracelets {
                     final var entryStarted = System.nanoTime();
                     final var bracelets = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(
                             entry.partition(), entry.orientedByPart());
+                    if (entry.recordedRealizableClasses() != null
+                            && entry.recordedRealizableClasses() != bracelets) {
+                        throw new IllegalStateException("Table 2 row " + entry.number()
+                                + " records " + entry.recordedRealizableClasses()
+                                + " realizable classes, counted " + bracelets);
+                    }
                     logLine(log, "row=" + entry.number() + " type=" + entry.type()
                             + " nonfixed=" + entry.nonfixedSymbols() + " fixed=" + entry.fixedSymbols()
                             + " movesUsed=" + entry.movesUsed() + " budget=" + entry.remainingMoves()
@@ -147,13 +157,31 @@ public final class CountTD18Bracelets {
                     partition.stream().mapToInt(Integer::intValue).toArray(), orientedByPart,
                     Integer.parseInt(row.group(3)), Integer.parseInt(row.group(4)),
                     Integer.parseInt(row.group(5)), Integer.parseInt(row.group(6)),
-                    Integer.parseInt(row.group(7)));
+                    Integer.parseInt(row.group(7)), parseOptionalCount(row.group(8)),
+                    parseOptionalCount(row.group(9)));
+            if (entry.recordedRealizableClasses() != null
+                    && entry.remainingClassObligations() != null) {
+                final var obligation = new ReductionTypeEnumerator.Obligation(
+                        entry.partition(), entry.orientedByPart(), entry.movesUsed());
+                final long expectedRemaining = ReductionTypeEnumerator.remainingClassObligations(
+                        obligation, entry.recordedRealizableClasses());
+                if (entry.remainingClassObligations() != expectedRemaining) {
+                    throw new IllegalArgumentException(
+                            "Incorrect remaining obligation in Table 2 row " + entry.number()
+                                    + ": expected " + expectedRemaining + ", found "
+                                    + entry.remainingClassObligations());
+                }
+            }
             if (entry.number() != entries.size() + 1 || !types.add(entry.type())) {
                 throw new IllegalArgumentException("Repeated type or out-of-order Table 2 row " + entry.number());
             }
             entries.add(entry);
         }
         return List.copyOf(entries);
+    }
+
+    private static Long parseOptionalCount(final String value) {
+        return value == null ? null : Long.parseLong(value.replace("\\,", ""));
     }
 
     static Path projectRoot(final Path directory) {
@@ -181,7 +209,9 @@ public final class CountTD18Bracelets {
 
     record TableEntry(int number, int[] partition, boolean[] orientedByPart,
                       int nonfixedSymbols, int fixedSymbols, int movesUsed,
-                      int remainingMoves, int threeNorm) {
+                      int remainingMoves, int threeNorm,
+                      Long recordedRealizableClasses,
+                      Long remainingClassObligations) {
         TableEntry {
             partition = partition.clone();
             orientedByPart = orientedByPart.clone();
@@ -190,6 +220,11 @@ public final class CountTD18Bracelets {
                     || movesUsed + remainingMoves != 10
                     || Arrays.stream(partition).map(part -> part / 2).sum() != threeNorm
                     || partition.length != orientedByPart.length
+                    || (remainingClassObligations != null
+                    && recordedRealizableClasses == null)
+                    || (remainingClassObligations != null
+                    && (remainingClassObligations < 0
+                    || remainingClassObligations > recordedRealizableClasses))
                     || Arrays.stream(partition).filter(part -> part % 2 == 0).count() % 2 != 0) {
                 throw new IllegalArgumentException("Inconsistent metadata in Table 2 row " + number);
             }

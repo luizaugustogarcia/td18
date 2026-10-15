@@ -127,15 +127,20 @@ size and symmetry, across all annotated types.
 
 ## Counting and validation
 
-The implementation supports \(2\le N\le19\). It parallelizes support
+The implementation supports \(2\le N\le30\). It parallelizes support
 choices and symmetry-constrained enumeration on the generator's CPU pool.
 It does not generate or decode encoding words, run a sorting search, or
 read certificates. Some constrained permutations and selected unoriented
 supports are still enumerated; this is not a closed formula for every term.
 
-Every one of the 106 table entries is counted with Burnside's identity,
+Every one of the 204 Table 2 entries is counted with Burnside's identity,
 including entirely unoriented types. Each run and completed log entry
 records `method=burnside`.
+
+The resulting `R` column totals 33,544,626,415 realizable extended-toric
+classes. Burnside counting does not itself discharge a sorting obligation.
+Table 2 therefore records a separate `Q` column: after reuse of the checked
+TD(16) successor results, 26,458,991,245 class obligations remain.
 
 Tests compare the two methods on every annotated partition through nine
 symbols, including empty types and both even-domain reflection classes.

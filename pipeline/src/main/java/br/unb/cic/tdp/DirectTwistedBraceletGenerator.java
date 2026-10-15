@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  * nontrivial auxiliary action, the same recursion is augmented with lazy
  * comparisons rooted at occurrences of the first auxiliary-affected type in
  * the word.  A part is affected if it is oriented or another part has the same
- * annotated type.  If that root type has mass {@code M} and all affected parts
+ * annotated type. If that root type contains {@code M} symbols and all affected parts
  * sum to {@code S}, then {@code M <= S}.  The base recursion handles spatial
  * images which differ before that first affected bead.  Every remaining image
  * aligns it with one of the {@code M} beads of its own type, in either traversal
@@ -381,7 +381,7 @@ public final class DirectTwistedBraceletGenerator {
         private final int n;
         private final int numberOfSymbols;
 
-        // BraceletFC state.  The word is one-based, as in the published
+        // BraceletFC state.  The word is one-based, as in the standard
         // recurrence; positions used by semantic state are zero-based.
         private final int[] word;
         private final int[] remaining;
@@ -508,7 +508,7 @@ public final class DirectTwistedBraceletGenerator {
             // With no auxiliary color permutation or rank-origin choice,
             // BraceletFC already enforces every required spatial comparison.
             this.comparisonCount = auxiliaryActionTrivial ? 0 : Math.multiplyExact(
-                    2, affectedMass(specs, cyclesByGroup));
+                    2, affectedSymbolCount(specs, cyclesByGroup));
             final var comparisonMapLength = comparisonCount * specs.length;
             this.comparisonMapBase = new int[comparisonCount];
             this.comparisonStartPosition = new int[comparisonCount];
@@ -1563,8 +1563,8 @@ public final class DirectTwistedBraceletGenerator {
             return true;
         }
 
-        private static int affectedMass(final CycleSpec[] specs,
-                                        final int[][] cyclesByGroup) {
+        private static int affectedSymbolCount(final CycleSpec[] specs,
+                                               final int[][] cyclesByGroup) {
             var result = 0;
             for (final var group : cyclesByGroup) {
                 if (specs[group[0]].oriented || group.length > 1) {

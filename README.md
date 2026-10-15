@@ -1,216 +1,115 @@
-# TD(18) extremal-class pipeline
+# TD(18) two-reduction computation
 
-This repository implements the computation
+This repository studies the conditional two-reduction route in
+[docs/td18-reduction-count.tex](docs/td18-reduction-count.tex). The route starts
+from fixed-point-free cyclic-target types on 19 symbols, applies at most two
+selected structural reductions, and leaves a complete inventory of 204
+annotated types.
 
-```text
-       +-> E13
-E12 ---+
-       +-> H13(7) -> E14 -> E15 -> E16 -> E17 -> TD(18) <= 10
-```
+The repository does not currently prove TD(18) = 10. The local reduction
+hypothesis and every generated class, bounded search, witness, count, and
+verification artifact required by [the research plan](docs/RESEARCH_PLAN.md)
+must be checked first.
 
-where `E_n` is the set of diametral extended-toric classes at order `n`.
-Here `H_n(r)` denotes the classes in `S_n` at distance at least `r`.
-Together with the known lower bound, a completed and verified run establishes
-`TD(18) = 10`. No completed large run is included in this repository, so the
-repository alone does not claim that result.
+## Method
 
-## Reduction
+A state consists of a contracted annotated cycle type T and the number s of
+transpositions already used. Its remaining budget is 10 - s. A known diameter
+closes a state when it fits that budget. Otherwise the current policy selects,
+in order:
 
-Let `del_x(pi)` denote the permutation obtained by deleting symbol `x` from
-`pi` and then standardizing the remaining values in their original order.
-For every symbol `x`,
+1. clearing an oriented 3-cycle;
+2. a qualifying move on the smallest oriented odd-length cycle of length at
+   least 5;
+3. merging the two largest even-length cycles;
+4. generation and sorting when no selected reduction applies.
 
-```text
-d(pi) <= d(del_x(pi)) + 1.
-```
+Each reduction edge spends one transposition and lowers the 3-norm by one.
+The recursion stops after two edges. Table 2 lists all 204 resulting annotated
+types. Its `R` column counts every realizable extended-toric class; its `Q`
+column retains only the class obligations not already discharged by the
+checked TD(16) successor results. Thus no inventory row is removed: 102 rows
+have `Q = 0`, two are partially settled, and 100 have `Q = R`. The remaining
+total is 26,458,991,245 classes.
 
-Thus a class can exceed `TD(n - 1)` only if all of its circular removals lie
-in `E_(n-1)`. A cyclic-target representative on `N` symbols has `N^2` raw
-children: insert the new largest symbol independently into a gap of the
-current cycle and a gap of the target cycle, then canonicalize and deduplicate
-at order `N + 1`.
+The cyclic-target and twisted-bracelet layer encodes a pair (omega, beta), with
+target rho = omega * beta, as fixed-content words. Auxiliary standardization
+and the twisted dihedral action identify extended-toric classes, and direct
+generation emits one representative per realizable class. The twisted
+reflection reverses word positions and inverts cyclic ranks on oriented beads;
+it is not ordinary word reversal.
 
-## Implemented stages
+## Implemented components
 
-The `pipeline` module contains the extremal-class computation and the
-supplementary annotated-type counter:
+The pipeline module contains:
 
-- cyclic-target algebra and extended-toric canonicalization;
-- direct twisted-bracelet generation of fixed-point-free classes;
-- Burnside counting of the 204 types in the supplementary reduction note;
-- circular deletion and `N^2` child insertion;
-- direct `N`-child fixed-point expansion across all available CPUs;
-- piecewise approximation pruning: the Bafna–Pevzner `1.5` guarantee below
-  3-norm eight and the `1.375` guarantee from 3-norm eight onward;
-- exact CUDA bounded search through domain size 19 and depth 10;
-- RocksDB class stores and order-18 witness stores;
-- resumable annotated-partition checkpoints;
-- deterministic stage manifests with counts and SHA-256 checksums;
-- exclusion-search verification against known diameters and order-18 witness replay.
+- deterministic enumeration of the 204 annotated types;
+- direct twisted-bracelet generation and exact Burnside counting;
+- cyclic-target realizability checks and extended-toric canonicalization;
+- Java/JNI/CUDA primitives for exact bounded sorting;
+- certificate encoding and replay primitives;
+- regression tests for the group action, counting, encoding, and reduction
+  inventory.
 
-The stages are:
+End-to-end exhaustive generation, sorting, persistence, and independent
+verification for the remaining `Q` classes remain to be implemented.
 
-1. `e12`: classify every fixed-point-free class on the 13-symbol cyclic
-   domain and retain the depth-six failures, using `TD(12)=7`.
-2. `e13`: generate children of `E12`, require every removal to belong to
-   `E12`, and retain the depth-seven failures, using `TD(13)=8`.
-3. `h13`: independently form the fixed-point part of `H13(7)` as
-   `Expand(E12)` and classify every fixed-point-free class on the 14-symbol
-   cyclic domain through depth six. Retain every failure: `H13(7)` contains
-   distances seven and eight, and `TD(13)=8` supplies the upper bound.
-4. `e14`: generate children of `H13(7)`, require every removal to remain in
-   `H13(7)`, and retain the depth-seven failures, using `TD(14)=8`.
-5. `e15`: generate children of `E14`, apply the all-removals-in-`E14` filter,
-   and retain the depth-eight failures, using `TD(15)=9`.
-6. `e16`: generate the fixed-point part as `Expand(E15)`, classify every
-   fixed-point-free 17-symbol class through depth eight, and retain the
-   failures using `TD(16)=9`.
-7. `e17`: generate children of `E16`, require every removal to belong to
-   `E16`, and retain the depth-nine failures, using `TD(17)=10`.
-8. `e18`: generate children of `E17`, apply the all-removals filter, and
-   require a verified witness of length at most ten for every survivor.
+## Validate the type inventory
 
-The propagated stages fuse raw insertion, the all-removals test,
-canonicalization, global deduplication, and bounded search. They do not
-materialize the much larger unfiltered child sets. GPU acceleration of child
-generation and canonicalization is deliberately outside the current scope;
-the CUDA code is used only by exact bounded sorting.
+~~~bash
+mvn -pl pipeline -am test
 
-All propagated stages process bounded batches across the available CPUs.
-Raw insertions are deduplicated by canonical child keys while retaining their
-inserted symbol. Deleting that symbol is known to recover the parent, whose
-membership is checked once; the filter skips constructing and looking up this
-inverse deletion for each child. Qualified children are emitted canonically.
-Deletion checks use RocksDB `MultiGet` in rounds: each round constructs just
-one deletion per surviving child, rejecting misses before computing any
-further deletions. A child is classified only by the parent with the least
-canonical removal key. Insertion class sets are representative-invariant, so
-that owner always generates the child. As soon as a smaller removal key is
-found, the current parent stops processing that child, skipping its membership
-lookup and all later deletions. Per-parent canonical deduplication and this
-ownership rule eliminate global candidate membership reads. Propagated stages
-recompute interrupted work and overwrite identical keys.
-
-The CUDA sorter also shares overlapping requests for the same canonical class
-and depth bound. Calls that need the result wait for that one search; different
-depth bounds remain separate searches. At known ordinary orders 12 through
-17, classification needs only the lower-depth exclusion search; established
-diameters supply the upper bound. These stages do not generate or require
-witness stores. Only order 18 searches for and stores upper-bound witnesses,
-because proving its ten-move bound is the objective.
-
-See [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md) for the proof obligations
-and validation corpus.
-
-## Count the TD(18) reduction types
-
-The supplementary [two-reduction note](docs/td18-reduction-count.tex)
-lists 204 annotated types under its stated selection policy and conditional
-sorting-sequence assumption through domain size 19. These counts are
-research obligations; they do not establish the target diameter.
-
-Count one realizable twisted-bracelet representative per class for every entry
-of Table 2 in `docs/td18-reduction-count.tex`:
-
-```bash
 mvn -pl pipeline compile exec:java \
-  -Dexec.mainClass=br.unb.cic.tdp.CountTD18Bracelets
-```
+  -Dexec.mainClass=br.unb.cic.td18.ReductionTypeEnumerator \
+  -Dexec.args=--validate
+~~~
 
-The counter reads the types in table order and uses all available CPU cores.
-It applies Burnside's identity to every table entry, using character sums for
-the identity term and symmetry-constrained enumeration for rotations and
-twisted reflections. It counts without decoding encoding words or invoking
-sorting or certificate verification. Each run and entry records
-`method=burnside` in the log. See [the counting derivation](docs/td18-burnside-counting.md).
-It prints each completed count and immediately flushes it to
-`td18-bracelet-counts.log` in the project root. New runs append to that log.
-The counts concern the contracted, fixed-point-free types displayed in the
-table, with target realizability enforced by the generator.
+The validation reports 53 admissible partitions, 360 annotated roots, and 204
+distinct obligations with depth distribution 8, 8, and 188.
 
-For a selected inclusive range of table entries, add
-`-Dexec.args="--rows=50-204"`. Optional `--table=path` and `--log=path`
-arguments select another source file or log destination. The parser also
-accepts a bracelet-count column added after the table's existing columns.
+## Count realizable classes
 
-## Build and test
+Count one realizable twisted-bracelet representative per extended-toric class
+for every Table 2 entry:
 
-CPU-side compilation and tests do not require CUDA:
+~~~bash
+mvn -pl pipeline compile exec:java
+~~~
 
-```bash
-mvn test
-```
+The counter reads [docs/td18-reduction-count.tex](docs/td18-reduction-count.tex),
+uses all available CPU cores to apply Burnside's identity, validates each
+recorded `R` value, and appends each completed count to the untracked
+td18-bracelet-counts.log file. It does not run a sorting search or verify
+sorting witnesses.
 
-Build the native exact-search library on a CUDA machine with CMake 3.24+:
+To count an inclusive subset of rows, use, for example:
 
-```bash
+~~~bash
+mvn -pl pipeline compile exec:java -Dexec.args="--rows=50-204"
+~~~
+
+Optional --table and --log arguments select another input or output path. See
+[the Burnside derivation](docs/td18-burnside-counting.md) for the counting
+method.
+
+## CUDA build
+
+CPU-side compilation and tests do not require CUDA. On a configured CUDA
+machine, build the exact-search native library with:
+
+~~~bash
 mvn -Pgpu package
-```
+~~~
 
-## Run
-
-Run one stage, all stages, or verification:
-
-```bash
-mvn -Pgpu -pl pipeline compile exec:java \
-  -Dexec.args="e12 --work=/data/td18 --gpu-devices=0,1,2,3 --gpu-slots=16 --gpu-budget-mib=850"
-
-mvn -Pgpu -pl pipeline compile exec:java \
-  -Dexec.args="all --work=/data/td18 --gpu-devices=0,1,2,3 --gpu-slots=16 --gpu-budget-mib=850"
-
-mvn -Pgpu -pl pipeline compile exec:java \
-  -Dexec.args="verify --work=/data/td18 --gpu-devices=0,1,2,3 --gpu-slots=16 --gpu-budget-mib=850"
-```
-
-Additional options control the GPU queue, statistics period, generator
-worker count, lookup batch size, write flush period, and RocksDB cache; run the
-main class with `help` to list them. `--lookup-batch-size=500` is the default
-for every propagated stage; `1` selects scalar deletion lookups.
-`--write-flush-seconds=60` keeps compact encoded class/witness output in a
-write-behind buffer and flushes it once per minute. Stage completion and direct
-generator checkpoints force a flush. Directly generated canonical classes and
-uniquely owned propagated classes are written without membership reads;
-interrupted work may be recomputed and overwritten.
-
-`--rocksdb-cache-mib=256` sets a bounded native-memory block cache **per open
-store**, separate from the Java heap. Membership and witness reads populate
-the cache. Index and Bloom-filter blocks use its high-priority pool, with
-level-zero metadata pinned. Sequential scans do not populate the cache.
-Increase this budget to accommodate larger working sets, allowing for all
-concurrently open stores. Bloom filters are written into new tables; opening
-an existing database does not retrofit filters into its old tables or rewrite
-the data. The cache policy applies immediately to existing tables.
-
-For a read-only comparison of uncached scalar, cached scalar, and cached
-batched lookups at any parent order:
-
-```bash
-mvn -q -pl pipeline compile dependency:build-classpath -Dmdep.outputFile=target/runtime-classpath.txt
-java --class-path "pipeline/target/classes:$(<pipeline/target/runtime-classpath.txt)" \
-  tools/LookupBenchmark.java /data/td18/e12/classes 13
-```
-
-The benchmark takes the cyclic domain size (ordinary order plus one), not a
-hard-coded stage. Optional positional arguments control workers, sampled
-parents, repetitions, batch size, cache MiB, and passes. It compares identical
-query multisets with separate caches and verifies equal hit counts. Its
-lookup throughput excludes canonicalization and is not an end-to-end stage rate.
-
-The `e13` and `h13` commands are separate resumable stages. Run `e13` first
-to obtain the small extremal set through removal-filtered propagation; run
-`h13` when preparing the larger threshold set required by `e14`.
-
-Each completed stage is immutable by convention. If interrupted before its
-manifest is written, global generation has annotated-partition checkpoints,
-while propagated stages recompute their parent sets. Writes disable WAL and
-sync, so neither route guarantees recovery after interruption; use fresh stage
-storage when an interrupted run may have lost buffered data.
+The native search is a primitive used by future reduction-obligation
+orchestration; building it does not by itself discharge any Table 2 row.
 
 ## Lineage
 
-`../td` remains the mathematical source of truth. `../td16` is a historical
-reference for the generator and CUDA search only; its TD(16)-specific proof
-routes are not present here.
+The two-reduction document is the source of truth for this repository's proof
+route. The sibling ../td repository remains the source for the shared
+twisted-bracelet framework and its mathematical conventions; it is not an
+alternate TD(18) pipeline.
 
 ## License
 

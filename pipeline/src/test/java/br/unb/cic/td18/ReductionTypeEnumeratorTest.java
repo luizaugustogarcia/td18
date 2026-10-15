@@ -4,23 +4,19 @@ import br.unb.cic.tdp.Partitions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Regression guard for the recursive reduction enumeration. The baseline policy
- * must reproduce the published 106-type count exactly before the risk-taking
- * two-reduction policy is trusted; the current policy must yield the 204 types
- * recorded in the reduction note.
- */
+/** Regression guard for the TD(18) two-reduction enumeration. */
 class ReductionTypeEnumeratorTest {
 
-    private static TreeMap<Integer, Integer> depthDistribution(
-            final ReductionTypeEnumerator.Policy policy) {
+    private static TreeMap<Integer, Integer> depthDistribution() {
         final var depth = new TreeMap<Integer, Integer>();
-        for (final var obligation : ReductionTypeEnumerator.enumerate(policy)) {
+        for (final var obligation : ReductionTypeEnumerator.enumerate()) {
             depth.merge(obligation.movesUsed(), 1, Integer::sum);
         }
         return depth;
@@ -46,31 +42,45 @@ class ReductionTypeEnumeratorTest {
     }
 
     @Test
-    void baselinePolicyReproducesThePublished106TypeCount() {
-        final var baseline = ReductionTypeEnumerator.Policy.BASELINE;
-        assertEquals(107, ReductionTypeEnumerator.distinctStatePairs(baseline));
-        final var obligations = ReductionTypeEnumerator.enumerate(baseline);
-        assertEquals(106, obligations.size());
-        assertEquals(new TreeMap<>(java.util.Map.of(0, 10, 1, 21, 2, 18, 3, 57)),
-                depthDistribution(baseline));
-    }
-
-    @Test
-    void currentPolicyYieldsThe204ReductionNoteTypes() {
-        final var current = ReductionTypeEnumerator.Policy.CURRENT;
-        assertEquals(204, ReductionTypeEnumerator.distinctStatePairs(current));
-        final var obligations = ReductionTypeEnumerator.enumerate(current);
+    void enumeratorYieldsThe204ReductionNoteTypes() {
+        assertEquals(204, ReductionTypeEnumerator.distinctStatePairs());
+        final var obligations = ReductionTypeEnumerator.enumerate();
         assertEquals(204, obligations.size());
         assertEquals(new TreeMap<>(java.util.Map.of(0, 8, 1, 8, 2, 188)),
-                depthDistribution(current));
+                depthDistribution());
     }
 
     @Test
     void everyReachableStateKeepsTheThreeNormBelowItsBudget() {
-        for (final var obligation : ReductionTypeEnumerator.enumerate(
-                ReductionTypeEnumerator.Policy.CURRENT)) {
+        for (final var obligation : ReductionTypeEnumerator.enumerate()) {
             assertTrue(obligation.threeNorm() < obligation.budget(),
                     () -> "kappa < b must hold at " + obligation.typeKey());
         }
+    }
+
+    @Test
+    void checkedTd16ComputationReducesTheClassObligations() {
+        final var obligations = ReductionTypeEnumerator.enumerate();
+        assertEquals(Map.of(
+                        ReductionTypeEnumerator.Td16Disposition.NOT_COVERED, 100L,
+                        ReductionTypeEnumerator.Td16Disposition.SETTLED, 102L,
+                        ReductionTypeEnumerator.Td16Disposition.PARTIAL, 2L),
+                obligations.stream().collect(Collectors.groupingBy(
+                        ReductionTypeEnumerator::td16Disposition,
+                        Collectors.counting())));
+        assertEquals(52, obligations.stream()
+                .filter(ReductionTypeEnumerator::td16DirectClosure)
+                .count());
+        assertEquals(52, obligations.stream()
+                .filter(ReductionTypeEnumerator::td16SuccessorSearch)
+                .count());
+
+        final var partial = obligations.stream()
+                .filter(obligation -> ReductionTypeEnumerator.td16Disposition(obligation)
+                        == ReductionTypeEnumerator.Td16Disposition.PARTIAL)
+                .collect(Collectors.toMap(
+                        ReductionTypeEnumerator.Obligation::typeKey,
+                        ReductionTypeEnumerator::td16ResidualClasses));
+        assertEquals(Map.of("11O,5O", 495, "9O,7O", 1_541), partial);
     }
 }
