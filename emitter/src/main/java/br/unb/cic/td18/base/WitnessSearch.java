@@ -124,9 +124,8 @@ public final class WitnessSearch {
         final int remainingSymbols = currentOmega.length - fixedPoints;
         final int remainingDiameter =
                 ReductionTypeEnumerator.knownDiameter(remainingSymbols);
-        if (createdFixedPoints
-                < Math.ceil(CommonOperations.CPU_PREFIX_MIN_RATE
-                * prefix.size())
+        if (!CommonOperations.meetsMinimumRate(
+                createdFixedPoints, prefix.size())
                 || remainingDiameter == Integer.MAX_VALUE
                 || prefix.size() + remainingDiameter > maximumMoves) {
             throw new IllegalStateException(

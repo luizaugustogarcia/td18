@@ -108,9 +108,17 @@ public final class CommonOperations {
             final byte[] workingOmega = omega.clone();
             final byte[] workingBeta = beta.clone();
             final int initialFixedPoints = countFixedPoints(workingOmega);
-            final var result = searchForSorting(
+            final var viableGains = buildViableGainPrefixes(
+                    workingOmega.length - initialFixedPoints, maximumMoves,
+                    0, 0);
+            if (viableGains == null) {
+                CpuPrefixSearchStats.instance().completed(
+                        0, System.nanoTime() - started);
+                return Optional.empty();
+            }
+            final var result = searchForDiameterClosingPrefix(
                     workingOmega, workingBeta, new ArrayList<>(),
-                    initialFixedPoints, maximumMoves);
+                    viableGains);
             CpuPrefixSearchStats.instance().completed(
                     result.map(List::size).orElse(0),
                     System.nanoTime() - started);
@@ -122,16 +130,12 @@ public final class CommonOperations {
         }
     }
 
-    private static Optional<List<int[]>> searchForSorting(
+    private static Optional<List<int[]>> searchForDiameterClosingPrefix(
             final byte[] omega,
             final byte[] beta,
             final List<int[]> stack,
-            final int initialFixedPoints,
-            final int maximumMoves
+            final GainPrefix viableGains
     ) {
-        final int fixedBefore = countFixedPoints(omega);
-        final int candidateDepth = stack.size() + 1;
-
         for (var i = 0; i < beta.length - 2; i++) {
             final int a = Byte.toUnsignedInt(beta[i]);
             if (Byte.toUnsignedInt(omega[a]) == a) {
@@ -153,42 +157,39 @@ public final class CommonOperations {
                     final byte imageA = omega[a];
                     final byte imageB = omega[b];
                     final byte imageC = omega[c];
-                    var newlyFixedByCandidate = 0;
+                    var fixedPointGain = 0;
                     if (Byte.toUnsignedInt(imageC) == a) {
-                        newlyFixedByCandidate++;
+                        fixedPointGain++;
                     }
                     if (Byte.toUnsignedInt(imageA) == b) {
-                        newlyFixedByCandidate++;
+                        fixedPointGain++;
                     }
                     if (Byte.toUnsignedInt(imageB) == c) {
-                        newlyFixedByCandidate++;
+                        fixedPointGain++;
                     }
-
-                    final int fixedAfter = fixedBefore + newlyFixedByCandidate;
-                    final int createdFixedPoints =
-                            fixedAfter - initialFixedPoints;
-                    final int remainingSymbols = omega.length - fixedAfter;
-                    final int[] move = {a, b, c};
-
-                    if (qualifies(createdFixedPoints, candidateDepth,
-                            remainingSymbols, maximumMoves)) {
-                        final var result = copyMoves(stack);
-                        result.add(move);
-                        return Optional.of(List.copyOf(result));
-                    }
-
-                    if (!canStillQualify(createdFixedPoints, candidateDepth,
-                            remainingSymbols, maximumMoves)) {
+                    final var nextGains =
+                            viableGains.continuation(fixedPointGain);
+                    if (nextGains == null) {
                         continue;
                     }
+
+                    final int[] move = {a, b, c};
 
                     omega[a] = imageC;
                     omega[b] = imageA;
                     omega[c] = imageB;
                     stack.add(move);
-                    final var result = searchForSorting(
-                            omega, applyTransposition(beta, i, j, k), stack,
-                            initialFixedPoints, maximumMoves);
+
+                    Optional<List<int[]>> result;
+                    if (nextGains.closes()) {
+                        result = Optional.of(
+                                List.copyOf(copyMoves(stack)));
+                    } else {
+                        result = searchForDiameterClosingPrefix(
+                                omega, applyTransposition(beta, i, j, k),
+                                stack, nextGains);
+                    }
+
                     stack.removeLast();
                     omega[a] = imageA;
                     omega[b] = imageB;
@@ -202,44 +203,50 @@ public final class CommonOperations {
         return Optional.empty();
     }
 
-    private static boolean qualifies(final int createdFixedPoints,
-                                     final int depth,
-                                     final int remainingSymbols,
-                                     final int maximumMoves) {
-        if (createdFixedPoints < Math.ceil(CPU_PREFIX_MIN_RATE * depth)) {
-            return false;
+    private static GainPrefix buildViableGainPrefixes(
+            final int initialNonfixedSymbols,
+            final int maximumMoves,
+            final int depth,
+            final int createdFixedPoints
+    ) {
+        if (createdFixedPoints > initialNonfixedSymbols) {
+            return null;
         }
-        final int remainingDiameter =
+
+        final int remainingSymbols =
+                initialNonfixedSymbols - createdFixedPoints;
+        final int diameter =
                 ReductionTypeEnumerator.knownDiameter(remainingSymbols);
-        return remainingDiameter != Integer.MAX_VALUE
-                && depth + remainingDiameter <= maximumMoves;
+        final boolean closes = depth > 0
+                && meetsMinimumRate(createdFixedPoints, depth)
+                && diameter != Integer.MAX_VALUE
+                && diameter <= maximumMoves - depth;
+
+        final var continuations = new GainPrefix[4];
+        var hasContinuation = false;
+        if (depth < CPU_PREFIX_MAX_DEPTH) {
+            for (var gain = 0; gain <= 3; gain++) {
+                continuations[gain] = buildViableGainPrefixes(
+                        initialNonfixedSymbols, maximumMoves, depth + 1,
+                        createdFixedPoints + gain);
+                hasContinuation |= continuations[gain] != null;
+            }
+        }
+        return closes || hasContinuation
+                ? new GainPrefix(closes, continuations)
+                : null;
     }
 
-    private static boolean canStillQualify(final int createdFixedPoints,
-                                           final int depth,
-                                           final int remainingSymbols,
-                                           final int maximumMoves) {
-        final int availableDepth = CPU_PREFIX_MAX_DEPTH - depth;
-        for (var additionalMoves = 1;
-             additionalMoves <= availableDepth;
-             additionalMoves++) {
-            final int futureDepth = depth + additionalMoves;
-            final int futureCreated = createdFixedPoints
-                    + Math.min(remainingSymbols, 3 * additionalMoves);
-            final int futureRemaining = Math.max(
-                    0, remainingSymbols - 3 * additionalMoves);
-            if (futureCreated
-                    < Math.ceil(CPU_PREFIX_MIN_RATE * futureDepth)) {
-                continue;
-            }
-            final int diameter =
-                    ReductionTypeEnumerator.knownDiameter(futureRemaining);
-            if (diameter != Integer.MAX_VALUE
-                    && futureDepth + diameter <= maximumMoves) {
-                return true;
-            }
+    static boolean meetsMinimumRate(final int createdFixedPoints,
+                                    final int depth) {
+        return createdFixedPoints
+                >= Math.ceil(CPU_PREFIX_MIN_RATE * depth);
+    }
+
+    private record GainPrefix(boolean closes, GainPrefix[] continuations) {
+        private GainPrefix continuation(final int fixedPointGain) {
+            return continuations[fixedPointGain];
         }
-        return false;
     }
 
     static byte[] applyTransposition(final byte[] beta,
