@@ -42,7 +42,7 @@ it is not ordinary word reversal.
 
 ## Implemented components
 
-The pipeline module contains:
+The `td18-reduction` module contains:
 
 - deterministic enumeration of the 204 annotated types;
 - direct twisted-bracelet generation and exact Burnside counting;
@@ -58,9 +58,9 @@ verification for the remaining `Q` classes remain to be implemented.
 ## Validate the type inventory
 
 ~~~bash
-mvn -pl pipeline -am test
+mvn -pl td18-reduction -am test
 
-mvn -pl pipeline compile exec:java \
+mvn -pl td18-reduction compile exec:java \
   -Dexec.mainClass=br.unb.cic.td18.ReductionTypeEnumerator \
   -Dexec.args=--validate
 ~~~
@@ -74,7 +74,7 @@ Count one realizable twisted-bracelet representative per extended-toric class
 for every Table 2 entry:
 
 ~~~bash
-mvn -pl pipeline compile exec:java
+mvn -pl td18-reduction compile exec:java
 ~~~
 
 The counter reads [docs/td18-reduction-count.tex](docs/td18-reduction-count.tex),
@@ -86,7 +86,7 @@ sorting witnesses.
 To count an inclusive subset of rows, use, for example:
 
 ~~~bash
-mvn -pl pipeline compile exec:java -Dexec.args="--rows=50-204"
+mvn -pl td18-reduction compile exec:java -Dexec.args="--rows=50-204"
 ~~~
 
 Optional --table and --log arguments select another input or output path. See
@@ -110,7 +110,7 @@ orchestration; building it does not by itself discharge any Table 2 row.
 The two-reduction document is the source of truth for this repository's proof
 route. The sibling ../td repository remains the source for the shared
 twisted-bracelet framework and its mathematical conventions; it is not an
-alternate TD(18) pipeline.
+alternate TD(18) computation.
 
 ## License
 
