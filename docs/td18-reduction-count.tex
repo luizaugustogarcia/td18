@@ -49,15 +49,16 @@ order at most $17$, whose distance is at most $\TD(17)=10$. Thus only
 fixed-point-free root types need further consideration.
 
 Let $T$ be a contracted annotated type with cycle lengths
-$\lambda_1,\ldots,\lambda_r$, all at least $2$. Define its number of
-nonfixed symbols and its $3$-norm by
+$\lambda_1,\ldots,\lambda_r$, all at least $2$. Define its contracted
+cyclic-domain size and its $3$-norm by
 \begin{equation}
-  M(T)=\sum_{i=1}^r\lambda_i,
+  N(T)=\sum_{i=1}^r\lambda_i,
   \qquad
   \kappa(T)=\sum_{i=1}^r\left\lfloor\frac{\lambda_i}{2}\right\rfloor.
   \label{eq:nonfixed-norm}
 \end{equation}
-Equivalently, $\kappa(T)=(M(T)-c_{\mathrm{odd}}(T))/2$, where
+The corresponding ordinary order is $n(T)=N(T)-1$, so $N=n+1$.
+Equivalently, $\kappa(T)=(N(T)-c_{\mathrm{odd}}(T))/2$, where
 $c_{\mathrm{odd}}(T)$ counts odd-length cycles. A state is a pair $(T,s)$,
 where $s$ moves have already been used and the remaining budget is
 $10-s$.
@@ -72,9 +73,10 @@ verification is outside this counting calculation.
 
 \section{Closing a state and the risk principle}
 
-Let $D(M)$ be the known transposition-diameter bound for a contracted
-cyclic domain of $M$ symbols, with $D(M)=\TD(M-1)$ for $2\leq M\leq18$
-and $D(M)=0$ for $M\leq1$. For the unreduced domain, set $D(19)=+\infty$,
+Let $D(N)$ be the known transposition-diameter bound for a contracted
+cyclic domain of $N=n+1$ symbols, with $D(N)=\TD(N-1)$ for
+$2\leq N\leq18$ and $D(N)=0$ for $N\leq1$. For the unreduced domain,
+set $D(19)=+\infty$,
 so that the target equality is not used as a premise. The known values
 used here are
 \[
@@ -86,7 +88,7 @@ The value at order $0$ is the trivial empty-instance convention.
 A state $(T,s)$ closes whenever a known diameter already fits the
 remaining budget,
 \begin{equation}
-  s+D(M(T))\leq10.
+  s+D(N(T))\leq10.
   \label{eq:diameter-closure}
 \end{equation}
 This is the only rule that discharges a state. It is tested at every
@@ -211,7 +213,7 @@ sorting witness exists.
 
 \subsection{Class obligations remaining after the checked TD(16) computation}
 
-Of the $204$ inventory rows, $104$ have $M=16$, $s=2$, and budget $b=8$.
+Of the $204$ inventory rows, $104$ have $N=16$, $s=2$, and budget $b=8$.
 Exactly $52$ of them contain an oriented $3$-cycle. Clearing that cycle
 uses one transposition and leaves at most $13$ nonfixed symbols, so
 $2+1+\TD(12)=10$ closes every class in those rows.
@@ -238,9 +240,10 @@ actual remaining class obligation is $26\,458\,991\,245$.
 \appendix
 \section{Complete list of the 204 distinct types}
 
-Fixed points are omitted from the displayed types. The columns $M$ and
+Fixed points are omitted from the displayed types. The columns $N$ and
 $f$ give the numbers of nonfixed and contracted fixed symbols,
-respectively, with $M+f=19$. The column $s$ gives the moves already used;
+respectively, with $N=n+1$ for the contracted cyclic domain and $N+f=19$.
+The column $s$ gives the moves already used;
 $b=10-s$ is the remaining budget for that type. The column $R$
 gives the number of realizable extended-toric classes of the type, one
 twisted bracelet per class, obtained by Burnside's identity on the
@@ -257,12 +260,12 @@ $26\,458\,991\,245$.
   \caption{Complete type inventory and remaining class obligations.}
   \label{tab:complete}\\
   \toprule
-  No. & Annotated cycle type & $M$ & $f$ & $s$ & $b$ & $\kappa$ & $R$ & $Q$ \\
+  No. & Annotated cycle type & $N$ & $f$ & $s$ & $b$ & $\kappa$ & $R$ & $Q$ \\
   \midrule
   \endfirsthead
   \multicolumn{9}{l}{\textit{Table~\ref{tab:complete} continued}}\\
   \toprule
-  No. & Annotated cycle type & $M$ & $f$ & $s$ & $b$ & $\kappa$ & $R$ & $Q$ \\
+  No. & Annotated cycle type & $N$ & $f$ & $s$ & $b$ & $\kappa$ & $R$ & $Q$ \\
   \midrule
   \endhead
   \midrule

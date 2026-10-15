@@ -26,11 +26,11 @@ import java.util.function.Consumer;
  * nontrivial auxiliary action, the same recursion is augmented with lazy
  * comparisons rooted at occurrences of the first auxiliary-affected type in
  * the word.  A part is affected if it is oriented or another part has the same
- * annotated type. If that root type contains {@code M} symbols and all affected parts
- * sum to {@code S}, then {@code M <= S}.  The base recursion handles spatial
+ * annotated type. If that root type contains {@code L} symbols and all affected parts
+ * sum to {@code S}, then {@code L <= S}.  The base recursion handles spatial
  * images which differ before that first affected bead.  Every remaining image
- * aligns it with one of the {@code M} beads of its own type, in either traversal
- * direction, so at most {@code 2M} auxiliary comparisons are needed.
+ * aligns it with one of the {@code L} beads of its own type, in either traversal
+ * direction, so at most {@code 2L} auxiliary comparisons are needed.
  * A comparison maps an encountered source cycle to the least still-unmatched
  * target cycle of the same annotated type and chooses the unique rank offset
  * that sends its first encountered rank to zero.  This constructs the least

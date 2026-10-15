@@ -15,7 +15,8 @@ must be checked first.
 
 A state consists of a contracted annotated cycle type T and the number s of
 transpositions already used. Its remaining budget is 10 - s. A known diameter
-closes a state when it fits that budget. Otherwise the current policy selects,
+closes a state when it fits that budget. The contracted cyclic domain has
+`N = n + 1` symbols for ordinary order `n`. Otherwise the current policy selects,
 in order:
 
 1. clearing an oriented 3-cycle;

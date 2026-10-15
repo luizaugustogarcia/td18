@@ -1,6 +1,7 @@
 # Counting realizable twisted bracelets with Burnside's identity
 
-Fix the current cycle \(\beta=(0\,1\,\ldots\,N-1)\). The objects being
+For ordinary order \(n\), set \(N=n+1\) and fix the current cycle
+\(\beta=(0\,1\,\ldots\,N-1)\). The objects being
 counted are fixed-point-free permutations \(\omega\) of the prescribed
 annotated cycle type for which \(\rho=\omega\beta\) is an \(N\)-cycle.
 Unoriented cycles follow the restriction of \(\beta^{-1}\) to their

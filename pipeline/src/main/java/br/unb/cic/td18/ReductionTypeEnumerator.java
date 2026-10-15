@@ -51,7 +51,7 @@ public final class ReductionTypeEnumerator {
     private ReductionTypeEnumerator() {
     }
 
-    /** Known diameter {@code D(M) = TD(M-1)} for {@code 2 <= M <= 18}; 0 for {@code M <= 1}; unbounded for {@code M >= 19}. */
+    /** Known diameter {@code D(N) = TD(N-1)} for {@code 2 <= N <= 18}; 0 for {@code N <= 1}; unbounded for {@code N >= 19}. */
     static int knownDiameter(final int nonfixedSymbols) {
         if (nonfixedSymbols <= 1) {
             return 0;
