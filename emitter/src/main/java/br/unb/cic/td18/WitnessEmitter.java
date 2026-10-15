@@ -183,7 +183,7 @@ public final class WitnessEmitter {
             throw new IllegalArgumentException(
                     "A sorting obligation needs a positive norm and move budget");
         }
-        return 2 * entry.threeNorm() / (float) entry.remainingMoves();
+        return entry.remainingMoves() /  (2 * (float) entry.threeNorm());
     }
 
     private static void printUsage() {
