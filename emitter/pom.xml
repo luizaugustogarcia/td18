@@ -8,7 +8,7 @@
         <artifactId>td18</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>td18-reduction</artifactId>
+    <artifactId>emitter</artifactId>
 
     <properties>
         <exec.mainClass>br.unb.cic.td18.CountTD18Bracelets</exec.mainClass>

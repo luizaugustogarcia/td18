@@ -70,5 +70,5 @@
 - JDK 21 is the baseline.
 - Prefer immutable value keys and deterministic iteration at persistence
   boundaries.
-- Run mvn -pl td18-reduction -am test for CPU-side work. Run CUDA-dependent tests
+- Run mvn -pl emitter -am test for CPU-side work. Run CUDA-dependent tests
   only when the environment is configured for them.

@@ -186,7 +186,7 @@ public final class CountTD18Bracelets {
         var root = directory.toAbsolutePath().normalize();
         while (root != null) {
             if (Files.isRegularFile(root.resolve("pom.xml"))
-                    && Files.isRegularFile(root.resolve("td18-reduction/pom.xml"))) {
+                    && Files.isRegularFile(root.resolve("emitter/pom.xml"))) {
                 return root;
             }
             root = root.getParent();
