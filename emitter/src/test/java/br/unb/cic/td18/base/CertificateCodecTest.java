@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CertificateCodecTest {
     @Test
@@ -32,5 +33,21 @@ class CertificateCodecTest {
 
         assertEquals(moves,
                 CertificateCodec.decodeValue(CertificateCodec.valueFor(moves)));
+    }
+
+    @Test
+    void rejectsAnotherCertificateFormatVersion() {
+        final var pair = CyclicTargetPair.of(
+                new MulticyclePermutation(Cycle.of(0, 1, 2)),
+                Cycle.of(0, 1, 2)).canonicalRepresentative();
+        final var key = CertificateCodec.keyFor(pair);
+        key[1]++;
+        final var value = CertificateCodec.valueFor(List.of(Cycle.of(0, 1, 2)));
+        value[0]++;
+
+        assertThrows(IllegalArgumentException.class,
+                () -> CertificateCodec.pairForKey(key, 3));
+        assertThrows(IllegalArgumentException.class,
+                () -> CertificateCodec.decodeValue(value));
     }
 }

@@ -72,7 +72,7 @@ public class GPUSortingSearch {
 
     private static long parseStatsPeriodSeconds() {
         final var value = System.getProperty("td18.gpuStatsPeriodSeconds", "").trim();
-        final long period = value.isEmpty() ? 0 : Long.parseLong(value);
+        final long period = value.isEmpty() ? 60 : Long.parseLong(value);
         if (period < 0) {
             throw new IllegalArgumentException("td18.gpuStatsPeriodSeconds must not be negative");
         }
@@ -170,6 +170,7 @@ public class GPUSortingSearch {
 
     private void logWindowStats() {
         final var snapshot = stats.snapshot(System.nanoTime());
+        final var cpuSnapshot = CpuPrefixSearchStats.instance().snapshot();
         final double elapsedSeconds = snapshot.elapsedNanos() / 1_000_000_000.0;
         final double throughput = snapshot.completed() / elapsedSeconds;
         final double occupancy = snapshot.busyNanos()
@@ -183,6 +184,21 @@ public class GPUSortingSearch {
                 format(throughput), formatPercent(occupancy), format(averageWaitMillis),
                 pendingSearches.size(), pendingCapacity,
                 snapshot.failed());
+
+        final long cpuAttempts = cpuSnapshot.completed() + cpuSnapshot.failed();
+        final double averageCpuMillis = cpuAttempts == 0
+                ? 0
+                : cpuSnapshot.elapsedNanos() / 1_000_000.0
+                / cpuAttempts;
+        final double averagePrefixDepth = cpuSnapshot.qualified() == 0
+                ? 0
+                : cpuSnapshot.prefixMoves() / (double) cpuSnapshot.qualified();
+        log.info("CPU prefix stats (last {}s): completed={}, trivially settled={}, "
+                        + "GPU fallthroughs={}, avg search={} ms, avg prefix depth={}, failures={}",
+                format(elapsedSeconds), cpuSnapshot.completed(),
+                cpuSnapshot.qualified(), cpuSnapshot.misses(),
+                format(averageCpuMillis), format(averagePrefixDepth),
+                cpuSnapshot.failed());
 
         for (final var device : snapshot.devices()) {
             final double deviceThroughput = device.completed() / elapsedSeconds;

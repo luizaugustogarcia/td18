@@ -11,10 +11,20 @@
     <artifactId>emitter</artifactId>
 
     <properties>
-        <exec.mainClass>br.unb.cic.td18.CountTD18Bracelets</exec.mainClass>
+        <exec.mainClass>br.unb.cic.td18.WitnessEmitter</exec.mainClass>
+        <td18.gpuDevices>0</td18.gpuDevices>
+        <td18.gpuSlots>7</td18.gpuSlots>
+        <td18.gpuBudgetMB>1024</td18.gpuBudgetMB>
+        <td18.gpuQueueCapacity></td18.gpuQueueCapacity>
+        <td18.gpuStatsPeriodSeconds>60</td18.gpuStatsPeriodSeconds>
+        <td18.twistedBraceletWorkers>auto</td18.twistedBraceletWorkers>
+        <td18.certificateDb>${project.basedir}/../certificates</td18.certificateDb>
+        <td18.certificateFlushSeconds>5</td18.certificateFlushSeconds>
+        <td18.args></td18.args>
     </properties>
 
     <dependencies>
+        <dependency><groupId>org.rocksdb</groupId><artifactId>rocksdbjni</artifactId><version>10.4.2</version><classifier>linux64</classifier></dependency>
         <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><version>${lombok.version}</version><scope>provided</scope></dependency>
         <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId><version>2.0.13</version></dependency>
         <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-simple</artifactId><version>2.0.13</version></dependency>
@@ -38,9 +48,16 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
-                <configuration>
-                    <mainClass>${exec.mainClass}</mainClass>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-cli</id>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <commandlineArgs>-classpath %classpath -Djava.library.path=${project.build.directory}/native -Dtd18.gpuDevices=${td18.gpuDevices} -Dtd18.gpuSlots=${td18.gpuSlots} -Dtd18.gpuBudgetMB=${td18.gpuBudgetMB} -Dtd18.gpuQueueCapacity=${td18.gpuQueueCapacity} -Dtd18.gpuStatsPeriodSeconds=${td18.gpuStatsPeriodSeconds} -Dtd18.twistedBraceletWorkers=${td18.twistedBraceletWorkers} -Dtd18.certificateDb=${td18.certificateDb} -Dtd18.certificateFlushSeconds=${td18.certificateFlushSeconds} ${exec.mainClass} ${td18.args}</commandlineArgs>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -82,9 +82,18 @@ with `Q = 0` require the checked discharge artifact instead of generation.
 
 ## Stage 4 — discharge every sorting obligation
 
-For a row reached after s reductions, find and validate a sorting sequence of
-length at most 10 - s for every representative remaining in `Q`. Search
+Let a row be reached after s reductions on a contracted domain of N symbols.
+Discharge every representative remaining in `Q` within 10 - s moves. One valid
+discharge is a checked prefix of d at most three transpositions that creates r
+algebraic fixed points (adjacencies), satisfies r/d >= 1.6, and satisfies
+s + d + TD(N-r-1) <= 10 after fixed-point contraction. Otherwise, find and
+validate a complete sorting sequence of length at most 10 - s. Search
 boundaries must be exhaustive and explicit.
+
+The short prefix is not a full sorting witness and must not be stored as a
+certificate. The independent verifier must regenerate the representative,
+replay the prefix, check its fixed-point gain and rate, check the contracted
+domain, and check the cited known diameter against the global budget.
 
 If bounded search fails for a representative, record:
 
@@ -97,8 +106,9 @@ Such a record is a residual obligation, not evidence for the upper bound. The
 TD(18) conclusion remains pending until every residual obligation is resolved
 within the reduction argument.
 
-Exit criterion: every class counted by `Q` has a replayable, valid witness
-within its row budget and no unresolved residual remains.
+Exit criterion: every class counted by `Q` has either a checked
+prefix-plus-known-diameter closure or a replayable valid witness within its row
+budget, and no unresolved residual remains.
 
 ## Stage 5 — independent end-to-end verification
 
@@ -109,7 +119,8 @@ The verifier must independently:
 3. verify every `R` count, every TD(16) discharge, every `Q` value, and every
    generated-class partition;
 4. decode every representative as a valid cyclic-target pair;
-5. replay every sorting witness and enforce its row budget;
+5. recheck every trivial prefix closure, replay every sorting witness, and
+   enforce the global and row budgets;
 6. reject any missing row, class, partition, witness, or completion record.
 
 Only a complete verification report permits the upper-bound claim. The final
@@ -118,9 +129,10 @@ report must state all hypotheses and artifact versions explicitly.
 ## Implementation status
 
 The repository currently implements the type enumerator, twisted-bracelet
-generation/counting framework, cyclic-target validation, CUDA search
-primitives, and certificate primitives. Stages 0 through 5 do not yet have the
-complete checked artifacts required above.
+generation/counting framework, cyclic-target validation, CUDA search, and an
+emitter that streams Table 2 classes into a versioned RocksDB certificate
+database with per-row counts, checksums, and completion records. Stages 0
+through 5 do not yet have the complete checked artifacts required above.
 
 Generated databases, checkpoints, logs, and certificates must remain
 untracked.

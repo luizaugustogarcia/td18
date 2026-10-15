@@ -39,4 +39,54 @@ class CommonOperationsTest {
         assertTrue(isOriented(beta, alpha.getInverse()));
         assertFalse(isOriented(beta, alpha));
     }
+
+    @Test
+    void cpuPrefixRequiresBothRateAndKnownDiameterBudget() {
+        final byte[] omega = {1, 2, 0, 4, 5, 3};
+        final byte[] beta = {0, 1, 2, 3, 4, 5};
+
+        final var prefix = searchForSorting(omega, beta, 2);
+
+        assertTrue(prefix.isPresent());
+        assertEquals(1, prefix.orElseThrow().size());
+        assertArrayEquals(new int[]{0, 1, 2},
+                prefix.orElseThrow().getFirst());
+        assertArrayEquals(new byte[]{1, 2, 0, 4, 5, 3}, omega);
+        assertArrayEquals(new byte[]{0, 1, 2, 3, 4, 5}, beta);
+        assertTrue(searchForSorting(omega, beta, 1).isEmpty());
+    }
+
+    @Test
+    void cpuPrefixTreatsExistingFixedPointsAsDataNotGain() {
+        assertTrue(searchForSorting(
+                new byte[]{0, 2, 3, 1},
+                new byte[]{0, 1, 2, 3}, 1).isPresent());
+        assertTrue(searchForSorting(
+                new byte[]{0, 1, 2, 3},
+                new byte[]{0, 1, 2, 3}, 3).isEmpty());
+    }
+
+    @Test
+    void cpuPrefixCanAccumulateItsRateAtDepthThree() {
+        final var prefix = searchForSorting(
+                new byte[]{1, 4, 3, 0, 2},
+                new byte[]{0, 1, 2, 3, 4}, 3);
+
+        assertTrue(prefix.isPresent());
+        assertEquals(3, prefix.orElseThrow().size());
+        assertArrayEquals(new int[]{0, 1, 2},
+                prefix.orElseThrow().get(0));
+        assertArrayEquals(new int[]{0, 2, 3},
+                prefix.orElseThrow().get(1));
+        assertArrayEquals(new int[]{2, 3, 4},
+                prefix.orElseThrow().get(2));
+    }
+
+    @Test
+    void byteTranspositionMatchesTheCyclicBlockMove() {
+        assertArrayEquals(new byte[]{0, 4, 5, 6, 1, 2, 3},
+                applyTransposition(
+                        new byte[]{0, 1, 2, 3, 4, 5, 6},
+                        1, 4, 7));
+    }
 }
