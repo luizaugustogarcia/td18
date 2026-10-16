@@ -131,19 +131,21 @@ mvn -pl emitter -Pgpu compile exec:exec \
 ~~~
 
 The emitter reads Table 2 directly from
-[docs/td18-reduction-count.tex](docs/td18-reduction-count.tex) and checks that
-direct generation equals the recorded `R` count for each selected row. It
-searches all `R` classes, while recording `Q` in the row manifest so the
-independent checker can enforce the proof route's reuse boundary. The manifest
-partitions generated classes into trivial CPU/known-diameter closures,
-validated GPU certificates, and residuals. CPU prefixes are not certificate
-records and are not stored in RocksDB; an independent checker must regenerate
-and recheck those closures. A row marker is complete only when it has no
-residual. Any native miss is reported as a residual obligation, and the
-process exits unsuccessfully after safely flushing successful certificates.
-The database is ignored by Git and may be very large. Use a new or already
-versioned TD(18) database directory; the emitter rejects a nonempty unversioned
-database rather than mixing formats.
+[docs/td18-reduction-count.tex](docs/td18-reduction-count.tex). Rows with
+`Q = 0` are recorded as already discharged and bypass generation and search.
+Rows with `Q = R` are directly generated and checked against `Q`. The two
+partially settled rows with `0 < Q < R` are rejected until their checked
+residual representative import is implemented; the emitter never substitutes
+all `R` classes for those residual obligations. The manifest partitions
+generated classes into trivial CPU/known-diameter closures, validated GPU
+certificates, and residuals. CPU prefixes are not certificate records and are
+not stored in RocksDB; an independent checker must regenerate and recheck those
+closures. A row marker is complete only when it has no residual. Any native
+miss is reported as a residual obligation, and the process exits unsuccessfully
+after safely flushing successful certificates. The database is ignored by Git
+and may be very large. Use a new or already versioned TD(18) database directory;
+the emitter rejects an incompatible or unversioned nonempty database rather
+than mixing formats.
 
 ## CUDA build
 

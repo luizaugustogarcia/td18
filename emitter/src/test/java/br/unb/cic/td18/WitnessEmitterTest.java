@@ -11,9 +11,47 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WitnessEmitterTest {
+    @Test
+    void skipsRowsWithNoRemainingClassObligations() {
+        final var entry = new CountTD18Bracelets.TableEntry(
+                126, new int[]{13, 3}, new boolean[]{true, true},
+                16, 3, 2, 8, 7, 1_197_556_864L, 0L);
+        final var calls = new AtomicInteger();
+
+        final var result = WitnessEmitter.emitEntry(entry,
+                (pair, rate, moves) -> {
+                    calls.incrementAndGet();
+                    return WitnessSearch.SearchResult.residual();
+                });
+
+        assertEquals(0, calls.get());
+        assertEquals(0, result.generated());
+        assertEquals(0, result.trivialClosures());
+        assertEquals(0, result.certificates());
+        assertEquals(0, result.residuals());
+        assertEquals(0, result.checksum());
+        assertNull(result.firstResidual());
+    }
+
+    @Test
+    void rejectsPartialRowsUntilResidualImportIsImplemented() {
+        final var entry = new CountTD18Bracelets.TableEntry(
+                130, new int[]{11, 5}, new boolean[]{true, true},
+                16, 3, 2, 8, 7, 1_384_025_296L, 495L);
+
+        final var error = assertThrows(IllegalStateException.class,
+                () -> WitnessEmitter.emitEntry(entry,
+                        (pair, rate, moves) ->
+                                WitnessSearch.SearchResult.residual()));
+
+        assertTrue(error.getMessage().contains(
+                "checked residual representative import"));
+    }
+
     @Test
     void sendsEveryGeneratedClassThroughTheSearchBoundary() {
         final var partition = new int[]{3, 3};

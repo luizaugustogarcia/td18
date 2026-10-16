@@ -23,13 +23,15 @@ import java.util.concurrent.atomic.LongAdder;
  * TD(18) two-reduction document. Its durable output is a RocksDB database of
  * independently replayable GPU sorting certificates and row manifests.
  *
- * <p>For each selected row, direct twisted-bracelet generation emits one
- * cyclic-target pair per realizable extended-toric class. A qualifying CPU
- * prefix closes a class through a known diameter and is not persisted as a
- * certificate. Only a CPU miss reaches native search. A successful native
- * result is replayed by {@link br.unb.cic.td18.base.CertificateValidator}
- * before persistence; a native miss remains a residual obligation and makes
- * the run unsuccessful.</p>
+ * <p>For each selected row with {@code Q = R}, direct twisted-bracelet
+ * generation emits one cyclic-target pair per remaining extended-toric class.
+ * Rows with {@code Q = 0} are already discharged and bypass generation and
+ * search. A qualifying CPU prefix closes a generated class through a known
+ * diameter and is not persisted as a certificate. Only a CPU miss reaches
+ * native search. A successful native result is replayed by
+ * {@link br.unb.cic.td18.base.CertificateValidator} before persistence; a
+ * native miss remains a residual obligation and makes the run unsuccessful.
+ * </p>
  */
 @Slf4j
 public final class WitnessEmitter {
@@ -53,7 +55,15 @@ public final class WitnessEmitter {
                     + " Table 2 entries, found " + entries.size());
         }
 
-        initializeGpu();
+        final var selectedEntries = entries.stream()
+                .filter(entry -> options.includes(entry.number()))
+                .toList();
+        selectedEntries.forEach(WitnessEmitter::validateEmissionEntry);
+        final boolean requiresSearch = selectedEntries.stream()
+                .anyMatch(entry -> entry.remainingClassObligations() > 0);
+        if (requiresSearch) {
+            initializeGpu();
+        }
         final var database = Path.of(System.getProperty(
                 "td18.certificateDb", "certificates"));
         final long flushSeconds = Long.parseLong(System.getProperty(
@@ -65,17 +75,23 @@ public final class WitnessEmitter {
         long residuals = 0;
         CyclicTargetPair firstResidual = null;
         try (final var writer = new AsyncCertificateWriter(database, flushSeconds)) {
-            WitnessSearch.installWriter(writer);
-            for (final var entry : entries) {
-                if (!options.includes(entry.number())) {
-                    continue;
+            if (requiresSearch) {
+                WitnessSearch.installWriter(writer);
+            }
+            for (final var entry : selectedEntries) {
+                if (entry.remainingClassObligations() == 0) {
+                    log.info("Table 2 row {}: status=already-settled, "
+                                    + "type={}, R={}, Q=0",
+                            entry.number(), entry.type(),
+                            entry.recordedRealizableClasses());
+                } else {
+                    log.info("Table 2 row {}: status=started, type={}, R={}, Q={}, "
+                                    + "budget={}, minimumRate={}",
+                            entry.number(), entry.type(),
+                            entry.recordedRealizableClasses(),
+                            entry.remainingClassObligations(),
+                            entry.remainingMoves(), minimumRate(entry));
                 }
-                log.info("Table 2 row {}: status=started, type={}, R={}, Q={}, "
-                                + "budget={}, minimumRate={}",
-                        entry.number(), entry.type(),
-                        entry.recordedRealizableClasses(),
-                        entry.remainingClassObligations(),
-                        entry.remainingMoves(), minimumRate(entry));
 
                 final var result = emitEntry(entry, (pair, rate, maximumMoves) ->
                         SortingSearch.searchForSorting(
@@ -105,8 +121,10 @@ public final class WitnessEmitter {
             }
             writer.throwIfFailed();
         } finally {
-            GPUSortingSearch.shutdownStatsReporter();
-            DirectTwistedBraceletGenerator.shutdownExecutor();
+            if (requiresSearch) {
+                GPUSortingSearch.shutdownStatsReporter();
+                DirectTwistedBraceletGenerator.shutdownExecutor();
+            }
         }
 
         log.info("TD(18) emission complete: rows={}-{}, generated={}, "
@@ -135,10 +153,9 @@ public final class WitnessEmitter {
 
     static EmissionResult emitEntry(final CountTD18Bracelets.TableEntry entry,
                                     final PairSearch search) {
-        if (entry.recordedRealizableClasses() == null) {
-            throw new IllegalArgumentException(
-                    "Table row has no recorded realizable-class count: "
-                            + entry.number());
+        validateEmissionEntry(entry);
+        if (entry.remainingClassObligations() == 0) {
+            return EmissionResult.empty();
         }
         final var generated = new LongAdder();
         final var trivialClosures = new LongAdder();
@@ -168,14 +185,34 @@ public final class WitnessEmitter {
                 });
 
         final long generatedCount = generated.sum();
-        if (generatedCount != entry.recordedRealizableClasses()) {
+        if (generatedCount != entry.remainingClassObligations()) {
             throw new IllegalStateException("Table 2 row " + entry.number()
-                    + " records R=" + entry.recordedRealizableClasses()
+                    + " records Q=" + entry.remainingClassObligations()
                     + " but direct generation emitted " + generatedCount);
         }
         return new EmissionResult(generatedCount, trivialClosures.sum(),
                 certificates.sum(), residuals.sum(), checksum.sum(),
                 firstResidual.get());
+    }
+
+    private static void validateEmissionEntry(
+            final CountTD18Bracelets.TableEntry entry
+    ) {
+        if (entry.recordedRealizableClasses() == null
+                || entry.remainingClassObligations() == null) {
+            throw new IllegalArgumentException(
+                    "Table row has no checked R/Q counts: " + entry.number());
+        }
+        if (entry.remainingClassObligations() != 0
+                && !entry.remainingClassObligations().equals(
+                entry.recordedRealizableClasses())) {
+            throw new IllegalStateException(
+                    "Table 2 row " + entry.number() + " has R="
+                            + entry.recordedRealizableClasses() + " and Q="
+                            + entry.remainingClassObligations()
+                            + "; checked residual representative import "
+                            + "is not implemented");
+        }
     }
 
     static float minimumRate(final CountTD18Bracelets.TableEntry entry) {
@@ -206,6 +243,10 @@ public final class WitnessEmitter {
                     || (residuals == 0) != (firstResidual == null)) {
                 throw new IllegalArgumentException("Inconsistent emission result");
             }
+        }
+
+        private static EmissionResult empty() {
+            return new EmissionResult(0, 0, 0, 0, 0, null);
         }
     }
 

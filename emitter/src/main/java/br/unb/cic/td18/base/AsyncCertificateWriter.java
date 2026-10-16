@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class AsyncCertificateWriter implements AutoCloseable {
     private static final byte[] DATABASE_FORMAT_KEY =
             new byte[]{0, 'T', 'D', '1', '8'};
-    private static final byte[] DATABASE_FORMAT_VALUE = new byte[]{2};
+    private static final byte[] DATABASE_FORMAT_VALUE = new byte[]{3};
     private static final long GIBIBYTE = 1L << 30;
     private static final long CERTIFICATE_SST_TARGET_SIZE = GIBIBYTE;
     private static final long CERTIFICATE_BASE_LEVEL_SIZE = 10L * GIBIBYTE;

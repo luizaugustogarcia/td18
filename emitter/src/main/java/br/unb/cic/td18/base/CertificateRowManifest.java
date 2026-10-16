@@ -21,7 +21,7 @@ public record CertificateRowManifest(
         boolean complete
 ) {
     private static final int MANIFEST_RECORD = 2;
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
     private static final int KEY_BYTES = 4;
     private static final int FIXED_VALUE_BYTES = 7 * Long.BYTES + 3;
 
@@ -38,7 +38,7 @@ public record CertificateRowManifest(
                 || residualCount < 0
                 || trivialClosureCount + certificateCount + residualCount
                 != generatedClasses
-                || generatedClasses != expectedRealizableClasses
+                || generatedClasses != expectedRemainingObligations
                 || complete != (residualCount == 0)) {
             throw new IllegalArgumentException("Inconsistent certificate row manifest");
         }
