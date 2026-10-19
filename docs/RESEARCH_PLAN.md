@@ -62,14 +62,15 @@ not assumed from their annotation.
 Exit criterion: a versioned count artifact containing every row key, count,
 method identifier, total, code revision, and checksum, plus an independent
 verification report. Independently verify the `Q` mapping: 52 direct
-oriented-3 closures, 52 rows matching the checked TD(16) successor searches,
-the residual counts 495 and 1,541, and total `Q = 26,458,991,245`.
+oriented-3 closures; 50 complete TD(16) successor-search closures; full
+emission of the two starred rows whose checked searches found 495 and 1,541
+misses; and total `Q = 29,064,174,153`.
 
 ## Stage 3 — exhaustively generate the classes
 
-For every class counted by `Q`, directly generate exactly one representative,
-or import and independently verify the residual representative set for the two
-partially settled TD(16) types. Keep fixed-content encoding, auxiliary
+For every class counted by `Q`, directly generate exactly one representative.
+This includes every class in starred rows 130 and 134 in ordinary table order.
+Keep fixed-content encoding, auxiliary
 standardization, twisted reflection, and realizability checks explicit.
 
 Persisted partitions must be deterministic and complete. Each artifact needs
@@ -106,6 +107,20 @@ Such a record is a residual obligation, not evidence for the upper bound. The
 TD(18) conclusion remains pending until every residual obligation is resolved
 within the reduction argument.
 
+The emitter implements the obstruction-avoidance construction adapted from
+`../td16`. For a miss with budget `b`, it uncontracts the fixed points in every
+cyclic gap and enumerates the inverse supports of each reduction family capable
+of producing the terminal pair. It retains only predecessors admitted by the
+checked TD(18) priority policy at the preceding depth. Intermediate
+predecessors are used only for reconstruction: the emitter continues through
+all remaining reduction levels before deduplicating the full-domain root
+preimages by extended-toric class. It then searches each root independently
+with budget 10. Thus avoidance certificates use the 19-symbol cyclic-target
+keys corresponding to permutations in `S_18`; the checker need not look up an
+intermediate `S_17` class. A root miss is persisted and remains unresolved.
+The final range manifest records reconstruction and root-search counts, the
+class-key checksum, and whether any root miss remains.
+
 Exit criterion: every class counted by `Q` has either a checked
 prefix-plus-known-diameter closure or a replayable valid witness within its row
 budget, and no unresolved residual remains.
@@ -131,8 +146,16 @@ report must state all hypotheses and artifact versions explicitly.
 The repository currently implements the type enumerator, twisted-bracelet
 generation/counting framework, cyclic-target validation, CUDA search, and an
 emitter that streams Table 2 classes into a versioned RocksDB certificate
-database with per-row counts, checksums, and completion records. Stages 0
-through 5 do not yet have the complete checked artifacts required above.
+database with per-row counts, checksums, completion records, and versioned
+terminal residual records. It also implements the full-domain
+avoidance-preimage treatment and its versioned completion manifest. A complete
+large run and an independent verifier for these records are still required.
+The terminal record identifies the Table 2 row and the final pair; it does not
+yet persist an individual root path, the search configuration, or the code
+revision required by Stage 4. The avoidance phase instead regenerates every
+reachable predecessor type from the checked policy.
+Stages 0 through 5 do not yet have the complete checked artifacts required
+above.
 
 Generated databases, checkpoints, logs, and certificates must remain
 untracked.

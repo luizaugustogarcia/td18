@@ -1,10 +1,12 @@
 package br.unb.cic.td18;
 
+import br.unb.cic.td18.base.ResidualObligation;
 import br.unb.cic.td18.base.WitnessSearch;
 import br.unb.cic.td18.permutation.Cycle;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -26,7 +28,7 @@ class WitnessEmitterTest {
                 (pair, rate, moves) -> {
                     calls.incrementAndGet();
                     return WitnessSearch.SearchResult.residual();
-                });
+                }, obligation -> { });
 
         assertEquals(0, calls.get());
         assertEquals(0, result.generated());
@@ -38,7 +40,7 @@ class WitnessEmitterTest {
     }
 
     @Test
-    void rejectsPartialRowsUntilResidualImportIsImplemented() {
+    void rejectsRowsWhoseObligationIsNeitherZeroNorTheFullClassCount() {
         final var entry = new CountTD18Bracelets.TableEntry(
                 130, new int[]{11, 5}, new boolean[]{true, true},
                 16, 3, 2, 8, 7, 1_384_025_296L, 495L);
@@ -46,10 +48,11 @@ class WitnessEmitterTest {
         final var error = assertThrows(IllegalStateException.class,
                 () -> WitnessEmitter.emitEntry(entry,
                         (pair, rate, moves) ->
-                                WitnessSearch.SearchResult.residual()));
+                                WitnessSearch.SearchResult.residual(),
+                        obligation -> { }));
 
         assertTrue(error.getMessage().contains(
-                "checked residual representative import"));
+                "only Q=0 or Q=R"));
     }
 
     @Test
@@ -64,13 +67,14 @@ class WitnessEmitterTest {
         final var calls = new AtomicInteger();
         final var observedRate = new AtomicReference<Float>();
 
-        final var result = WitnessEmitter.emitEntry(entry, (pair, rate, moves) -> {
-            calls.incrementAndGet();
-            observedRate.compareAndSet(null, rate);
-            assertEquals(8, moves);
-            return WitnessSearch.SearchResult.certificate(
-                    List.of(Cycle.of(0, 1, 2)));
-        });
+        final var result = WitnessEmitter.emitEntry(entry,
+                (pair, rate, moves) -> {
+                    calls.incrementAndGet();
+                    observedRate.compareAndSet(null, rate);
+                    assertEquals(8, moves);
+                    return WitnessSearch.SearchResult.certificate(
+                            List.of(Cycle.of(0, 1, 2)));
+                }, obligation -> { });
 
         assertEquals(expected, calls.get());
         assertEquals(expected, result.generated());
@@ -89,16 +93,26 @@ class WitnessEmitterTest {
                 partition, oriented);
         final var entry = new CountTD18Bracelets.TableEntry(
                 1, partition, oriented, 6, 13, 2, 8, 2, expected, expected);
+        final var persisted = new ConcurrentLinkedQueue<ResidualObligation>();
 
         final var result = WitnessEmitter.emitEntry(
                 entry, (pair, rate, moves) ->
-                        WitnessSearch.SearchResult.residual());
+                        WitnessSearch.SearchResult.residual(), persisted::add);
 
         assertEquals(expected, result.generated());
         assertEquals(0, result.trivialClosures());
         assertEquals(0, result.certificates());
         assertEquals(expected, result.residuals());
         assertNotNull(result.firstResidual());
+        assertEquals(expected, persisted.size());
+        assertTrue(persisted.stream().allMatch(obligation ->
+                obligation.row() == entry.number()
+                        && obligation.type().equals(entry.type())
+                        && obligation.maximumMoves() == entry.remainingMoves()));
+        assertEquals(persisted.stream()
+                        .mapToLong(ResidualObligation::checksumContribution)
+                        .sum(),
+                result.checksum());
     }
 
     @Test
@@ -112,7 +126,8 @@ class WitnessEmitterTest {
 
         final var result = WitnessEmitter.emitEntry(
                 entry, (pair, rate, moves) ->
-                        WitnessSearch.SearchResult.triviallySettled());
+                        WitnessSearch.SearchResult.triviallySettled(),
+                obligation -> { });
 
         assertEquals(expected, result.generated());
         assertEquals(expected, result.trivialClosures());

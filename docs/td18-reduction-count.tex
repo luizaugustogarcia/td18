@@ -26,9 +26,11 @@ remaining budget, while its $3$-norm lower bound still leaves sorting
 within that budget possible. Under the selection policy specified below,
 the enumeration starts with $360$ annotated types on $19$ symbols and
 leaves a complete inventory of $204$ distinct annotated types. Checked
-$\TD(16)$ successor results settle all classes in $102$ rows and all but
-$2\,036$ classes in two further rows. The remaining $100$ rows are not
-covered by that computation. This calculation is conditional on the local
+$\TD(16)$ successor results settle all classes in $102$ rows. Two further
+rows contain the $2\,036$ diametral successor obstructions found there, so
+this computation retains both rows in full rather than importing a partial
+$\TD(16)$ discharge. The remaining $100$ rows are not covered by that
+computation. This calculation is conditional on the local
 reduction hypothesis; it does not establish $\TD(18)=10$.
 \end{abstract}
 
@@ -108,14 +110,14 @@ so $\kappa\leq(19-1)/2=9<10=b$ at every root. Therefore $\kappa(T)<b$ at
 every state the recursion reaches, and the budget never falls below the
 $3$-norm lower bound. Whenever a known diameter does not close a state,
 the budget still leaves sorting within reach, and we take the risk of
-searching for a sorting sequence. Whenever the search exhibits an
-obstruction for an instance of a terminal type, we record both the
-obstructing instance and the full reduction path that produced its type:
-the fixed-point-free root on $19$ symbols, the ordered sequence of applied
-reductions, and the intermediate annotated types down to the terminal
-type. Each such record is a residual obligation reserved for separate
-treatment. No residual-obligation emitter or downstream treatment is
-implemented here.
+searching for a sorting sequence. Obstruction closure must account for every
+full reduction path that can produce the obstructing instance from a
+fixed-point-free root on $19$ symbols. The emitter persists a versioned
+terminal residual record containing the instance, its class key, row, type,
+attempted budget, and checksum before the row manifest. Rather than selecting
+one path, its final phase reconstructs every reachable predecessor described
+below and persists a range-level completion manifest. Independent verification
+of that final phase remains pending.
 
 \section{Reduction policy and recursion}
 
@@ -229,12 +231,50 @@ step in the $\TD(16)$ proof acts at the parent state and therefore does not
 discharge these $2\,036$ standalone terminal-class obligations after the
 two present reductions have already been selected.
 
-Define $Q$ to be the number of realizable classes in a row still requiring
-a sorting witness in this computation. Thus $Q=R$ for the $100$ rows not
-covered above, $Q=0$ for the $102$ fully settled rows, and $Q$ is $495$ or
-$1\,541$ for the two partially settled rows. Consequently Table~
-\ref{tab:complete} remains the complete $204$-type inventory, while the
-actual remaining class obligation is $26\,458\,991\,245$.
+Define $Q$ to be the number of realizable classes emitted as obligations in
+this computation. Thus $Q=0$ for the $102$ fully settled rows and $Q=R$ for
+the other $102$ rows. In particular, rows $130$ and $134$ are emitted in
+full: the checked $\TD(16)$ computation identifies $495$ and $1\,541$
+eight-move obstructions in those rows, but its partial result does not by
+itself discharge either complete row in the present $\TD(18)$ certificate.
+The emitter processes these two starred rows in the ordinary table order;
+their bounded-search misses join all other misses in one residual-obligation
+phase after row emission. Consequently
+Table~\ref{tab:complete} remains the complete $204$-type inventory, while
+the emitted class obligation is $29\,064\,174\,153$.
+
+\subsection{Final obstruction-avoidance phase}
+
+The final phase adapts the avoidance-preimage construction checked for
+$\TD(16)$ in \nolinkurl{../td16}. Let $(\omega,\beta)$ be a terminal miss
+with remaining budget $b<10$. For each number $f\in\{1,2,3\}$ of fixed
+points compatible with a predecessor at the preceding recursion depth, restore
+the $f$ symbols in every cyclic gap of $\beta$. Each restored symbol is fixed
+by $\omega$, so its incoming edge is common to the current and target cycles.
+The emitter then enumerates the inverse supports of the selected reduction:
+one restored fixed point and one symbol from each of two odd-length child
+cycles for the one-fixed-point odd split; one restored fixed point and two
+symbols of the joined odd-length child cycle for the even-pair reduction; two
+restored fixed points and one symbol of an odd-length child cycle for the
+two-fixed-point odd reduction; or the three restored fixed points for clearing
+an oriented $3$-cycle. For each support, exactly one cyclic orientation is
+applicable in the restored current cycle.
+
+Retain a reconstructed predecessor only when it is fixed-point-free, belongs
+to an open annotated type reached by the recursion at the preceding depth, and
+the priority rule selects the inverse reduction family and terminal child type
+in question. These tests remove inverse applications that could not occur on a
+forward reduction path. Conversely, every actual forward path to the miss has
+one of the restored gap placements and one of the enumerated supports, so its
+predecessor class is retained. An intermediate predecessor is used only for the
+next inverse construction: do not search it or persist it as the avoidance
+certificate. Continue until reaching the full $19$-symbol cyclic-target domain,
+which corresponds to a permutation in $S_{18}$. Deduplicate those root pairs
+by extended-toric class and sort one representative of each root class
+independently within $10$ moves. Consequently every persisted avoidance
+certificate has the full-domain key that the checker will query; it never needs
+to look up an intermediate permutation in $S_{17}$. A ten-move root miss is an
+unresolved obligation and makes the emitter fail.
 
 \clearpage
 \appendix
@@ -249,9 +289,9 @@ gives the number of realizable extended-toric classes of the type, one
 twisted bracelet per class, obtained by Burnside's identity on the
 contracted, fixed-point-free domain; a value of $0$ marks an empty type
 with no realizable cyclic-target pair. The column $Q$ gives the class
-obligation remaining after the checked $\TD(16)$ results described above.
-Thus $R$ totals $33\,544\,626\,415$, whereas $Q$ totals
-$26\,458\,991\,245$.
+obligation emitted after applying the checked $\TD(16)$ results as described
+above. Thus $R$ totals $33\,544\,626\,415$, whereas $Q$ totals
+$29\,064\,174\,153$.
 
 \begingroup
 \small
@@ -402,11 +442,11 @@ $26\,458\,991\,245$.
   127 & \ctype{\cyc{11}{U},\cyc{5}{U}} & 16 & 3 & 2 & 8 & 7 & 0 & 0 \\
   128 & \ctype{\cyc{11}{U},\cyc{5}{O}} & 16 & 3 & 2 & 8 & 7 & 0 & 0 \\
   129 & \ctype{\cyc{11}{O},\cyc{5}{U}} & 16 & 3 & 2 & 8 & 7 & 14\,976\,176 & 0 \\
-  130 & \ctype{\cyc{11}{O},\cyc{5}{O}} & 16 & 3 & 2 & 8 & 7 & 1\,384\,025\,296 & 495 \\
+  130 & \ctype{\cyc{11}{O},\cyc{5}{O}} & 16 & 3 & 2 & 8 & 7 & 1\,384\,025\,296 & 1\,384\,025\,296\textsuperscript{*} \\
   131 & \ctype{\cyc{9}{U},\cyc{7}{U}} & 16 & 3 & 2 & 8 & 7 & 0 & 0 \\
   132 & \ctype{\cyc{9}{U},\cyc{7}{O}} & 16 & 3 & 2 & 8 & 7 & 0 & 0 \\
   133 & \ctype{\cyc{9}{O},\cyc{7}{U}} & 16 & 3 & 2 & 8 & 7 & 30\,624 & 0 \\
-  134 & \ctype{\cyc{9}{O},\cyc{7}{O}} & 16 & 3 & 2 & 8 & 7 & 1\,221\,159\,648 & 1\,541 \\
+  134 & \ctype{\cyc{9}{O},\cyc{7}{O}} & 16 & 3 & 2 & 8 & 7 & 1\,221\,159\,648 & 1\,221\,159\,648\textsuperscript{*} \\
   135 & \ctype{\cyc{9}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 0 & 0 \\
   136 & \ctype{\cyc{9}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 0 & 0 \\
   137 & \ctype{\cyc{9}{O},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 139\,921\,988 & 0 \\
@@ -478,8 +518,13 @@ $26\,458\,991\,245$.
   203 & \ctype{\cyc{4}{O},\cyc{3}{U},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 9\,303\,840 & 0 \\
   204 & \ctype{\cyc{4}{O},\cyc{3}{O},\cyc{3}{O},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 16 & 3 & 2 & 8 & 7 & 7\,303\,106 & 0 \\
   \midrule
-  \multicolumn{7}{r}{\textbf{Total}} & \textbf{33\,544\,626\,415} & \textbf{26\,458\,991\,245} \\
+  \multicolumn{7}{r}{\textbf{Total}} & \textbf{33\,544\,626\,415} & \textbf{29\,064\,174\,153} \\
 \end{longtable}
+\noindent\textsuperscript{*}Rows 130 and 134 are emitted in full. The
+checked $\TD(16)$ successor search found, respectively, $495$ and $1\,541$
+classes with no sorting sequence of length at most eight. Those known misses,
+together with any new misses, enter the common avoidance-preimage treatment at
+the end of the emitter.
 \endgroup
 
 \end{document}

@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class AsyncCertificateWriter implements AutoCloseable {
     private static final byte[] DATABASE_FORMAT_KEY =
             new byte[]{0, 'T', 'D', '1', '8'};
-    private static final byte[] DATABASE_FORMAT_VALUE = new byte[]{3};
+    private static final byte[] DATABASE_FORMAT_VALUE = new byte[]{5};
     private static final long GIBIBYTE = 1L << 30;
     private static final long CERTIFICATE_SST_TARGET_SIZE = GIBIBYTE;
     private static final long CERTIFICATE_BASE_LEVEL_SIZE = 10L * GIBIBYTE;
@@ -116,6 +116,38 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     /** Queues a row marker after all of that row's certificate entries. */
     public void enqueueManifest(final CertificateRowManifest manifest) {
+        Objects.requireNonNull(manifest);
+        throwIfFailed();
+        if (closed) {
+            throw new IllegalStateException("Certificate writer is closed");
+        }
+        pending.add(new Entry(manifest.key(), manifest.value()));
+    }
+
+    /** Queues a bounded-search miss for the final obstruction phase. */
+    public void enqueueResidual(final ResidualObligation obligation) {
+        Objects.requireNonNull(obligation);
+        throwIfFailed();
+        if (closed) {
+            throw new IllegalStateException("Certificate writer is closed");
+        }
+        pending.add(new Entry(obligation.key(), obligation.value()));
+    }
+
+    /** Queues a miss produced by an avoidance-preimage search. */
+    public void enqueueAvoidanceMiss(final AvoidanceSearchMiss miss) {
+        Objects.requireNonNull(miss);
+        throwIfFailed();
+        if (closed) {
+            throw new IllegalStateException("Certificate writer is closed");
+        }
+        pending.add(new Entry(miss.key(), miss.value()));
+    }
+
+    /** Queues the final marker after every avoidance-preimage entry. */
+    public void enqueueAvoidanceManifest(
+            final AvoidancePhaseManifest manifest
+    ) {
         Objects.requireNonNull(manifest);
         throwIfFailed();
         if (closed) {

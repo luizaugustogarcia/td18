@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CountTD18BraceletsTest {
     private static String table() throws IOException {
@@ -30,7 +31,8 @@ class CountTD18BraceletsTest {
 
     @Test
     void readsAll204EntriesInLatexTableOrder() throws IOException {
-        final var entries = CountTD18Bracelets.readTableEntries(table());
+        final var latex = table();
+        final var entries = CountTD18Bracelets.readTableEntries(latex);
         assertEquals(204, entries.size());
         assertEquals("(7-U,3-U,3-U,3-U,3-U)", entries.getFirst().type());
         assertEquals("(4-O,3-O,3-O,2-U,2-U,2-U)", entries.getLast().type());
@@ -38,6 +40,16 @@ class CountTD18BraceletsTest {
         assertEquals(8, entries.stream().filter(entry -> entry.movesUsed() == 1).count());
         assertEquals(188, entries.stream().filter(entry -> entry.movesUsed() == 2).count());
         assertEquals(0, entries.stream().filter(entry -> entry.movesUsed() == 3).count());
+        for (final int row : new int[]{130, 134}) {
+            final var entry = entries.get(row - 1);
+            assertEquals(row, entry.number());
+            assertEquals(entry.recordedRealizableClasses(),
+                    entry.remainingClassObligations());
+        }
+        assertTrue(latex.contains(
+                "1\\,384\\,025\\,296\\textsuperscript{*}"));
+        assertTrue(latex.contains(
+                "1\\,221\\,159\\,648\\textsuperscript{*}"));
     }
 
     @Test
@@ -66,7 +78,7 @@ class CountTD18BraceletsTest {
         assertEquals(33_544_626_415L, entries.stream()
                 .mapToLong(CountTD18Bracelets.TableEntry::recordedRealizableClasses)
                 .sum());
-        assertEquals(26_458_991_245L, entries.stream()
+        assertEquals(29_064_174_153L, entries.stream()
                 .mapToLong(CountTD18Bracelets.TableEntry::remainingClassObligations)
                 .sum());
 
@@ -79,7 +91,7 @@ class CountTD18BraceletsTest {
         assertEquals(4_511_223_147L, td16SuccessorSearches.stream()
                 .mapToLong(CountTD18Bracelets.TableEntry::recordedRealizableClasses)
                 .sum());
-        assertEquals(2_036L, td16SuccessorSearches.stream()
+        assertEquals(2_605_184_944L, td16SuccessorSearches.stream()
                 .mapToLong(CountTD18Bracelets.TableEntry::remainingClassObligations)
                 .sum());
     }
@@ -94,8 +106,8 @@ class CountTD18BraceletsTest {
     @Test
     void rejectsAChangedRemainingObligation() throws IOException {
         final var invalid = table().replace(
-                "1\\,384\\,025\\,296 & 495",
-                "1\\,384\\,025\\,296 & 496");
+                "1\\,384\\,025\\,296\\textsuperscript{*}",
+                "1\\,384\\,025\\,295\\textsuperscript{*}");
         assertThrows(IllegalArgumentException.class,
                 () -> CountTD18Bracelets.readTableEntries(invalid));
     }

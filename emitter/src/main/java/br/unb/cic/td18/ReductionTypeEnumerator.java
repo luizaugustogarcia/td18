@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -44,6 +45,15 @@ public final class ReductionTypeEnumerator {
         SETTLED,
         PARTIAL
     }
+
+    enum ReductionKind {
+        ORIENTED_THREE,
+        ORIENTED_ODD,
+        EVEN_PAIR,
+        NONE
+    }
+
+    private static volatile Set<String> reachableOpenStates;
 
     private ReductionTypeEnumerator() {
     }
@@ -163,7 +173,11 @@ public final class ReductionTypeEnumerator {
         };
     }
 
-    /** Returns the row's class obligation after applying the checked TD(16) results. */
+    /**
+     * Returns the row's emitted class obligation after applying the checked
+     * TD(16) results. A partially settled TD(16) row remains a full obligation:
+     * its bounded-search misses must enter the common TD(18) obstruction phase.
+     */
     public static long remainingClassObligations(
             final Obligation obligation,
             final long realizableClasses
@@ -175,12 +189,11 @@ public final class ReductionTypeEnumerator {
             case NOT_COVERED -> realizableClasses;
             case SETTLED -> 0L;
             case PARTIAL -> {
-                final long residual = td16ResidualClasses(obligation);
-                if (residual > realizableClasses) {
+                if (td16ResidualClasses(obligation) > realizableClasses) {
                     throw new IllegalArgumentException(
                             "TD(16) residual exceeds the realizable-class count");
                 }
-                yield residual;
+                yield realizableClasses;
             }
         };
     }
@@ -296,6 +309,87 @@ public final class ReductionTypeEnumerator {
             return List.of(sortedWith(others, x + y - 1));
         }
         return null;
+    }
+
+    static ReductionKind selectedReductionKind(
+            final int[] lengths,
+            final boolean[] oriented
+    ) {
+        for (var index = 0; index < lengths.length; index++) {
+            if (lengths[index] == 3 && oriented[index]) {
+                return ReductionKind.ORIENTED_THREE;
+            }
+        }
+        if (selectOrientedOdd(lengths, oriented) > 0) {
+            return ReductionKind.ORIENTED_ODD;
+        }
+        return twoLargestEvenIndices(lengths) == null
+                ? ReductionKind.NONE : ReductionKind.EVEN_PAIR;
+    }
+
+    static List<int[]> selectedChildPartitions(
+            final int[] lengths,
+            final boolean[] oriented
+    ) {
+        final var children = reduce(lengths, oriented);
+        if (children == null) {
+            return List.of();
+        }
+        return children.stream().map(int[]::clone).toList();
+    }
+
+    static boolean isReachableOpenState(
+            final int[] lengths,
+            final boolean[] oriented,
+            final int movesUsed
+    ) {
+        if (movesUsed < 0 || movesUsed > DEPTH_CAP) {
+            return false;
+        }
+        var states = reachableOpenStates;
+        if (states == null) {
+            synchronized (ReductionTypeEnumerator.class) {
+                states = reachableOpenStates;
+                if (states == null) {
+                    final var collected = new java.util.HashSet<String>();
+                    for (final var partition : Partitions.generateValidPartitions(
+                            ROOT_SYMBOLS)) {
+                        final int[] descending = partition.clone();
+                        Arrays.sort(descending);
+                        reverse(descending);
+                        for (final var root : AnnotatedPartitions.of(descending)) {
+                            collectReachableOpenStates(root.partition(),
+                                    root.oriented(), 0, collected);
+                        }
+                    }
+                    states = Set.copyOf(collected);
+                    reachableOpenStates = states;
+                }
+            }
+        }
+        return states.contains(key(lengths, oriented) + '@' + movesUsed);
+    }
+
+    private static void collectReachableOpenStates(
+            final int[] lengths,
+            final boolean[] oriented,
+            final int movesUsed,
+            final Set<String> result
+    ) {
+        if (closes(nonfixedSymbols(lengths), movesUsed)) {
+            return;
+        }
+        result.add(key(lengths, oriented) + '@' + movesUsed);
+        final var children = reduce(lengths, oriented);
+        if (movesUsed >= DEPTH_CAP || children == null) {
+            return;
+        }
+        for (final var childLengths : children) {
+            for (final var child : AnnotatedPartitions.of(childLengths)) {
+                collectReachableOpenStates(child.partition(), child.oriented(),
+                        movesUsed + 1, result);
+            }
+        }
     }
 
     /** Smallest oriented odd length {@code >= 5}, or 0 when none exists. */
@@ -440,7 +534,7 @@ public final class ReductionTypeEnumerator {
 
     /**
      * Renders the complete type inventory. R is the realizable-class count and
-     * Q is the remaining class obligation after checked TD(16) reuse.
+     * Q is the emitted class obligation after checked TD(16) reuse.
      */
     public static String renderTable(final List<Obligation> obligations) {
         final var rows = new StringBuilder();
@@ -454,12 +548,15 @@ public final class ReductionTypeEnumerator {
                 final long remaining = remainingClassObligations(obligation, classes);
                 totalRealizable = Math.addExact(totalRealizable, classes);
                 totalRemaining = Math.addExact(totalRemaining, remaining);
+                final var renderedRemaining = groupThousands(remaining)
+                        + (td16Disposition(obligation) == Td16Disposition.PARTIAL
+                        ? "\\textsuperscript{*}" : "");
                 rows.append(String.format(Locale.ROOT,
                         "  %d & %s & %d & %d & %d & %d & %d & %s & %s \\\\%n",
                         number++, renderType(obligation), obligation.nonfixedSymbols(),
                         ROOT_SYMBOLS - obligation.nonfixedSymbols(),
                         obligation.movesUsed(), obligation.budget(), obligation.threeNorm(),
-                        groupThousands(classes), groupThousands(remaining)));
+                        groupThousands(classes), renderedRemaining));
             }
         } finally {
             DirectTwistedBraceletGenerator.shutdownExecutor();

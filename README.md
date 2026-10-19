@@ -30,8 +30,10 @@ The recursion stops after two edges. Table 2 lists all 204 resulting annotated
 types. Its `R` column counts every realizable extended-toric class; its `Q`
 column retains only the class obligations not already discharged by the
 checked TD(16) successor results. Thus no inventory row is removed: 102 rows
-have `Q = 0`, two are partially settled, and 100 have `Q = R`. The remaining
-total is 26,458,991,245 classes.
+have `Q = 0` and 102 have `Q = R`. Rows 130 and 134 are starred because the
+checked TD(16) search found 495 and 1,541 eight-move misses there, but both
+rows are emitted in full and in ordinary table order. The emitted total is
+29,064,174,153 classes.
 
 The cyclic-target and twisted-bracelet layer encodes a pair (omega, beta), with
 target rho = omega * beta, as fixed-content words. Auxiliary standardization
@@ -50,6 +52,8 @@ The `emitter` module contains:
 - exhaustive Table 2 orchestration over the Java/JNI/CUDA exact bounded search;
 - versioned RocksDB certificate output with row counts, checksums, and
   completion records;
+- full-domain avoidance-preimage reconstruction and root sorting for
+  bounded-search misses;
 - certificate encoding and independent replay primitives;
 - regression tests for the group action, counting, encoding, and reduction
   inventory.
@@ -133,17 +137,26 @@ mvn -pl emitter -Pgpu compile exec:exec \
 The emitter reads Table 2 directly from
 [docs/td18-reduction-count.tex](docs/td18-reduction-count.tex). Rows with
 `Q = 0` are recorded as already discharged and bypass generation and search.
-Rows with `Q = R` are directly generated and checked against `Q`. The two
-partially settled rows with `0 < Q < R` are rejected until their checked
-residual representative import is implemented; the emitter never substitutes
-all `R` classes for those residual obligations. The manifest partitions
+Rows with `Q = R` are directly generated and checked against `Q`, including
+starred rows 130 and 134 in their normal positions. The manifest partitions
 generated classes into trivial CPU/known-diameter closures, validated GPU
 certificates, and residuals. CPU prefixes are not certificate records and are
 not stored in RocksDB; an independent checker must regenerate and recheck those
 closures. A row marker is complete only when it has no residual. Any native
-miss is reported as a residual obligation, and the process exits unsuccessfully
-after safely flushing successful certificates. The database is ignored by Git
-and may be very large. Use a new or already versioned TD(18) database directory;
+miss is persisted as a versioned residual obligation before the row manifest.
+After all selected rows have been processed, every such miss is routed to the
+same final obstruction phase. Following the construction used by `../td16`,
+the emitter restores every possible contracted fixed-point placement, applies
+every inverse support for the selected reduction, and retains only reachable
+predecessor types. It repeats reconstruction, without searching an
+intermediate predecessor, until it reaches the full 19-symbol cyclic-target
+domain corresponding to a permutation in S18. The resulting root classes are
+deduplicated by extended-toric class and sorted independently with budget 10,
+so every avoidance certificate has the root-domain key expected by the
+checker. Only a ten-move root miss leaves the run unsuccessful. Avoidance
+misses and the final range manifest are versioned database records. The database is
+ignored by Git and may be very large. Use a new or already versioned TD(18)
+database directory;
 the emitter rejects an incompatible or unversioned nonempty database rather
 than mixing formats.
 

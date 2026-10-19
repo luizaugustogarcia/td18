@@ -9,6 +9,7 @@ import org.rocksdb.RocksDB;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,6 +40,53 @@ class AsyncCertificateWriterTest {
                     manifest.key(), database.get(manifest.key()));
             assertEquals(manifest, restoredManifest);
             assertTrue(restoredManifest.complete());
+        }
+    }
+
+    @Test
+    void writesAResidualObligation(@TempDir final Path directory)
+            throws Exception {
+        final var pair = CyclicTargetPair.of(
+                new MulticyclePermutation(Cycle.of(0, 1, 2)),
+                Cycle.of(0, 1, 2));
+        final var obligation = new ResidualObligation(
+                130, "(3-O)", 8, pair);
+
+        try (final var writer = new AsyncCertificateWriter(directory, 60)) {
+            writer.enqueueResidual(obligation);
+        }
+
+        try (final var options = new Options();
+             final var database = RocksDB.openReadOnly(
+                     options, directory.toString())) {
+            assertEquals(obligation, ResidualObligation.decode(
+                    obligation.key(), database.get(obligation.key())));
+        }
+    }
+
+    @Test
+    void writesAvoidanceRecords(@TempDir final Path directory)
+            throws Exception {
+        final int[] symbols = IntStream.range(0, 19).toArray();
+        final var pair = CyclicTargetPair.of(
+                new MulticyclePermutation(Cycle.of(symbols)),
+                Cycle.of(symbols));
+        final var miss = new AvoidanceSearchMiss(10, pair);
+        final var manifest = new AvoidancePhaseManifest(130, 134,
+                1, 10, 1, 0, 0, 1, 42, false);
+
+        try (final var writer = new AsyncCertificateWriter(directory, 60)) {
+            writer.enqueueAvoidanceMiss(miss);
+            writer.enqueueAvoidanceManifest(manifest);
+        }
+
+        try (final var options = new Options();
+             final var database = RocksDB.openReadOnly(
+                     options, directory.toString())) {
+            assertEquals(miss, AvoidanceSearchMiss.decode(
+                    miss.key(), database.get(miss.key())));
+            assertEquals(manifest, AvoidancePhaseManifest.decode(
+                    manifest.key(), database.get(manifest.key())));
         }
     }
 

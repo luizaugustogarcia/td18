@@ -30,7 +30,8 @@ public final class CountTD18Bracelets {
                     + "\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)"
                     + "\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)"
                     + "(?:\\s*&\\s*([\\d\\\\,]+))?"
-                    + "(?:\\s*&\\s*([\\d\\\\,]+))?\\s*\\\\\\\\\\s*$");
+                    + "(?:\\s*&\\s*([\\d\\\\,]+)(?:\\\\textsuperscript\\{\\*})?)?"
+                    + "\\s*\\\\\\\\\\s*$");
     private static final Pattern CYCLE = Pattern.compile("\\\\cyc\\{(\\d+)}\\{([OU])}");
 
     private CountTD18Bracelets() {

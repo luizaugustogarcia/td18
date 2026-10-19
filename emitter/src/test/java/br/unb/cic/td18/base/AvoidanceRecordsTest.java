@@ -1,0 +1,48 @@
+package br.unb.cic.td18.base;
+
+import br.unb.cic.td18.permutation.Cycle;
+import br.unb.cic.td18.permutation.MulticyclePermutation;
+import org.junit.jupiter.api.Test;
+
+import java.util.stream.IntStream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class AvoidanceRecordsTest {
+    private static CyclicTargetPair rootPair() {
+        final int[] symbols = IntStream.range(0, 19).toArray();
+        return CyclicTargetPair.of(
+                new MulticyclePermutation(Cycle.of(symbols)),
+                Cycle.of(symbols));
+    }
+
+    @Test
+    void roundTripsAnAvoidanceSearchMiss() {
+        final var miss = new AvoidanceSearchMiss(10, rootPair());
+
+        assertEquals(miss, AvoidanceSearchMiss.decode(
+                miss.key(), miss.value()));
+    }
+
+    @Test
+    void rejectsAnIntermediateDomainAvoidanceMiss() {
+        final var intermediate = CyclicTargetPair.of(
+                new MulticyclePermutation(Cycle.of(0, 1, 2)),
+                Cycle.of(0, 1, 2));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new AvoidanceSearchMiss(9, intermediate));
+        assertThrows(IllegalArgumentException.class,
+                () -> new AvoidanceSearchMiss(10, intermediate));
+    }
+
+    @Test
+    void roundTripsAnAvoidancePhaseManifest() {
+        final var manifest = new AvoidancePhaseManifest(1, 204,
+                2_036, 10_000, 110, 20, 90, 0, 1234, true);
+
+        assertEquals(manifest, AvoidancePhaseManifest.decode(
+                manifest.key(), manifest.value()));
+    }
+}

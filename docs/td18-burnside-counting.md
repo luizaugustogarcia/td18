@@ -141,7 +141,12 @@ records `method=burnside`.
 The resulting `R` column totals 33,544,626,415 realizable extended-toric
 classes. Burnside counting does not itself discharge a sorting obligation.
 Table 2 therefore records a separate `Q` column: after reuse of the checked
-TD(16) successor results, 26,458,991,245 class obligations remain.
+TD(16) successor results, 29,064,174,153 class obligations are emitted. This
+uses `Q=0` for 102 fully discharged rows and `Q=R` for the other 102 rows. In
+particular, starred rows 130 and 134 are emitted in full and in ordinary table
+order; their bounded-search misses join the common final obstruction-avoidance
+phase, which reconstructs and independently sorts their reachable predecessor
+classes on the full S18 root domain.
 
 Tests compare the two methods on every annotated partition through nine
 symbols, including empty types and both even-domain reflection classes.

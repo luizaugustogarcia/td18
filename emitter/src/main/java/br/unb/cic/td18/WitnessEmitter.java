@@ -1,11 +1,13 @@
 package br.unb.cic.td18;
 
 import br.unb.cic.td18.base.AsyncCertificateWriter;
+import br.unb.cic.td18.base.AvoidancePhaseManifest;
 import br.unb.cic.td18.base.CertificateCodec;
 import br.unb.cic.td18.base.CertificateRowManifest;
 import br.unb.cic.td18.base.CyclicTargetPair;
 import br.unb.cic.td18.base.GPUSortingSearch;
 import br.unb.cic.td18.base.GpuDeviceLayout;
+import br.unb.cic.td18.base.ResidualObligation;
 import br.unb.cic.td18.base.SortingSearch;
 import br.unb.cic.td18.base.WitnessSearch;
 import lombok.extern.slf4j.Slf4j;
@@ -15,13 +17,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Consumer;
 
 /**
  * Exhaustive obligation emitter for the annotated types in Table 2 of the
  * TD(18) two-reduction document. Its durable output is a RocksDB database of
- * independently replayable GPU sorting certificates and row manifests.
+ * independently replayable GPU sorting certificates, terminal residual
+ * obligations, and row manifests.
  *
  * <p>For each selected row with {@code Q = R}, direct twisted-bracelet
  * generation emits one cyclic-target pair per remaining extended-toric class.
@@ -30,7 +36,9 @@ import java.util.concurrent.atomic.LongAdder;
  * diameter and is not persisted as a certificate. Only a CPU miss reaches
  * native search. A successful native result is replayed by
  * {@link br.unb.cic.td18.base.CertificateValidator} before persistence; a
- * native miss remains a residual obligation and makes the run unsuccessful.
+ * native miss is persisted for the common final obstruction phase. That phase
+ * reconstructs every reachable full-domain root preimage and searches each
+ * root independently with the ten-move budget.
  * </p>
  */
 @Slf4j
@@ -73,7 +81,9 @@ public final class WitnessEmitter {
         long trivialClosures = 0;
         long certificates = 0;
         long residuals = 0;
-        CyclicTargetPair firstResidual = null;
+        final var terminalResiduals =
+                new ConcurrentLinkedQueue<ResidualObligation>();
+        ObstructionAvoidance.AvoidanceResult avoidanceResult = null;
         try (final var writer = new AsyncCertificateWriter(database, flushSeconds)) {
             if (requiresSearch) {
                 WitnessSearch.installWriter(writer);
@@ -94,16 +104,17 @@ public final class WitnessEmitter {
                 }
 
                 final var result = emitEntry(entry, (pair, rate, maximumMoves) ->
-                        SortingSearch.searchForSorting(
-                                pair, rate, maximumMoves));
+                                SortingSearch.searchForSorting(
+                                        pair, rate, maximumMoves),
+                        obligation -> {
+                            writer.enqueueResidual(obligation);
+                            terminalResiduals.add(obligation);
+                        });
                 generated = Math.addExact(generated, result.generated());
                 trivialClosures = Math.addExact(
                         trivialClosures, result.trivialClosures());
                 certificates = Math.addExact(certificates, result.certificates());
                 residuals = Math.addExact(residuals, result.residuals());
-                if (firstResidual == null) {
-                    firstResidual = result.firstResidual();
-                }
                 writer.enqueueManifest(new CertificateRowManifest(
                         entry.number(), entry.type(), entry.remainingMoves(),
                         entry.recordedRealizableClasses(),
@@ -113,12 +124,26 @@ public final class WitnessEmitter {
                         result.residuals() == 0));
                 writer.throwIfFailed();
 
-                log.info("Table 2 row {}: status=complete, generated={}, "
+                log.info("Table 2 row {}: status=emitted, generated={}, "
                                 + "trivially settled={}, certificates={}, residuals={}",
                         entry.number(), result.generated(),
                         result.trivialClosures(), result.certificates(),
                         result.residuals());
             }
+            avoidanceResult = ObstructionAvoidance.resolve(terminalResiduals,
+                    (pair, rate, maximumMoves) ->
+                            SortingSearch.searchForSorting(
+                                    pair, rate, maximumMoves),
+                    writer::enqueueAvoidanceMiss);
+            writer.enqueueAvoidanceManifest(new AvoidancePhaseManifest(
+                    options.firstRow(), options.lastRow(),
+                    avoidanceResult.terminalResiduals(),
+                    avoidanceResult.reconstructionApplications(),
+                    avoidanceResult.searchObligations(),
+                    avoidanceResult.trivialClosures(),
+                    avoidanceResult.certificates(),
+                    avoidanceResult.unresolved(), avoidanceResult.checksum(),
+                    avoidanceResult.complete()));
             writer.throwIfFailed();
         } finally {
             if (requiresSearch) {
@@ -128,15 +153,21 @@ public final class WitnessEmitter {
         }
 
         log.info("TD(18) emission complete: rows={}-{}, generated={}, "
-                        + "trivially settled={}, certificates={}, residuals={}, database={}",
+                        + "trivially settled={}, certificates={}, terminalResiduals={}, "
+                        + "avoidanceRootPreimages={}, "
+                        + "unresolved={}, database={}",
                 options.firstRow(), options.lastRow(), generated,
-                trivialClosures, certificates, residuals, database.toAbsolutePath());
-        if (residuals != 0) {
-            throw new IllegalStateException("GPU bounded search left "
-                    + residuals + " residual obligations; first residual: classKey="
-                    + firstResidual.extendedToricClassKey()
-                    + ", omega=" + firstResidual.getOmega()
-                    + ", beta=" + firstResidual.getBeta());
+                trivialClosures, certificates, residuals,
+                avoidanceResult.searchObligations(),
+                avoidanceResult.unresolved(), database.toAbsolutePath());
+        if (!avoidanceResult.complete()) {
+            final var first = avoidanceResult.firstUnresolved();
+            throw new IllegalStateException("Avoidance-preimage search left "
+                    + avoidanceResult.unresolved()
+                    + " unresolved root obligations; first: classKey="
+                    + first.extendedToricClassKey()
+                    + ", omega=" + first.getOmega()
+                    + ", beta=" + first.getBeta());
         }
     }
 
@@ -152,8 +183,11 @@ public final class WitnessEmitter {
     }
 
     static EmissionResult emitEntry(final CountTD18Bracelets.TableEntry entry,
-                                    final PairSearch search) {
+                                    final PairSearch search,
+                                    final Consumer<ResidualObligation> residualSink) {
         validateEmissionEntry(entry);
+        Objects.requireNonNull(search, "search");
+        Objects.requireNonNull(residualSink, "residualSink");
         if (entry.remainingClassObligations() == 0) {
             return EmissionResult.empty();
         }
@@ -178,8 +212,13 @@ public final class WitnessEmitter {
                                     pair, result.moves()));
                         }
                         case RESIDUAL -> {
+                            final var obligation = new ResidualObligation(
+                                    entry.number(), entry.type(),
+                                    entry.remainingMoves(), pair);
+                            residualSink.accept(obligation);
                             residuals.increment();
-                            firstResidual.compareAndSet(null, pair);
+                            checksum.add(obligation.checksumContribution());
+                            firstResidual.compareAndSet(null, obligation.pair());
                         }
                     }
                 });
@@ -210,8 +249,7 @@ public final class WitnessEmitter {
                     "Table 2 row " + entry.number() + " has R="
                             + entry.recordedRealizableClasses() + " and Q="
                             + entry.remainingClassObligations()
-                            + "; checked residual representative import "
-                            + "is not implemented");
+                            + "; emission permits only Q=0 or Q=R");
         }
     }
 

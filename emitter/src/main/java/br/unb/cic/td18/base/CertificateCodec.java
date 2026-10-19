@@ -69,6 +69,18 @@ public final class CertificateCodec {
         return oneLine;
     }
 
+    /** Returns the domain size declared by a versioned certificate key. */
+    public static int domainSizeForKey(final byte[] encoded) {
+        if (encoded == null || encoded.length < KEY_HEADER_BYTES
+                || Byte.toUnsignedInt(encoded[0]) != CERTIFICATE_RECORD
+                || Byte.toUnsignedInt(encoded[1]) != FORMAT_VERSION) {
+            throw new IllegalArgumentException("Unsupported certificate key header");
+        }
+        final int domainSize = Byte.toUnsignedInt(encoded[2]);
+        decodeKeyOmega(encoded, domainSize);
+        return domainSize;
+    }
+
     /** Reconstructs the canonical cyclic-target representative stored by a key. */
     public static CyclicTargetPair pairForKey(
             final byte[] encoded,
@@ -176,6 +188,15 @@ public final class CertificateCodec {
         final var checksum = new CRC32C();
         checksum.update(keyFor(pair));
         checksum.update(valueFor(moves));
+        return checksum.getValue();
+    }
+
+    /** Deterministic contribution for a generated class independent of its outcome. */
+    public static long classKeyChecksumContribution(
+            final CyclicTargetPair pair
+    ) {
+        final var checksum = new CRC32C();
+        checksum.update(keyFor(pair));
         return checksum.getValue();
     }
 
