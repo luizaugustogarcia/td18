@@ -20,8 +20,13 @@ two-reduction method:
 
 - fixed-point contraction preserves sorting distance;
 - clearing an oriented 3-cycle has the stated effect;
-- the qualifying move exists for every oriented odd-length cycle of each
-  required length, including all exceptional local configurations;
+- every oriented odd-length cycle either admits the qualifying transposition
+  or belongs to an exhaustively classified exceptional class with a closure
+  that fits the TD(18) global budget;
+- an independent checker reproduces the completed oriented-19-cycle DFS,
+  rejects its unique unoriented survivor, verifies that the two oriented
+  survivors are exactly the configured extended-toric classes, and replays
+  both emitted ten-transposition certificates;
 - the even-pair reduction has the stated effect;
 - every edge spends one transposition and lowers the 3-norm by one;
 - each diameter value used to close a state is established independently of
@@ -150,6 +155,10 @@ database with per-row counts, checksums, completion records, and versioned
 terminal residual records. It also implements the full-domain
 avoidance-preimage treatment and its versioned completion manifest. A complete
 large run and an independent verifier for these records are still required.
+It also implements focused emission of complete sorting certificates for the
+two oriented 19-cycle survivors found by the completed depth-first search.
+Independent reproduction of that classification and replay of both records
+remain required.
 The terminal record identifies the Table 2 row and the final pair; it does not
 yet persist an individual root path, the search configuration, or the code
 revision required by Stage 4. The avoidance phase instead regenerates every

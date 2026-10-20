@@ -23,7 +23,7 @@ import java.util.TreeMap;
  * {@code s} of transposition moves already spent. The remaining budget is
  * {@code b = MAX_BUDGET - s}. Each recursive edge applies one reduction
  * specified by that method and spends one move:
- * oriented 3-cycle clearing, the oriented-odd qualifying 2-move, or the
+ * oriented 3-cycle clearing, the oriented-odd qualifying transposition, or the
  * even-pair merge. Fixed points created by a reduction are contracted, and the
  * resulting cycle-length partition is re-annotated afresh. The recursion stops
  * after two reductions; unclosed states are recorded as generation
@@ -282,7 +282,8 @@ public final class ReductionTypeEnumerator {
                 return List.of(withoutIndex(lengths, i));
             }
         }
-        // Reduction R4a: qualifying 2-move on the smallest oriented odd cycle of length >= 5.
+        // Reduction R4a: qualifying transposition on the smallest oriented
+        // odd-length cycle of length at least 5.
         final int oddLength = selectOrientedOdd(lengths, oriented);
         if (oddLength > 0) {
             final int index = firstIndexOfLength(lengths, oddLength);

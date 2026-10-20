@@ -17,8 +17,9 @@
 \maketitle
 
 \begin{abstract}
-Assuming the odd-length-cycle reduction is available through length $19$,
-we count the annotated cycle types that remain after at most two
+Using the completed oriented-odd-length-cycle branch computation through
+length $19$ described below, we count the annotated cycle types that remain
+after at most two
 successive structural reductions. The reductions use fixed-point
 contraction and known transposition-diameter bounds; a state is retained
 for generation whenever a known diameter does not already fit the
@@ -65,13 +66,31 @@ $c_{\mathrm{odd}}(T)$ counts odd-length cycles. A state is a pair $(T,s)$,
 where $s$ moves have already been used and the remaining budget is
 $10-s$.
 
-The local hypothesis for this count is that every oriented odd-length
-cycle of length $k\in\{5,7,9,11,13,15,17,19\}$ admits a qualifying
-$2$-move supported on that cycle, producing after contraction either a
-single shorter odd-length cycle or a pair of odd-length cycles. All
-exceptional local configurations, including the exceptional length-$9$
-configuration, must be covered for this hypothesis to hold. Their
-verification is outside this counting calculation.
+For lengths $k\in\{5,7,9,11,13,15,17\}$, the computation uses the exhaustive
+oriented-cycle classifications and certificate machinery checked in
+\nolinkurl{../td16}. Each cycle either admits the required qualifying
+transposition or belongs to an exceptional local class with a checked direct
+closure. This includes the exceptional length-$9$ configuration.
+
+The oriented-$19$-cycle branch has been enumerated by extending the
+TD(16)-style depth-first search through length $19$. The search visited
+$9\,304\,845$ nodes and retained three normalized cycles. One is the
+unoriented cycle $\beta^{-1}$ and is excluded from this branch. The other
+two are realizable oriented cyclic-target pairs. With
+$\beta=(0\,1\,\ldots\,18)$, representatives of their extended-toric
+classes are
+\[
+\begin{split}
+C_1={}&(0\,10\,1\,11\,2\,12\,3\,13\,4\,14\,5\,15\,6\,16\,7\,17\,8\,18\,9),\\
+C_2={}&(0\,16\,13\,10\,7\,4\,1\,17\,14\,11\,8\,5\,2\,18\,15\,12\,9\,6\,3).
+\end{split}
+\]
+Every other oriented $19$-cycle admits the qualifying transposition used by
+the recursion. The focused emitter stores a validated sorting certificate of
+at most ten transpositions for each pair $(C_i,\beta)$. Thus this computation
+covers the oriented-$19$-cycle branch. An independent checker that reproduces
+the depth-first classification, rejects the unoriented output, and replays
+both emitted certificates remains pending.
 
 \section{Closing a state and the risk principle}
 
@@ -124,13 +143,18 @@ of that final phase remains pending.
 At each open state, choose one available reduction in the following
 priority order.
 
+Before applying the type-level rules, close either exceptional oriented
+$19$-cycle class above with its ten-transposition certificate. These direct
+closures have no child type and therefore do not change the 204-row
+inventory.
+
 \begin{enumerate}
   \item If an oriented $3$-cycle is present, clear it in one move.
   Its three symbols become fixed points and are contracted.
 
   \item Otherwise, among oriented odd-length cycles of length $k\geq5$,
   select the smallest length and enumerate the possible qualifying
-  $2$-moves on it. After contraction, they replace $k$ by either $k-2$,
+  transpositions on it. After contraction, they replace $k$ by either $k-2$,
   fixing two symbols, or by two odd lengths $a,b\geq3$ satisfying
   $a+b=k-1$, fixing one symbol. Unordered pairs $(a,b)$ are enumerated
   once.

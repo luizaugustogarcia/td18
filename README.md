@@ -10,6 +10,10 @@ The repository does not currently prove TD(18) = 10. The local reduction
 hypothesis and every generated class, bounded search, witness, count, and
 verification artifact required by [the research plan](docs/RESEARCH_PLAN.md)
 must be checked first.
+The oriented 19-cycle DFS itself has been run through length 19: it visited
+9,304,845 nodes, retained three normalized cycles, and left exactly two after
+excluding the unique unoriented output. A focused emitter handles those two
+classes; independent reproduction and certificate checking remain pending.
 
 ## Method
 
@@ -54,6 +58,8 @@ The `emitter` module contains:
   completion records;
 - full-domain avoidance-preimage reconstruction and root sorting for
   bounded-search misses;
+- focused emission of complete sorting certificates for the two oriented
+  19-cycle survivors;
 - certificate encoding and independent replay primitives;
 - regression tests for the group action, counting, encoding, and reduction
   inventory.
@@ -74,6 +80,28 @@ mvn -pl emitter compile exec:java \
 
 The validation reports 53 admissible partitions, 360 annotated roots, and 204
 distinct obligations with depth distribution 8, 8, and 188.
+
+## Emit the oriented 19-cycle survivor certificates
+
+On a configured CUDA machine, search the two oriented 19-cycle survivor
+classes and store one validated complete sorting certificate for each:
+
+~~~bash
+mvn -pl emitter -Pgpu compile exec:exec \
+  -Dexec.mainClass=br.unb.cic.td18.OrientedNineteenCycleEmitter \
+  -Dtd18.certificateDb="$PWD/certificates" \
+  -Dtd18.gpuDevices=0 \
+  -Dtd18.gpuSlots=1 \
+  -Dtd18.gpuBudgetMB=1024 \
+  -Dtd18.gpuStatsPeriodSeconds=0
+~~~
+
+The emitter uses deterministic extended-toric class keys, a
+ten-transposition bound, and the versioned certificate codec used by the
+Table 2 pipeline. It fails unless both survivors produce complete,
+replay-validated sorting certificates. The future independent checker must
+reproduce the DFS coverage, exclude its unoriented output, and reject either
+missing certificate.
 
 ## Count realizable classes
 
