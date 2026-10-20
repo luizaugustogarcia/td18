@@ -144,12 +144,15 @@ RocksDB.
 
 ~~~bash
 mvn -pl emitter -Pgpu compile exec:exec \
-  -Dtd18.certificateDb="$PWD/certificates"
+  -Dtd18.certificateDb="$PWD/certificates" \
+  -Dtd18.twistedBraceletWorkers="$(nproc)"
 ~~~
 
 The default configuration uses CUDA device `0`, seven concurrent slots, a
 1024 MiB search-queue budget per slot, 60-second CPU/GPU statistics, and a
-five-second certificate flush period. The same controls as the TD(16) emitter
+five-second certificate flush period. The command above explicitly assigns one
+twisted-bracelet worker per logical CPU; the default value `auto` also uses the
+runtime's detected processor count. The same controls as the TD(16) emitter
 are available under the `td18` prefix: `gpuDevices`, `gpuSlots`,
 `gpuBudgetMB`, `gpuQueueCapacity`, `gpuStatsPeriodSeconds`,
 `twistedBraceletWorkers`, `certificateDb`, and `certificateFlushSeconds`. Set
