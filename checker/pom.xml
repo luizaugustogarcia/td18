@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>br.unb.cic</groupId>
+        <artifactId>td18</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>checker</artifactId>
+
+    <properties>
+        <exec.mainClass>br.unb.cic.td18.CertificateChecker</exec.mainClass>
+        <td18.certificateDb>${project.basedir}/../certificates</td18.certificateDb>
+        <td18.twistedBraceletWorkers>auto</td18.twistedBraceletWorkers>
+        <td18.twistedBraceletBatchSize>256</td18.twistedBraceletBatchSize>
+        <td18.certificateStatsPeriodSeconds>60</td18.certificateStatsPeriodSeconds>
+    </properties>
+
+    <dependencies>
+        <dependency><groupId>org.rocksdb</groupId><artifactId>rocksdbjni</artifactId><version>10.4.2</version><classifier>linux64</classifier></dependency>
+        <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><version>${lombok.version}</version><scope>provided</scope></dependency>
+        <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId><version>2.0.13</version></dependency>
+        <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-simple</artifactId><version>2.0.13</version></dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>td18.certificateDb</key>
+                            <value>${td18.certificateDb}</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>td18.twistedBraceletWorkers</key>
+                            <value>${td18.twistedBraceletWorkers}</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>td18.twistedBraceletBatchSize</key>
+                            <value>${td18.twistedBraceletBatchSize}</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>td18.certificateStatsPeriodSeconds</key>
+                            <value>${td18.certificateStatsPeriodSeconds}</value>
+                        </systemProperty>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

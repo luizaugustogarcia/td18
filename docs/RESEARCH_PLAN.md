@@ -69,7 +69,7 @@ method identifier, total, code revision, and checksum, plus an independent
 verification report. Independently verify the `Q` mapping: 52 direct
 oriented-3 closures; 50 complete TD(16) successor-search closures; full
 emission of the two starred rows whose checked searches found 495 and 1,541
-misses; and total `Q = 29,064,174,153`.
+obstructions; and total `Q = 29,064,174,153`.
 
 ## Stage 3 — exhaustively generate the classes
 
@@ -113,8 +113,8 @@ TD(18) conclusion remains pending until every residual obligation is resolved
 within the reduction argument.
 
 The emitter implements the obstruction-avoidance construction adapted from
-`../td16`. For a miss with budget `b`, it uncontracts the fixed points in every
-cyclic gap and enumerates the inverse supports of each reduction family capable
+`../td16`. For an obstruction with budget `b`, it uncontracts the fixed points
+in every cyclic gap and enumerates the inverse supports of each reduction family capable
 of producing the terminal pair. It retains only predecessors admitted by the
 checked TD(18) priority policy at the preceding depth. Intermediate
 predecessors are used only for reconstruction: the emitter continues through
@@ -122,9 +122,10 @@ all remaining reduction levels before deduplicating the full-domain root
 preimages by extended-toric class. It then searches each root independently
 with budget 10. Thus avoidance certificates use the 19-symbol cyclic-target
 keys corresponding to permutations in `S_18`; the checker need not look up an
-intermediate `S_17` class. A root miss is persisted and remains unresolved.
+intermediate `S_17` class. A root obstruction is persisted and remains
+unresolved.
 The final range manifest records reconstruction and root-search counts, the
-class-key checksum, and whether any root miss remains.
+class-key checksum, and whether any root obstruction remains.
 
 Exit criterion: every class counted by `Q` has either a checked
 prefix-plus-known-diameter closure or a replayable valid witness within its row
@@ -153,12 +154,15 @@ generation/counting framework, cyclic-target validation, CUDA search, and an
 emitter that streams Table 2 classes into a versioned RocksDB certificate
 database with per-row counts, checksums, completion records, and versioned
 terminal residual records. It also implements the full-domain
-avoidance-preimage treatment and its versioned completion manifest. A complete
-large run and an independent verifier for these records are still required.
-It also implements focused emission of complete sorting certificates for the
-two oriented 19-cycle survivors found by the completed depth-first search.
-Independent reproduction of that classification and replay of both records
-remain required.
+avoidance-preimage treatment and its versioned completion manifest. It also
+implements focused emission of complete sorting certificates for the two
+oriented 19-cycle survivors found by the completed depth-first search. A
+CPU-only checker now independently reconstructs the 204-row inventory with a
+separate work-list implementation, reproduces the 9,304,845-node
+oriented-19-cycle classification, checks the paper-backed `Q = 0` discharge,
+regenerates representatives and CPU prefix closures, replays certificates,
+and checks row and avoidance manifests. No completed large checker run or
+verification report is included.
 The terminal record identifies the Table 2 row and the final pair; it does not
 yet persist an individual root path, the search configuration, or the code
 revision required by Stage 4. The avoidance phase instead regenerates every

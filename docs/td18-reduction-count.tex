@@ -90,7 +90,8 @@ the recursion. The focused emitter stores a validated sorting certificate of
 at most ten transpositions for each pair $(C_i,\beta)$. Thus this computation
 covers the oriented-$19$-cycle branch. An independent checker that reproduces
 the depth-first classification, rejects the unoriented output, and replays
-both emitted certificates remains pending.
+both emitted certificates is implemented; its complete run against the
+finished certificate database remains pending.
 
 \section{Closing a state and the risk principle}
 
@@ -135,8 +136,9 @@ fixed-point-free root on $19$ symbols. The emitter persists a versioned
 terminal residual record containing the instance, its class key, row, type,
 attempted budget, and checksum before the row manifest. Rather than selecting
 one path, its final phase reconstructs every reachable predecessor described
-below and persists a range-level completion manifest. Independent verification
-of that final phase remains pending.
+below and persists a range-level completion manifest. The independent checker
+reconstructs that final phase and compares its counts and checksum with the
+manifest; a complete run remains pending.
 
 \section{Reduction policy and recursion}
 
@@ -261,18 +263,22 @@ the other $102$ rows. In particular, rows $130$ and $134$ are emitted in
 full: the checked $\TD(16)$ computation identifies $495$ and $1\,541$
 eight-move obstructions in those rows, but its partial result does not by
 itself discharge either complete row in the present $\TD(18)$ certificate.
-The emitter processes these two starred rows in the ordinary table order;
-their bounded-search misses join all other misses in one residual-obligation
-phase after row emission. Consequently
+The emitter processes these two starred rows in the ordinary table order with
+the same eight-move budget used by the checked $\TD(16)$ search. Because the
+rows have the same extended-toric classes and the same bounded sorting
+problem, this search cannot produce a new obstruction class: it must reproduce
+exactly the $2\,036$ known obstructions. They join all other obstructions in
+one residual-obligation phase after row emission. Consequently
 Table~\ref{tab:complete} remains the complete $204$-type inventory, while
 the emitted class obligation is $29\,064\,174\,153$.
 
 \subsection{Final obstruction-avoidance phase}
 
 The final phase adapts the avoidance-preimage construction checked for
-$\TD(16)$ in \nolinkurl{../td16}. Let $(\omega,\beta)$ be a terminal miss
-with remaining budget $b<10$. For each number $f\in\{1,2,3\}$ of fixed
-points compatible with a predecessor at the preceding recursion depth, restore
+$\TD(16)$ in \nolinkurl{../td16}. Let $(\omega,\beta)$ be a terminal
+obstruction with remaining budget $b<10$. For each number
+$f\in\{1,2,3\}$ of fixed points compatible with a predecessor at the
+preceding recursion depth, restore
 the $f$ symbols in every cyclic gap of $\beta$. Each restored symbol is fixed
 by $\omega$, so its incoming edge is common to the current and target cycles.
 The emitter then enumerates the inverse supports of the selected reduction:
@@ -288,17 +294,18 @@ Retain a reconstructed predecessor only when it is fixed-point-free, belongs
 to an open annotated type reached by the recursion at the preceding depth, and
 the priority rule selects the inverse reduction family and terminal child type
 in question. These tests remove inverse applications that could not occur on a
-forward reduction path. Conversely, every actual forward path to the miss has
-one of the restored gap placements and one of the enumerated supports, so its
-predecessor class is retained. An intermediate predecessor is used only for the
+forward reduction path. Conversely, every actual forward path to the
+obstruction has one of the restored gap placements and one of the enumerated
+supports, so its predecessor class is retained. An intermediate predecessor is
+used only for the
 next inverse construction: do not search it or persist it as the avoidance
 certificate. Continue until reaching the full $19$-symbol cyclic-target domain,
 which corresponds to a permutation in $S_{18}$. Deduplicate those root pairs
 by extended-toric class and sort one representative of each root class
 independently within $10$ moves. Consequently every persisted avoidance
 certificate has the full-domain key that the checker will query; it never needs
-to look up an intermediate permutation in $S_{17}$. A ten-move root miss is an
-unresolved obligation and makes the emitter fail.
+to look up an intermediate permutation in $S_{17}$. A ten-move root
+obstruction is an unresolved obligation and makes the emitter fail.
 
 \clearpage
 \appendix
@@ -546,9 +553,10 @@ $29\,064\,174\,153$.
 \end{longtable}
 \noindent\textsuperscript{*}Rows 130 and 134 are emitted in full. The
 checked $\TD(16)$ successor search found, respectively, $495$ and $1\,541$
-classes with no sorting sequence of length at most eight. Those known misses,
-together with any new misses, enter the common avoidance-preimage treatment at
-the end of the emitter.
+obstruction classes with no sorting sequence of length at most eight. The same
+eight-move search on these identical class populations introduces no new
+obstructions; the $2\,036$ reproduced obstructions enter the common
+avoidance-preimage treatment at the end of the emitter.
 \endgroup
 
 \end{document}

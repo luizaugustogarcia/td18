@@ -144,7 +144,7 @@ Table 2 therefore records a separate `Q` column: after reuse of the checked
 TD(16) successor results, 29,064,174,153 class obligations are emitted. This
 uses `Q=0` for 102 fully discharged rows and `Q=R` for the other 102 rows. In
 particular, starred rows 130 and 134 are emitted in full and in ordinary table
-order; their bounded-search misses join the common final obstruction-avoidance
+order; their bounded-search obstructions join the common final obstruction-avoidance
 phase, which reconstructs and independently sorts their reachable predecessor
 classes on the full S18 root domain.
 

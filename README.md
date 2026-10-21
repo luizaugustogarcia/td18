@@ -13,7 +13,8 @@ must be checked first.
 The oriented 19-cycle DFS itself has been run through length 19: it visited
 9,304,845 nodes, retained three normalized cycles, and left exactly two after
 excluding the unique unoriented output. A focused emitter handles those two
-classes; independent reproduction and certificate checking remain pending.
+classes; the CPU checker independently reproduces the classification and
+requires both certificates.
 
 ## Method
 
@@ -34,9 +35,11 @@ The recursion stops after two edges. Table 2 lists all 204 resulting annotated
 types. Its `R` column counts every realizable extended-toric class; its `Q`
 column retains only the class obligations not already discharged by the
 checked TD(16) successor results. Thus no inventory row is removed: 102 rows
-have `Q = 0` and 102 have `Q = R`. Rows 130 and 134 are starred because the
-checked TD(16) search found 495 and 1,541 eight-move misses there, but both
-rows are emitted in full and in ordinary table order. The emitted total is
+are discharged by those results, and the other 102 retain `Q = R`. Fourteen
+of the latter are empty types with `R = Q = 0`, so 116 rows literally display
+`Q = 0`. Rows 130 and 134 are starred because the
+checked TD(16) search found 495 and 1,541 eight-move obstructions there, but
+both rows are emitted in full and in ordinary table order. The emitted total is
 29,064,174,153 classes.
 
 The cyclic-target and twisted-bracelet layer encodes a pair (omega, beta), with
@@ -57,16 +60,28 @@ The `emitter` module contains:
 - versioned RocksDB certificate output with row counts, checksums, and
   completion records;
 - full-domain avoidance-preimage reconstruction and root sorting for
-  bounded-search misses;
+  bounded-search obstructions;
 - focused emission of complete sorting certificates for the two oriented
   19-cycle survivors;
 - certificate encoding and independent replay primitives;
 - regression tests for the group action, counting, encoding, and reduction
   inventory.
 
-No complete TD(18) certificate database or independent end-to-end verification
-artifact is included. In particular, a sorting miss remains an unresolved
-obligation and makes an emitter run unsuccessful.
+The `checker` module is CPU-only and has no dependency on the `emitter`
+artifact. It independently reconstructs the type
+inventory with a separate work-list implementation, reproduces the complete
+oriented-19-cycle depth-first classification, verifies the paper-backed
+`Q = 0` partition, regenerates the required representatives, rechecks short
+prefix closures, and replays stored sorting witnesses. It also compares every
+row and avoidance-range manifest with recomputed counts and checksums.
+
+No complete TD(18) certificate database or completed end-to-end verification
+report is included. In particular, a sorting obstruction remains an
+unresolved obligation and makes an emitter run unsuccessful.
+Structurally complete coverage requires both emitter entry points: the main
+Table 2 pipeline covers all 204 rows and their avoidance ranges, while the
+focused oriented-19 emitter supplies the two exceptional survivor
+certificates. The checker rejects a database missing either component.
 
 ## Validate the type inventory
 
@@ -99,9 +114,9 @@ mvn -pl emitter -Pgpu compile exec:exec \
 The emitter uses deterministic extended-toric class keys, a
 ten-transposition bound, and the versioned certificate codec used by the
 Table 2 pipeline. It fails unless both survivors produce complete,
-replay-validated sorting certificates. The future independent checker must
-reproduce the DFS coverage, exclude its unoriented output, and reject either
-missing certificate.
+replay-validated sorting certificates. The checker reproduces the DFS
+coverage, excludes its unoriented output, and rejects either missing
+certificate.
 
 ## Count realizable classes
 
@@ -174,22 +189,59 @@ generated classes into trivial CPU/known-diameter closures, validated GPU
 certificates, and residuals. CPU prefixes are not certificate records and are
 not stored in RocksDB; an independent checker must regenerate and recheck those
 closures. A row marker is complete only when it has no residual. Any native
-miss is persisted as a versioned residual obligation before the row manifest.
-After all selected rows have been processed, every such miss is routed to the
-same final obstruction phase. Following the construction used by `../td16`,
-the emitter restores every possible contracted fixed-point placement, applies
+obstruction is persisted as a versioned residual obligation before the row
+manifest. After all selected rows have been processed, every such obstruction
+is routed to the same final obstruction phase. Following the construction used
+by `../td16`, the emitter restores every possible contracted fixed-point placement, applies
 every inverse support for the selected reduction, and retains only reachable
 predecessor types. It repeats reconstruction, without searching an
 intermediate predecessor, until it reaches the full 19-symbol cyclic-target
 domain corresponding to a permutation in S18. The resulting root classes are
 deduplicated by extended-toric class and sorted independently with budget 10,
 so every avoidance certificate has the root-domain key expected by the
-checker. Only a ten-move root miss leaves the run unsuccessful. Avoidance
-misses and the final range manifest are versioned database records. The database is
-ignored by Git and may be very large. Use a new or already versioned TD(18)
-database directory;
+checker. Only a ten-move root obstruction leaves the run unsuccessful.
+Avoidance obstructions and the final range manifest are versioned database
+records. The database is ignored by Git and may be very large. Use a new or
+already versioned TD(18) database directory;
 the emitter rejects an incompatible or unversioned nonempty database rather
 than mixing formats.
+
+## Check sorting certificates
+
+Run the CPU-only checker against a complete emitted database:
+
+~~~bash
+mvn -pl checker -am install -DskipTests
+mvn -pl checker exec:java \
+  -Dtd18.certificateDb="$PWD/certificates" \
+  -Dtd18.twistedBraceletWorkers="$(nproc)" \
+  -Dtd18.twistedBraceletBatchSize=256
+~~~
+
+The checker reads Table 2 from the source document. It reconstructs the 53
+root partitions, 360 annotated roots, and 204 terminal types without calling
+the emitter's recursive type enumerator. For literal `Q = 0` rows, it
+distinguishes two reasons for skipping generation. The 102 nonempty
+discharges invoke the TD(16) results proved in
+[*Twisted Bracelets for Sorting by Transpositions: the Transposition Diameter
+of S_16*](https://arxiv.org/abs/2609.17493): Corollary
+`cor:oriented-three-cycles` handles 52 rows, and the one-fixed-point-successor
+computation in Section `sec:td16` handles 50 more. The other 14 zero-`Q` rows
+are skipped only after the checked Burnside count confirms `R = 0`. The two
+successor types with 495 and 1,541 residuals retain `Q = R` and are fully
+generated. Representative lookups use position-preserving RocksDB multi-get
+batches; `td18.twistedBraceletBatchSize` controls the batch size.
+
+The checker rejects a missing or mismatched row manifest, certificate,
+residual, avoidance manifest, survivor certificate, count, checksum, or move
+budget. A structural-only run checks the inventory, the paper-backed `Q`
+lemma, and the complete oriented-19 DFS without opening RocksDB or enumerating
+the large class corpus:
+
+~~~bash
+mvn -pl checker exec:java \
+  -Dexec.args=--structural-only
+~~~
 
 ## CUDA build
 

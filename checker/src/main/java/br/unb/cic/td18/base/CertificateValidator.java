@@ -1,0 +1,51 @@
+package br.unb.cic.td18.base;
+
+import br.unb.cic.td18.permutation.Cycle;
+import br.unb.cic.td18.permutation.MulticyclePermutation;
+import br.unb.cic.td18.permutation.PermutationGroups;
+
+import java.util.List;
+
+/** Replays a witness and verifies only intrinsic certificate obligations. */
+public final class CertificateValidator {
+    private CertificateValidator() {
+    }
+
+    public static void validate(final CyclicTargetPair pair,
+                                final List<Cycle> moves,
+                                final int maximumMoves) {
+        if (moves.isEmpty() || moves.size() > maximumMoves) {
+            throw new IllegalArgumentException("Certificate has " + moves.size()
+                    + " moves; the required range is 1.." + maximumMoves);
+        }
+
+        final var target = pair.getRho();
+        Cycle beta = pair.getBeta();
+        MulticyclePermutation omega = pair.getOmega();
+        for (final var move : moves) {
+            requireApplicable(beta, move);
+            omega = PermutationGroups.computeProduct(omega, move.getInverse());
+            beta = CommonOperations.applyTranspositionOptimized(beta, move);
+            final var currentTarget = PermutationGroups.computeProduct(true, beta.size(), omega, beta);
+            if (!currentTarget.equals(new MulticyclePermutation(target))) {
+                throw new IllegalArgumentException("Certificate move does not preserve the cyclic target: " + move);
+            }
+        }
+        if (!omega.isIdentity()) {
+            throw new IllegalArgumentException("Certificate does not sort the algebraic permutation");
+        }
+    }
+
+    private static void requireApplicable(final Cycle beta, final Cycle move) {
+        if (move.size() != 3 || move.get(0) == move.get(1) || move.get(1) == move.get(2)
+                || move.get(0) == move.get(2)) {
+            throw new IllegalArgumentException("A move must contain three distinct symbols");
+        }
+        final int first = beta.indexOf(move.get(0));
+        final int second = beta.indexOf(move.get(1));
+        final int third = beta.indexOf(move.get(2));
+        if (first < 0 || second < 0 || third < 0 || !(first < second && second < third)) {
+            throw new IllegalArgumentException("Move is not an ordered triple in the current cyclic order: " + move);
+        }
+    }
+}
