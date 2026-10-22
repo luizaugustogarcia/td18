@@ -23,11 +23,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -186,7 +186,7 @@ public final class ObstructionAvoidanceRunner {
         private final int maximumMoves;
         private final long expectedInputs;
         private final int parallelism;
-        private final ArrayBlockingQueue<WorkItem> queue;
+        private final LinkedBlockingQueue<WorkItem> queue;
         private final ExecutorService executor;
         private final List<Future<?>> workers;
         private final LongAdder applications = new LongAdder();
@@ -205,7 +205,7 @@ public final class ObstructionAvoidanceRunner {
             this.maximumMoves = maximumMoves;
             this.expectedInputs = expectedInputs;
             this.parallelism = parallelism;
-            queue = new ArrayBlockingQueue<>(parallelism);
+            queue = new LinkedBlockingQueue<>();
             executor = Executors.newFixedThreadPool(parallelism,
                     Thread.ofPlatform()
                             .name("td18-avoidance-wave-", 0).factory());
@@ -222,19 +222,8 @@ public final class ObstructionAvoidanceRunner {
         }
 
         private void enqueue(final WorkItem item) {
-            while (true) {
-                throwIfFailed();
-                try {
-                    if (queue.offer(item, 1, TimeUnit.SECONDS)) {
-                        return;
-                    }
-                } catch (final InterruptedException interruption) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException(
-                            "Interrupted while submitting an avoidance obstruction",
-                            interruption);
-                }
-            }
+            throwIfFailed();
+            queue.add(item);
         }
 
         private void runWorker() {
