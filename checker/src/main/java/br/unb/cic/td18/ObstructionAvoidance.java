@@ -29,11 +29,11 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
 /**
- * Reconstructs and independently sorts root preimages of terminal misses using
- * the avoidance-preimage method implemented for TD(16) in {@code ../td16}.
- * Intermediate predecessors are reconstruction states only: every searched and
- * persisted avoidance class is on the full 19-symbol cyclic-target domain,
- * corresponding to a permutation in S_18.
+ * Reconstructs preimages of terminal misses using the avoidance-preimage
+ * method implemented for TD(16) in {@code ../td16}. Each distinct
+ * intermediate predecessor is first checked within its remaining budget; only
+ * a conservative miss is propagated to the next inverse wave. Root preimages
+ * are independently checked on the full 19-symbol domain.
  */
 @Slf4j
 public final class ObstructionAvoidance {
@@ -46,7 +46,9 @@ public final class ObstructionAvoidance {
     public record AvoidanceResult(
             long terminalResiduals,
             long reconstructionApplications,
-            long searchObligations,
+            long intermediateSearchObligations,
+            long propagatedResiduals,
+            long rootSearchObligations,
             long trivialClosures,
             long certificates,
             long unresolved,
@@ -55,10 +57,14 @@ public final class ObstructionAvoidance {
     ) {
         public AvoidanceResult {
             if (terminalResiduals < 0 || reconstructionApplications < 0
-                    || searchObligations < 0 || trivialClosures < 0
+                    || intermediateSearchObligations < 0
+                    || propagatedResiduals < 0
+                    || rootSearchObligations < 0 || trivialClosures < 0
                     || certificates < 0 || unresolved < 0
-                    || trivialClosures + certificates + unresolved
-                    != searchObligations
+                    || propagatedResiduals > intermediateSearchObligations
+                    || trivialClosures + certificates + propagatedResiduals
+                    + unresolved != intermediateSearchObligations
+                    + rootSearchObligations
                     || (unresolved == 0) != (firstUnresolved == null)) {
                 throw new IllegalArgumentException(
                         "Inconsistent obstruction-avoidance result");
@@ -67,6 +73,11 @@ public final class ObstructionAvoidance {
 
         public boolean complete() {
             return unresolved == 0;
+        }
+
+        public long searchObligations() {
+            return Math.addExact(
+                    intermediateSearchObligations, rootSearchObligations);
         }
     }
 
@@ -100,7 +111,8 @@ public final class ObstructionAvoidance {
     @FunctionalInterface
     interface PairSearch {
         CheckedSearchResult search(
-                CyclicTargetPair pair, float minimumRate, int maximumMoves);
+                CyclicTargetPair pair, float minimumRate, int maximumMoves,
+                boolean fullDomain);
     }
 
     public static AvoidanceResult resolve(
@@ -112,66 +124,109 @@ public final class ObstructionAvoidance {
         Objects.requireNonNull(search);
         Objects.requireNonNull(missSink);
 
-        final var frontier = new ConcurrentHashMap<StateKey, SearchState>();
+        final var hardByBudget = new java.util.TreeMap<Integer,
+                ConcurrentHashMap<StateKey, SearchState>>();
         for (final var residual : residuals) {
             validateTerminalResidual(residual);
-            addState(frontier, residual.maximumMoves(), residual.pair());
+            addState(hardByBudget.computeIfAbsent(
+                            residual.maximumMoves(), ignored ->
+                                    new ConcurrentHashMap<>()),
+                    residual.maximumMoves(), residual.pair());
         }
 
         long reconstructionApplications = 0;
         final var roots = new ConcurrentHashMap<StateKey, SearchState>();
-        var current = frontier;
-        while (!current.isEmpty()) {
-            final var reconstructable = new ArrayList<SearchState>();
-            for (final var state : current.values()) {
-                if (state.maximumMoves() == ReductionTypeEnumerator.MAX_BUDGET) {
-                    requireRoot(state);
-                    addState(roots, state.maximumMoves(), state.pair());
-                } else {
-                    reconstructable.add(state);
-                }
+        final var intermediateTrivial = new LongAdder();
+        final var intermediateCertificates = new LongAdder();
+        final var intermediateObligations = new LongAdder();
+        final var propagatedResiduals = new LongAdder();
+        final var checksum = new LongAdder();
+        for (var maximumMoves = ReductionTypeEnumerator.MAX_BUDGET - 2;
+             maximumMoves < ReductionTypeEnumerator.MAX_BUDGET;
+             maximumMoves++) {
+            final var current = hardByBudget.computeIfAbsent(
+                    maximumMoves, ignored -> new ConcurrentHashMap<>());
+            if (current.isEmpty()) {
+                continue;
             }
-            if (reconstructable.isEmpty()) {
-                break;
-            }
-
             final var parents = new ConcurrentHashMap<StateKey, SearchState>();
             final var applications = new LongAdder();
-            runReconstructionTasks(reconstructable, parents, applications);
+            runReconstructionTasks(List.copyOf(current.values()),
+                    parents, applications);
             reconstructionApplications = Math.addExact(
                     reconstructionApplications, applications.sum());
-            log.info("Avoidance reconstruction wave: inputs={}, "
+            log.info("Avoidance reconstruction wave {}: hardInputs={}, "
                             + "reconstructionApplications={}, "
                             + "predecessorClasses={}",
-                    reconstructable.size(), applications.sum(),
+                    maximumMoves, current.size(), applications.sum(),
                     parents.size());
-            current = parents;
+
+            final int parentMaximumMoves = maximumMoves + 1;
+            final var alreadyHard = hardByBudget.computeIfAbsent(
+                    parentMaximumMoves, ignored -> new ConcurrentHashMap<>());
+            parents.keySet().removeAll(alreadyHard.keySet());
+            if (parentMaximumMoves == ReductionTypeEnumerator.MAX_BUDGET) {
+                parents.values().forEach(state -> addState(
+                        roots, state.maximumMoves(), state.pair()));
+                continue;
+            }
+
+            final var orderedCandidates = orderedStates(parents.values());
+            final var propagated = new ConcurrentHashMap<StateKey, SearchState>();
+            final var result = searchStates(orderedCandidates, search,
+                    null, propagated, false);
+            intermediateObligations.add(orderedCandidates.size());
+            intermediateTrivial.add(result.trivialClosures());
+            intermediateCertificates.add(result.certificates());
+            propagatedResiduals.add(result.residuals());
+            checksum.add(result.checksum());
+            propagated.values().forEach(state -> addState(
+                    alreadyHard, state.maximumMoves(), state.pair()));
+            log.info("Avoidance intermediate search {}: candidates={}, "
+                            + "triviallySettled={}, certificates={}, "
+                            + "propagatedResiduals={}",
+                    parentMaximumMoves, orderedCandidates.size(),
+                    result.trivialClosures(), result.certificates(),
+                    result.residuals());
         }
 
-        final var orderedRoots = roots.values().stream()
-                .map(state -> new SearchState(state.maximumMoves(),
-                        state.pair().canonicalRepresentative()))
-                .sorted(Comparator.comparing(SearchState::pair,
-                        ObstructionAvoidance::compareCertificateKeys))
-                .toList();
+        hardByBudget.getOrDefault(ReductionTypeEnumerator.MAX_BUDGET,
+                        new ConcurrentHashMap<>()).values()
+                .forEach(state -> addState(
+                        roots, state.maximumMoves(), state.pair()));
+        final var orderedRoots = orderedStates(roots.values());
         roots.clear();
         final var unresolved = new ConcurrentHashMap<StateKey, SearchState>();
-        final var searchResult = searchRoots(
-                orderedRoots, search, missSink, unresolved);
+        final var rootResult = searchStates(
+                orderedRoots, search, missSink, unresolved, true);
+        checksum.add(rootResult.checksum());
         log.info("Avoidance root search: rootClasses={}, triviallySettled={}, "
                         + "certificates={}, unresolved={}",
-                orderedRoots.size(), searchResult.trivialClosures(),
-                searchResult.certificates(), searchResult.unresolved());
+                orderedRoots.size(), rootResult.trivialClosures(),
+                rootResult.certificates(), rootResult.residuals());
         final var orderedUnresolved = unresolved.values().stream()
                 .map(state -> state.pair().canonicalRepresentative())
                 .sorted(ObstructionAvoidance::compareCertificateKeys)
                 .toList();
         return new AvoidanceResult(residuals.size(),
-                reconstructionApplications, orderedRoots.size(),
-                searchResult.trivialClosures(), searchResult.certificates(),
-                orderedUnresolved.size(), searchResult.checksum(),
+                reconstructionApplications, intermediateObligations.sum(),
+                propagatedResiduals.sum(), orderedRoots.size(),
+                intermediateTrivial.sum() + rootResult.trivialClosures(),
+                intermediateCertificates.sum() + rootResult.certificates(),
+                orderedUnresolved.size(), checksum.sum(),
                 orderedUnresolved.isEmpty()
                 ? null : orderedUnresolved.getFirst());
+    }
+
+    private static List<SearchState> orderedStates(
+            final Collection<SearchState> states
+    ) {
+        return states.stream()
+                .map(state -> new SearchState(state.maximumMoves(),
+                        state.pair().canonicalRepresentative()))
+                .sorted(Comparator.comparing(SearchState::pair,
+                        ObstructionAvoidance::compareCertificateKeys))
+                .toList();
     }
 
     private static void requireRoot(final SearchState state) {
@@ -569,17 +624,18 @@ public final class ObstructionAvoidance {
         states.putIfAbsent(key, new SearchState(maximumMoves, pair));
     }
 
-    private record RootSearchResult(long trivialClosures,
-                              long certificates,
-                              long unresolved,
-                              long checksum) {
+    private record SearchBatchResult(long trivialClosures,
+                                     long certificates,
+                                     long residuals,
+                                     long checksum) {
     }
 
-    private static RootSearchResult searchRoots(
-            final List<SearchState> roots,
+    private static SearchBatchResult searchStates(
+            final List<SearchState> states,
             final PairSearch search,
             final Consumer<AvoidanceSearchMiss> missSink,
-            final ConcurrentHashMap<StateKey, SearchState> unresolved
+            final ConcurrentHashMap<StateKey, SearchState> residualStates,
+            final boolean requireFullDomain
     ) {
         final var trivial = new LongAdder();
         final var certificates = new LongAdder();
@@ -587,7 +643,7 @@ public final class ObstructionAvoidance {
         final var checksum = new LongAdder();
         final var cursor = new AtomicInteger();
         final var stop = new AtomicBoolean();
-        final int workers = Math.min(roots.size(),
+        final int workers = Math.min(states.size(),
                 Math.max(1, Runtime.getRuntime().availableProcessors()));
         final var futures = new ArrayList<Future<?>>();
         final ExecutorService executor = Executors.newThreadPerTaskExecutor(
@@ -600,30 +656,45 @@ public final class ObstructionAvoidance {
                         while (!stop.get()
                                 && !Thread.currentThread().isInterrupted()) {
                             final int index = cursor.getAndIncrement();
-                            if (index >= roots.size()) {
+                            if (index >= states.size()) {
                                 return;
                             }
-                            final var state = roots.get(index);
-                            requireRoot(state);
+                            final var state = states.get(index);
+                            if (requireFullDomain) {
+                                requireRoot(state);
+                            } else if (state.maximumMoves()
+                                    >= ReductionTypeEnumerator.MAX_BUDGET
+                                    || state.pair().getBeta().size()
+                                    >= ReductionTypeEnumerator.ROOT_SYMBOLS) {
+                                throw new IllegalStateException(
+                                        "Intermediate avoidance search received a root state");
+                            }
                             final int norm = state.pair().getOmega().stream()
                                     .mapToInt(cycle -> cycle.size() / 2).sum();
                             final float minimumRate = state.maximumMoves()
                                     / (2 * (float) norm);
                             final var result = search.search(
                                     state.pair(), minimumRate,
-                                    state.maximumMoves());
-                            checksum.add(CertificateCodec
-                                    .classKeyChecksumContribution(state.pair()));
+                                    state.maximumMoves(), requireFullDomain);
+                            checksum.add(requireFullDomain
+                                    ? CertificateCodec
+                                    .classKeyChecksumContribution(state.pair())
+                                    : CertificateCodec
+                                    .intermediateClassKeyChecksumContribution(
+                                    state.pair(), state.maximumMoves()));
                             switch (result.disposition()) {
                                 case TRIVIALLY_SETTLED -> trivial.increment();
                                 case CERTIFICATE -> certificates.increment();
                                 case RESIDUAL -> {
-                                    final var miss = new AvoidanceSearchMiss(
-                                            state.maximumMoves(), state.pair());
-                                    missSink.accept(miss);
+                                    if (requireFullDomain) {
+                                        final var miss = new AvoidanceSearchMiss(
+                                                state.maximumMoves(), state.pair());
+                                        Objects.requireNonNull(missSink)
+                                                .accept(miss);
+                                    }
                                     residuals.increment();
-                                    addState(unresolved, state.maximumMoves(),
-                                            miss.pair());
+                                    addState(residualStates, state.maximumMoves(),
+                                            state.pair());
                                 }
                             }
                         }
@@ -644,7 +715,7 @@ public final class ObstructionAvoidance {
                 executor.shutdown();
             }
         }
-        return new RootSearchResult(trivial.sum(), certificates.sum(),
+        return new SearchBatchResult(trivial.sum(), certificates.sum(),
                 residuals.sum(), checksum.sum());
     }
 

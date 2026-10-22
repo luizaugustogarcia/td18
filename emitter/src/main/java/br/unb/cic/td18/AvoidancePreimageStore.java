@@ -39,6 +39,8 @@ final class AvoidancePreimageStore implements AutoCloseable {
     private static final int FORMAT_VERSION = 1;
     private static final byte[] PREIMAGES_COLUMN_FAMILY =
             "avoidance-preimages".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] HARD_COLUMN_FAMILY =
+            "avoidance-hard".getBytes(StandardCharsets.UTF_8);
     private static final byte[] FORMAT_KEY =
             "format-version".getBytes(StandardCharsets.UTF_8);
     private static final byte[] SOURCE_KEY =
@@ -56,15 +58,18 @@ final class AvoidancePreimageStore implements AutoCloseable {
     private final DBOptions options;
     private final ColumnFamilyOptions metadataOptions;
     private final ColumnFamilyOptions preimageOptions;
+    private final ColumnFamilyOptions hardOptions;
     private final WriteOptions writeOptions;
     private final RocksDB database;
     private final ColumnFamilyHandle metadata;
     private final ColumnFamilyHandle preimages;
+    private final ColumnFamilyHandle hard;
     private final Object bufferLock = new Object();
     private final Object drainLock = new Object();
     private final AtomicReference<Throwable> backgroundFailure =
             new AtomicReference<>();
-    private Map<ByteBuffer, byte[]> pending = new HashMap<>();
+    private Map<ByteBuffer, byte[]> pendingPreimages = new HashMap<>();
+    private Map<ByteBuffer, byte[]> pendingHard = new HashMap<>();
     private ScheduledExecutorService flusher;
     private volatile boolean closed;
 
@@ -81,24 +86,28 @@ final class AvoidancePreimageStore implements AutoCloseable {
                 .setMaxSubcompactions(2);
         metadataOptions = new ColumnFamilyOptions();
         preimageOptions = new ColumnFamilyOptions();
+        hardOptions = new ColumnFamilyOptions();
         writeOptions = new WriteOptions().setDisableWAL(true);
         final var descriptors = List.of(
                 new ColumnFamilyDescriptor(
                         RocksDB.DEFAULT_COLUMN_FAMILY, metadataOptions),
                 new ColumnFamilyDescriptor(
-                        PREIMAGES_COLUMN_FAMILY, preimageOptions));
-        final var handles = new ArrayList<ColumnFamilyHandle>(2);
+                        PREIMAGES_COLUMN_FAMILY, preimageOptions),
+                new ColumnFamilyDescriptor(
+                        HARD_COLUMN_FAMILY, hardOptions));
+        final var handles = new ArrayList<ColumnFamilyHandle>(3);
         RocksDB opened = null;
         try {
             opened = RocksDB.open(options, this.directory.toString(),
                     descriptors, handles);
-            if (handles.size() != 2) {
+            if (handles.size() != 3) {
                 throw new IllegalStateException(
-                        "Avoidance work database did not open both column families");
+                        "Avoidance work database did not open all column families");
             }
             database = opened;
             metadata = handles.get(0);
             preimages = handles.get(1);
+            hard = handles.get(2);
             requireFormat(existing);
             flusher = Executors.newSingleThreadScheduledExecutor(
                     Thread.ofPlatform().daemon(true)
@@ -122,7 +131,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
         for (final var state : states) {
             keys.add(stateKey(state.maximumMoves(), state.pair()));
         }
-        putKeys(keys);
+        putKeys(keys, preimages);
     }
 
     void putPairs(final int maximumMoves,
@@ -132,16 +141,38 @@ final class AvoidancePreimageStore implements AutoCloseable {
         for (final var pair : pairs) {
             keys.add(stateKey(maximumMoves, pair));
         }
-        putKeys(keys);
+        putKeys(keys, preimages);
     }
 
-    private void putKeys(final List<byte[]> keys) {
+    void putHardStates(final List<? extends State> states) {
+        throwIfFailed();
+        final var keys = new ArrayList<byte[]>(states.size());
+        for (final var state : states) {
+            keys.add(stateKey(state.maximumMoves(), state.pair()));
+        }
+        putKeys(keys, hard);
+    }
+
+    void putHardPairs(final int maximumMoves,
+                      final List<CyclicTargetPair> pairs) {
+        throwIfFailed();
+        final var keys = new ArrayList<byte[]>(pairs.size());
+        for (final var pair : pairs) {
+            keys.add(stateKey(maximumMoves, pair));
+        }
+        putKeys(keys, hard);
+    }
+
+    private void putKeys(final List<byte[]> keys,
+                         final ColumnFamilyHandle destination) {
         synchronized (bufferLock) {
             throwIfFailed();
             if (closed) {
                 throw new IllegalStateException(
                         "Avoidance-preimage store is closed");
             }
+            final Map<ByteBuffer, byte[]> pending = destination == hard
+                    ? pendingHard : pendingPreimages;
             for (final var key : keys) {
                 pending.put(ByteBuffer.wrap(key), key);
             }
@@ -150,6 +181,17 @@ final class AvoidancePreimageStore implements AutoCloseable {
 
     long scanBatches(final int maximumMoves, final int batchSize,
                      final Consumer<List<CyclicTargetPair>> consumer) {
+        return scanBatches(preimages, maximumMoves, batchSize, consumer);
+    }
+
+    long scanHardBatches(final int maximumMoves, final int batchSize,
+                         final Consumer<List<CyclicTargetPair>> consumer) {
+        return scanBatches(hard, maximumMoves, batchSize, consumer);
+    }
+
+    private long scanBatches(final ColumnFamilyHandle source,
+                             final int maximumMoves, final int batchSize,
+                             final Consumer<List<CyclicTargetPair>> consumer) {
         drain(false);
         throwIfFailed();
         if (batchSize <= 0) {
@@ -162,7 +204,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
         try (final var readOptions = new ReadOptions()
                 .setSnapshot(snapshot).setVerifyChecksums(true)
                 .setFillCache(false);
-             final var iterator = database.newIterator(preimages, readOptions)) {
+             final var iterator = database.newIterator(source, readOptions)) {
             final var batch = new ArrayList<CyclicTargetPair>(batchSize);
             iterator.seek(prefix);
             while (iterator.isValid() && hasPrefix(iterator.key(), prefix)) {
@@ -192,6 +234,15 @@ final class AvoidancePreimageStore implements AutoCloseable {
     }
 
     StateInventory inventory(final int maximumMoves) {
+        return inventory(preimages, maximumMoves);
+    }
+
+    StateInventory hardInventory(final int maximumMoves) {
+        return inventory(hard, maximumMoves);
+    }
+
+    private StateInventory inventory(final ColumnFamilyHandle source,
+                                     final int maximumMoves) {
         drain(false);
         throwIfFailed();
         final byte[] prefix = statePrefix(maximumMoves);
@@ -199,7 +250,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
         long checksum = 0;
         try (final var readOptions = new ReadOptions()
                 .setVerifyChecksums(true).setFillCache(false);
-             final var iterator = database.newIterator(preimages, readOptions)) {
+             final var iterator = database.newIterator(source, readOptions)) {
             iterator.seek(prefix);
             while (iterator.isValid() && hasPrefix(iterator.key(), prefix)) {
                 if (iterator.value().length != 0) {
@@ -251,6 +302,20 @@ final class AvoidancePreimageStore implements AutoCloseable {
         }
     }
 
+    Optional<SearchManifest> searchManifest(final int maximumMoves) {
+        throwIfFailed();
+        try {
+            final byte[] encoded = database.get(
+                    metadata, searchKey(maximumMoves));
+            return encoded == null
+                    ? Optional.empty()
+                    : Optional.of(SearchManifest.decode(encoded));
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException(
+                    "Cannot read avoidance search manifest", failure);
+        }
+    }
+
     void recordWave(final WaveManifest manifest) {
         try {
             drain(true);
@@ -263,16 +328,31 @@ final class AvoidancePreimageStore implements AutoCloseable {
         }
     }
 
+    void recordSearch(final SearchManifest manifest) {
+        try {
+            drain(true);
+            database.put(metadata, writeOptions,
+                    searchKey(manifest.maximumMoves()), manifest.encoded());
+            flushRocks();
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException(
+                    "Cannot persist avoidance search manifest", failure);
+        }
+    }
+
     private void requireUsableDirectory(final boolean existing) {
         if (existing) {
             try (final var listOptions = new Options()) {
                 final var families = RocksDB.listColumnFamilies(
                         listOptions, directory.toString());
-                if (families.size() != 2
+                if ((families.size() != 2 && families.size() != 3)
                         || families.stream().noneMatch(name -> Arrays.equals(
                         name, RocksDB.DEFAULT_COLUMN_FAMILY))
                         || families.stream().noneMatch(name -> Arrays.equals(
-                        name, PREIMAGES_COLUMN_FAMILY))) {
+                        name, PREIMAGES_COLUMN_FAMILY))
+                        || (families.size() == 3
+                        && families.stream().noneMatch(name -> Arrays.equals(
+                        name, HARD_COLUMN_FAMILY)))) {
                     throw new IllegalStateException(
                             "Unsupported avoidance work database schema");
                 }
@@ -365,6 +445,11 @@ final class AvoidancePreimageStore implements AutoCloseable {
                 .getBytes(StandardCharsets.UTF_8);
     }
 
+    private static byte[] searchKey(final int maximumMoves) {
+        return ("search-" + maximumMoves)
+                .getBytes(StandardCharsets.UTF_8);
+    }
+
     private void flushFromBackground() {
         try {
             drain(false);
@@ -376,22 +461,32 @@ final class AvoidancePreimageStore implements AutoCloseable {
     private void drain(final boolean flushRocks) {
         synchronized (drainLock) {
             throwIfFailed();
-            final Map<ByteBuffer, byte[]> drained;
+            final Map<ByteBuffer, byte[]> drainedPreimages;
+            final Map<ByteBuffer, byte[]> drainedHard;
             synchronized (bufferLock) {
-                drained = pending;
-                pending = new HashMap<>();
+                drainedPreimages = pendingPreimages;
+                drainedHard = pendingHard;
+                pendingPreimages = new HashMap<>();
+                pendingHard = new HashMap<>();
             }
             try {
-                if (!drained.isEmpty()) {
-                    writeKeys(drained.values().stream().toList());
+                if (!drainedPreimages.isEmpty()) {
+                    writeKeys(preimages,
+                            drainedPreimages.values().stream().toList());
+                }
+                if (!drainedHard.isEmpty()) {
+                    writeKeys(hard, drainedHard.values().stream().toList());
                 }
                 if (flushRocks) {
                     flushRocks();
                 }
             } catch (final RocksDBException | RuntimeException failure) {
                 synchronized (bufferLock) {
-                    for (final var key : drained.values()) {
-                        pending.putIfAbsent(ByteBuffer.wrap(key), key);
+                    for (final var key : drainedPreimages.values()) {
+                        pendingPreimages.putIfAbsent(ByteBuffer.wrap(key), key);
+                    }
+                    for (final var key : drainedHard.values()) {
+                        pendingHard.putIfAbsent(ByteBuffer.wrap(key), key);
                     }
                 }
                 throw new IllegalStateException(
@@ -400,14 +495,15 @@ final class AvoidancePreimageStore implements AutoCloseable {
         }
     }
 
-    private void writeKeys(final List<byte[]> keys) throws RocksDBException {
+    private void writeKeys(final ColumnFamilyHandle destination,
+                           final List<byte[]> keys) throws RocksDBException {
         for (var start = 0; start < keys.size();
              start += ROCKS_WRITE_BATCH_SIZE) {
             final int end = Math.min(
                     keys.size(), start + ROCKS_WRITE_BATCH_SIZE);
             try (final var batch = new WriteBatch()) {
                 for (var index = start; index < end; index++) {
-                    batch.put(preimages, keys.get(index), EMPTY);
+                    batch.put(destination, keys.get(index), EMPTY);
                 }
                 database.write(writeOptions, batch);
             }
@@ -417,7 +513,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
     private void flushRocks() throws RocksDBException {
         try (final var flushOptions =
                      new FlushOptions().setWaitForFlush(true)) {
-            database.flush(flushOptions, List.of(metadata, preimages));
+            database.flush(flushOptions, List.of(metadata, preimages, hard));
         }
     }
 
@@ -452,6 +548,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
                     "Interrupted while closing avoidance work database",
                     failure);
         } finally {
+            hard.close();
             preimages.close();
             metadata.close();
             database.close();
@@ -461,6 +558,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
 
     private void closeOptions() {
         writeOptions.close();
+        hardOptions.close();
         preimageOptions.close();
         metadataOptions.close();
         options.close();
@@ -531,6 +629,51 @@ final class AvoidancePreimageStore implements AutoCloseable {
             final var output = StateInventory.decode(buffer);
             return new WaveManifest(
                     maximumMoves, input, applications, output);
+        }
+    }
+
+
+    record SearchManifest(int maximumMoves, StateInventory candidates,
+                          long trivialClosures, long certificates,
+                          StateInventory residuals, long checksum) {
+        private static final int ENCODED_BYTES = Integer.BYTES
+                + 7 * Long.BYTES;
+
+        SearchManifest {
+            if (maximumMoves <= 0 || candidates == null || residuals == null
+                    || trivialClosures < 0 || certificates < 0 || checksum < 0
+                    || trivialClosures + certificates + residuals.count()
+                    != candidates.count()) {
+                throw new IllegalArgumentException(
+                        "Inconsistent avoidance search manifest");
+            }
+        }
+
+        private byte[] encoded() {
+            return ByteBuffer.allocate(ENCODED_BYTES)
+                    .order(ByteOrder.BIG_ENDIAN)
+                    .putInt(maximumMoves)
+                    .putLong(candidates.count()).putLong(candidates.checksum())
+                    .putLong(trivialClosures).putLong(certificates)
+                    .putLong(residuals.count()).putLong(residuals.checksum())
+                    .putLong(checksum).array();
+        }
+
+        private static SearchManifest decode(final byte[] encoded) {
+            if (encoded == null || encoded.length != ENCODED_BYTES) {
+                throw new IllegalArgumentException(
+                        "Malformed avoidance search manifest");
+            }
+            final var buffer = ByteBuffer.wrap(encoded)
+                    .order(ByteOrder.BIG_ENDIAN);
+            final int maximumMoves = buffer.getInt();
+            final var candidates = StateInventory.decode(buffer);
+            final long trivialClosures = buffer.getLong();
+            final long certificates = buffer.getLong();
+            final var residuals = StateInventory.decode(buffer);
+            final long checksum = buffer.getLong();
+            return new SearchManifest(maximumMoves, candidates,
+                    trivialClosures, certificates, residuals, checksum);
         }
     }
 }

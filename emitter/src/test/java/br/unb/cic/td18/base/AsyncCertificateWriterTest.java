@@ -72,6 +72,29 @@ class AsyncCertificateWriterTest {
     }
 
     @Test
+    void writesIntermediateWitnessOnlyInItsSeparatedNamespace(
+            @TempDir final Path directory
+    ) throws Exception {
+        final var pair = CyclicTargetPair.of(
+                new MulticyclePermutation(Cycle.of(0, 1, 2)),
+                Cycle.of(0, 1, 2)).canonicalRepresentative();
+        final var moves = List.of(Cycle.of(0, 1, 2));
+
+        try (final var writer = new AsyncCertificateWriter(directory, 60)) {
+            writer.enqueueIntermediate(pair, 9, moves);
+        }
+
+        assertNull(get(directory, RocksDB.DEFAULT_COLUMN_FAMILY,
+                CertificateCodec.keyFor(pair)));
+        assertEquals(moves, CertificateCodec.decodeValue(get(directory,
+                AsyncCertificateWriter.INTERMEDIATE_WITNESSES_COLUMN_FAMILY,
+                CertificateCodec.intermediateKeyFor(pair, 9))));
+        assertNull(get(directory,
+                AsyncCertificateWriter.INTERMEDIATE_WITNESSES_COLUMN_FAMILY,
+                CertificateCodec.intermediateKeyFor(pair, 8)));
+    }
+
+    @Test
     void writesAvoidanceObstructionAndSidecarManifest(
             @TempDir final Path directory
     ) throws Exception {
@@ -81,7 +104,7 @@ class AsyncCertificateWriterTest {
                 Cycle.of(symbols));
         final var miss = new AvoidanceSearchMiss(10, pair);
         final var manifest = new AvoidancePhaseManifest(130, 134,
-                1, 10, 1, 0, 0, 1, 42, false);
+                1, 10, 0, 0, 1, 0, 0, 1, 42, false);
 
         try (final var writer = new AsyncCertificateWriter(directory, 60)) {
             writer.enqueueAvoidanceMiss(miss);
@@ -110,11 +133,59 @@ class AsyncCertificateWriterTest {
                 () -> new AsyncCertificateWriter(directory, 60));
     }
 
+    @Test
+    void upgradesTheTwoColumnFamilyDatabaseWithoutReplacingData(
+            @TempDir final Path directory
+    ) throws Exception {
+        final var pair = CyclicTargetPair.of(
+                new MulticyclePermutation(Cycle.of(0, 1, 2)),
+                Cycle.of(0, 1, 2)).canonicalRepresentative();
+        final var moves = List.of(Cycle.of(0, 1, 2));
+        writeLegacyDatabase(directory, pair, moves);
+
+        try (final var ignored = new AsyncCertificateWriter(directory, 60)) {
+            // Opening the writer performs the non-destructive schema upgrade.
+        }
+
+        assertEquals(moves, CertificateCodec.decodeValue(get(directory,
+                RocksDB.DEFAULT_COLUMN_FAMILY,
+                CertificateCodec.keyFor(pair))));
+        assertColumnFamilies(directory);
+    }
+
+    private static void writeLegacyDatabase(
+            final Path directory,
+            final CyclicTargetPair pair,
+            final List<Cycle> moves
+    ) throws Exception {
+        final var handles = new ArrayList<ColumnFamilyHandle>();
+        try (final var options = new DBOptions()
+                .setCreateIfMissing(true)
+                .setCreateMissingColumnFamilies(true);
+             final var witnessOptions = new ColumnFamilyOptions();
+             final var obstructionOptions = new ColumnFamilyOptions();
+             final var database = RocksDB.open(options, directory.toString(),
+                     List.of(
+                             new ColumnFamilyDescriptor(
+                                     RocksDB.DEFAULT_COLUMN_FAMILY,
+                                     witnessOptions),
+                             new ColumnFamilyDescriptor(
+                                     AsyncCertificateWriter
+                                             .OBSTRUCTIONS_COLUMN_FAMILY,
+                                     obstructionOptions)), handles)) {
+            database.put(handles.get(0), CertificateCodec.keyFor(pair),
+                    CertificateCodec.valueFor(moves));
+        } finally {
+            handles.forEach(ColumnFamilyHandle::close);
+        }
+    }
+
     private static byte[] get(final Path directory,
                               final byte[] family,
                               final byte[] key) throws Exception {
         try (final var witnessOptions = new ColumnFamilyOptions();
              final var obstructionOptions = new ColumnFamilyOptions();
+             final var intermediateOptions = new ColumnFamilyOptions();
              final var options = new DBOptions()) {
             final var handles = new ArrayList<ColumnFamilyHandle>();
             try (final var database = RocksDB.openReadOnly(
@@ -125,10 +196,16 @@ class AsyncCertificateWriterTest {
                             new ColumnFamilyDescriptor(
                                     AsyncCertificateWriter
                                             .OBSTRUCTIONS_COLUMN_FAMILY,
-                                    obstructionOptions)), handles)) {
-                final var handle = Arrays.equals(
-                        family, RocksDB.DEFAULT_COLUMN_FAMILY)
-                        ? handles.get(0) : handles.get(1);
+                                    obstructionOptions),
+                            new ColumnFamilyDescriptor(
+                                    AsyncCertificateWriter
+                                            .INTERMEDIATE_WITNESSES_COLUMN_FAMILY,
+                                    intermediateOptions)), handles)) {
+                final int index = Arrays.equals(
+                        family, RocksDB.DEFAULT_COLUMN_FAMILY) ? 0
+                        : Arrays.equals(family, AsyncCertificateWriter
+                        .OBSTRUCTIONS_COLUMN_FAMILY) ? 1 : 2;
+                final var handle = handles.get(index);
                 return database.get(handle, key);
             } finally {
                 handles.forEach(ColumnFamilyHandle::close);
@@ -141,11 +218,14 @@ class AsyncCertificateWriterTest {
         try (final var options = new Options()) {
             final var names = RocksDB.listColumnFamilies(
                     options, directory.toString());
-            assertEquals(2, names.size());
+            assertEquals(3, names.size());
             assertArrayEquals(RocksDB.DEFAULT_COLUMN_FAMILY, names.get(0));
             assertArrayEquals(
                     AsyncCertificateWriter.OBSTRUCTIONS_COLUMN_FAMILY,
                     names.get(1));
+            assertArrayEquals(
+                    AsyncCertificateWriter.INTERMEDIATE_WITNESSES_COLUMN_FAMILY,
+                    names.get(2));
         }
     }
 }

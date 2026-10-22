@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 
 /**
  * Exhaustive obligation emitter for the annotated types in Table 2 of the
- * TD(18) two-reduction document. Its durable output is a two-column-family
+ * TD(18) two-reduction document. Its durable output is a three-column-family
  * RocksDB database of independently replayable sorting witnesses and key-only
  * obstruction hits, together with versioned sidecar manifests.
  *
@@ -131,15 +131,19 @@ public final class WitnessEmitter {
                         result.residuals());
             }
             avoidanceResult = ObstructionAvoidance.resolve(terminalResiduals,
-                    (pair, rate, maximumMoves) ->
-                            SortingSearch.searchForSorting(
-                                    pair, rate, maximumMoves),
+                    (pair, rate, maximumMoves, fullDomain) -> fullDomain
+                            ? SortingSearch.searchForSorting(
+                            pair, rate, maximumMoves)
+                            : SortingSearch.searchAvoidanceIntermediate(
+                            pair, rate, maximumMoves),
                     writer::enqueueAvoidanceMiss);
             writer.enqueueAvoidanceManifest(new AvoidancePhaseManifest(
                     options.firstRow(), options.lastRow(),
                     avoidanceResult.terminalResiduals(),
                     avoidanceResult.reconstructionApplications(),
-                    avoidanceResult.searchObligations(),
+                    avoidanceResult.intermediateSearchObligations(),
+                    avoidanceResult.propagatedResiduals(),
+                    avoidanceResult.rootSearchObligations(),
                     avoidanceResult.trivialClosures(),
                     avoidanceResult.certificates(),
                     avoidanceResult.unresolved(), avoidanceResult.checksum(),

@@ -9,6 +9,8 @@ import java.util.zip.CRC32C;
 
 /** Compact on-disk encoding for normalized certificate pairs and witnesses. */
 public final class CertificateCodec {
+    private static final int INTERMEDIATE_KEY_FORMAT = 1;
+    private static final int INTERMEDIATE_KEY_HEADER_BYTES = 3;
     private static final int SYMBOL_BITS = 5;
     private static final int SYMBOL_LIMIT = 1 << SYMBOL_BITS;
     private static final int TRIPLE_BITS = 3 * SYMBOL_BITS;
@@ -34,6 +36,32 @@ public final class CertificateCodec {
         for (final var image : oneLine) {
             bitOffset = writeSymbol(encoded, bitOffset, Byte.toUnsignedInt(image));
         }
+        return encoded;
+    }
+
+    /**
+     * Encodes an avoidance-intermediate witness key with an explicit format,
+     * domain, and move budget. This namespace is deliberately distinct from
+     * the raw keys used by Table 2 and full-domain root witnesses.
+     */
+    public static byte[] intermediateKeyFor(
+            final CyclicTargetPair pair,
+            final int maximumMoves
+    ) {
+        if (maximumMoves <= 0 || maximumMoves > 0xFF) {
+            throw new IllegalArgumentException(
+                    "Intermediate witness budget must fit one byte");
+        }
+        final int domainSize = pair.getBeta().size();
+        requireDomainSize(domainSize);
+        final byte[] rawKey = keyFor(pair);
+        final byte[] encoded = new byte[
+                INTERMEDIATE_KEY_HEADER_BYTES + rawKey.length];
+        encoded[0] = (byte) INTERMEDIATE_KEY_FORMAT;
+        encoded[1] = (byte) domainSize;
+        encoded[2] = (byte) maximumMoves;
+        System.arraycopy(rawKey, 0, encoded,
+                INTERMEDIATE_KEY_HEADER_BYTES, rawKey.length);
         return encoded;
     }
 
@@ -158,6 +186,16 @@ public final class CertificateCodec {
     ) {
         final var checksum = new CRC32C();
         checksum.update(keyFor(pair));
+        return checksum.getValue();
+    }
+
+    /** Domain-separated contribution for an intermediate avoidance class. */
+    public static long intermediateClassKeyChecksumContribution(
+            final CyclicTargetPair pair,
+            final int maximumMoves
+    ) {
+        final var checksum = new CRC32C();
+        checksum.update(intermediateKeyFor(pair, maximumMoves));
         return checksum.getValue();
     }
 

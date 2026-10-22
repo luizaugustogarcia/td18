@@ -57,10 +57,11 @@ The `emitter` module contains:
 - direct twisted-bracelet generation and exact Burnside counting;
 - cyclic-target realizability checks and extended-toric canonicalization;
 - exhaustive Table 2 orchestration over the Java/JNI/CUDA exact bounded search;
-- two-column-family RocksDB output using the raw TD(16) five-bit instance and
-  fifteen-bit sorting encodings, plus versioned sidecar completion manifests;
-- full-domain avoidance-preimage reconstruction and root sorting for
-  bounded-search obstructions;
+- three-column-family RocksDB output using the raw TD(16) five-bit instance
+  and fifteen-bit sorting encodings, a domain-separated intermediate-witness
+  namespace, and versioned sidecar completion manifests;
+- intermediate screening, selective avoidance-preimage reconstruction, and
+  root sorting for bounded-search obstructions;
 - focused emission of complete sorting certificates for the two oriented
   19-cycle survivors;
 - certificate encoding and independent replay primitives;
@@ -197,18 +198,34 @@ Table 2 rather than stored. After all selected rows have been processed, every s
 is routed to the same final obstruction phase. Following the construction used
 by `../td16`, the emitter restores every possible contracted fixed-point placement, applies
 every inverse support for the selected reduction, and retains only reachable
-predecessor types. It repeats reconstruction, without searching an
-intermediate predecessor, until it reaches the full 19-symbol cyclic-target
-domain corresponding to a permutation in S18. The resulting root classes are
-deduplicated by extended-toric class and sorted independently with budget 10,
-so every avoidance certificate has the root-domain key expected by the
-checker. Only a ten-move root obstruction leaves the run unsuccessful. Such a
-root obstruction is another key-only entry in the `obstructions` family. The
-default column family contains only raw instance-to-sorting entries; versioned
-row and range manifests live under the `proof-manifests` sidecar directory.
+predecessor types. It deduplicates and searches each one-reduction predecessor
+with budget 9. A settled predecessor closes its represented root paths; only a
+conservative miss is propagated through the final inverse wave. The resulting
+19-symbol root classes are deduplicated by extended-toric class and sorted
+independently with budget 10. Complete intermediate witnesses are stored in
+the `avoidance-intermediate-witnesses` family under version/domain/budget
+prefixed keys. Table 2 and full-domain root witnesses retain raw keys in the
+default family. Only a ten-move root obstruction leaves the run unsuccessful;
+it is another key-only entry in the `obstructions` family. Versioned row and
+range manifests live under the `proof-manifests` sidecar directory.
 The artifact is ignored by Git and may be very large. Use a new or compatible
-TD(18) database directory; the emitter rejects the old prefixed single-family
-format rather than mixing formats.
+TD(18) database directory. Opening a compatible two-family database adds the
+intermediate-witness family non-destructively; the emitter still rejects the
+old prefixed single-family format.
+
+To run or resume only the persisted obstruction phase after all row manifests
+exist, use:
+
+~~~bash
+mvn -pl emitter -Pgpu compile exec:exec \
+  -Dexec.mainClass=br.unb.cic.td18.ObstructionAvoidanceRunner \
+  -Dtd18.certificateDb="$PWD/certificates" \
+  -Dtd18.args="--work-database=$PWD/avoidance-work"
+~~~
+
+The work database records candidate and conservative-residual inventories,
+checksums, and completed reconstruction/search waves. An existing compatible
+database is reused without deleting its candidate classes.
 
 ## Check sorting certificates
 

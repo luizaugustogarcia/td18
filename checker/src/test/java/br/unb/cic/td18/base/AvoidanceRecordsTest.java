@@ -41,7 +41,7 @@ class AvoidanceRecordsTest {
     @Test
     void roundTripsAnAvoidancePhaseManifest() {
         final var manifest = new AvoidancePhaseManifest(1, 204,
-                2_036, 10_000, 110, 20, 90, 0, 1234, true);
+                2_036, 10_000, 60, 10, 50, 20, 80, 0, 1234, true);
 
         assertEquals(manifest, AvoidancePhaseManifest.decode(
                 manifest.encoded()));

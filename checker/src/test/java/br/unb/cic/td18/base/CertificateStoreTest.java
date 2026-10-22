@@ -24,6 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CertificateStoreTest {
     private static final byte[] OBSTRUCTIONS =
             "obstructions".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] INTERMEDIATE_WITNESSES =
+            "avoidance-intermediate-witnesses"
+                    .getBytes(StandardCharsets.UTF_8);
 
     @Test
     void readsRawWitnessesAndSidecarManifests(
@@ -37,7 +40,7 @@ class CertificateStoreTest {
                 1, 1, 1, 0, 1, 0,
                 CertificateCodec.checksumContribution(pair, moves), true);
         final var avoidance = new AvoidancePhaseManifest(1, 204,
-                0, 0, 0, 0, 0, 0, 0, true);
+                0, 0, 0, 0, 0, 0, 0, 0, 0, true);
         writeDatabase(directory, pair, moves);
         writeManifests(directory, row, avoidance);
 
@@ -50,6 +53,9 @@ class CertificateStoreTest {
             assertEquals(1, batch.size());
             assertTrue(batch.getFirst().isPresent());
             assertEquals(moves, batch.getFirst().orElseThrow());
+            assertEquals(moves,
+                    store.findIntermediate(pair, 9).orElseThrow());
+            assertTrue(store.findIntermediate(pair, 8).isEmpty());
             assertEquals(row, store.requireRowManifest(1));
             assertEquals(List.of(avoidance), store.avoidanceManifests());
             assertFalse(store.findResidual(new ResidualObligation(
@@ -72,14 +78,21 @@ class CertificateStoreTest {
                 .setCreateMissingColumnFamilies(true);
         final var witnessOptions = new ColumnFamilyOptions();
         final var obstructionOptions = new ColumnFamilyOptions();
+        final var intermediateOptions = new ColumnFamilyOptions();
         RocksDB database = null;
         try {
             database = RocksDB.open(options, directory.toString(), List.of(
                     new ColumnFamilyDescriptor(
                             RocksDB.DEFAULT_COLUMN_FAMILY, witnessOptions),
                     new ColumnFamilyDescriptor(
-                            OBSTRUCTIONS, obstructionOptions)), handles);
+                            OBSTRUCTIONS, obstructionOptions),
+                    new ColumnFamilyDescriptor(
+                            INTERMEDIATE_WITNESSES,
+                            intermediateOptions)), handles);
             database.put(handles.get(0), CertificateCodec.keyFor(pair),
+                    CertificateCodec.valueFor(moves));
+            database.put(handles.get(2),
+                    CertificateCodec.intermediateKeyFor(pair, 9),
                     CertificateCodec.valueFor(moves));
         } catch (final RocksDBException failure) {
             throw new IllegalStateException(
@@ -90,6 +103,7 @@ class CertificateStoreTest {
                 database.close();
             }
             obstructionOptions.close();
+            intermediateOptions.close();
             witnessOptions.close();
             options.close();
         }

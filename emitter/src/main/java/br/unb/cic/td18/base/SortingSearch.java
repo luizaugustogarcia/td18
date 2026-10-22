@@ -12,4 +12,14 @@ public final class SortingSearch {
             final int maximumMoves) {
         return WitnessSearch.search(pair, minimumRate, maximumMoves);
     }
+
+    /** Classifies and persists an avoidance-intermediate search outcome. */
+    public static WitnessSearch.SearchResult searchAvoidanceIntermediate(
+            final CyclicTargetPair pair,
+            final float minimumRate,
+            final int maximumMoves
+    ) {
+        return WitnessSearch.searchIntermediate(
+                pair, minimumRate, maximumMoves);
+    }
 }

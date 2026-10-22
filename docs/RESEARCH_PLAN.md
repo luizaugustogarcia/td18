@@ -116,16 +116,21 @@ The emitter implements the obstruction-avoidance construction adapted from
 `../td16`. For an obstruction with budget `b`, it uncontracts the fixed points
 in every cyclic gap and enumerates the inverse supports of each reduction family capable
 of producing the terminal pair. It retains only predecessors admitted by the
-checked TD(18) priority policy at the preceding depth. Intermediate
-predecessors are used only for reconstruction: the emitter continues through
-all remaining reduction levels before deduplicating the full-domain root
-preimages by extended-toric class. It then searches each root independently
-with budget 10. Thus avoidance certificates use the 19-symbol cyclic-target
-keys corresponding to permutations in `S_18`; the checker need not look up an
-intermediate `S_17` class. A root obstruction is persisted as another key-only
-entry in the `obstructions` column family and remains unresolved.
-The versioned sidecar range manifest records reconstruction and root-search
-counts, the class-key checksum, and whether any root obstruction remains.
+checked TD(18) priority policy at the preceding depth. It deduplicates the
+one-reduction predecessors by extended-toric class and searches each within
+budget 9. A checked closure at that level also closes every represented root
+path after prepending its selected first reduction. Only a conservative
+intermediate search miss is propagated through the final inverse wave. The
+resulting full-domain roots are again deduplicated by extended-toric class and
+searched independently with budget 10. Complete intermediate witnesses use a
+dedicated `avoidance-intermediate-witnesses` column family and a key prefixed
+by format version, cyclic-domain size, and budget; Table 2 and full-domain root
+witnesses retain their raw keys in the default family. A root obstruction is
+persisted as another key-only entry in the `obstructions` column family and
+remains unresolved. The versioned sidecar range manifest records
+reconstruction counts, intermediate search and propagated-miss counts, root
+search counts, all outcomes, the class-key checksum, and whether any root
+obstruction remains.
 
 Exit criterion: every class counted by `Q` has either a checked
 prefix-plus-known-diameter closure or a replayable valid witness within its row
@@ -151,13 +156,15 @@ report must state all hypotheses and artifact versions explicitly.
 
 The repository currently implements the type enumerator, twisted-bracelet
 generation/counting framework, cyclic-target validation, CUDA search, and an
-emitter that streams Table 2 classes into a two-column-family RocksDB database.
-The default family stores raw TD(16)-encoded instance/sorting pairs, and the
-`obstructions` family stores raw instance keys with empty values. Versioned
-sidecar manifests carry per-row and avoidance-range counts, checksums, and
-completion records. It also implements the full-domain
-avoidance-preimage treatment. It also
-implements focused emission of complete sorting certificates for the two
+emitter that streams Table 2 classes into a three-column-family RocksDB
+database.
+The default family stores raw TD(16)-encoded Table 2 and root witness pairs,
+`avoidance-intermediate-witnesses` stores domain-separated intermediate
+witnesses, and `obstructions` stores raw instance keys with empty values.
+Versioned sidecar manifests carry per-row and avoidance-range counts,
+checksums, and completion records. It implements intermediate screening, the
+full-domain avoidance-preimage treatment, and focused emission of complete
+sorting certificates for the two
 oriented 19-cycle survivors found by the completed depth-first search. A
 CPU-only checker now independently reconstructs the 204-row inventory with a
 separate work-list implementation, reproduces the 9,304,845-node

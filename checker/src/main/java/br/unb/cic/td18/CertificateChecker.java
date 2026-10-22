@@ -466,12 +466,14 @@ public final class CertificateChecker {
                     .toList();
             final var checked = ObstructionAvoidance.resolve(
                     rangeResiduals,
-                    (pair, rate, maximumMoves) -> {
+                    (pair, rate, maximumMoves, fullDomain) -> {
                         if (cpuClosure(pair, maximumMoves)) {
                                 return CheckedSearchResult
                                     .triviallySettled();
                         }
-                        final var moves = certificates.find(
+                        final var moves = fullDomain
+                                ? certificates.find(pair, maximumMoves)
+                                : certificates.findIntermediate(
                                 pair, maximumMoves);
                         return moves.isPresent()
                                 ? CheckedSearchResult.certificate(
@@ -484,7 +486,9 @@ public final class CertificateChecker {
                     manifest.firstRow(), manifest.lastRow(),
                     checked.terminalResiduals(),
                     checked.reconstructionApplications(),
-                    checked.searchObligations(),
+                    checked.intermediateSearchObligations(),
+                    checked.propagatedResiduals(),
+                    checked.rootSearchObligations(),
                     checked.trivialClosures(), checked.certificates(),
                     checked.unresolved(), checked.checksum(),
                     checked.complete());

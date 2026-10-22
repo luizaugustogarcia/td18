@@ -47,13 +47,45 @@ class ObstructionAvoidanceTest {
     }
 
     @Test
-    void closesTerminalMissesThroughIndependentlySortedPreimages() {
+    void closesTerminalMissesAtTheIntermediatePredecessors() {
         final var residual = new ResidualObligation(
                 130, 8, controlResidual());
         final var persistedMisses = new ConcurrentLinkedQueue<>();
 
         final var result = ObstructionAvoidance.resolve(List.of(residual),
-                (pair, rate, maximumMoves) -> {
+                (pair, rate, maximumMoves, fullDomain) -> {
+                    assertFalse(fullDomain);
+                    assertEquals(9, maximumMoves);
+                    assertTrue(pair.getBeta().size()
+                            < ReductionTypeEnumerator.ROOT_SYMBOLS);
+                    assertTrue(pair.getBeta().size() == 17
+                            || pair.getBeta().size() == 18);
+                    return WitnessSearch.SearchResult.triviallySettled();
+                }, persistedMisses::add);
+
+        assertTrue(result.complete());
+        assertEquals(1, result.terminalResiduals());
+        assertEquals(6_272, result.reconstructionApplications());
+        assertEquals(627, result.intermediateSearchObligations());
+        assertEquals(0, result.propagatedResiduals());
+        assertEquals(0, result.rootSearchObligations());
+        assertEquals(627, result.trivialClosures());
+        assertEquals(0, result.certificates());
+        assertTrue(persistedMisses.isEmpty());
+    }
+
+    @Test
+    void propagatesOnlyIntermediateMissesToTheRootSearch() {
+        final var residual = new ResidualObligation(
+                130, 8, controlResidual());
+        final var persistedMisses = new ConcurrentLinkedQueue<>();
+
+        final var result = ObstructionAvoidance.resolve(List.of(residual),
+                (pair, rate, maximumMoves, fullDomain) -> {
+                    assertEquals(maximumMoves == 10, fullDomain);
+                    if (maximumMoves == 9) {
+                        return WitnessSearch.SearchResult.residual();
+                    }
                     assertEquals(10, maximumMoves);
                     assertEquals(ReductionTypeEnumerator.ROOT_SYMBOLS,
                             pair.getBeta().size());
@@ -63,8 +95,10 @@ class ObstructionAvoidanceTest {
         assertTrue(result.complete());
         assertEquals(1, result.terminalResiduals());
         assertEquals(1_733_030, result.reconstructionApplications());
-        assertEquals(623_283, result.searchObligations());
-        assertEquals(result.searchObligations(), result.trivialClosures());
+        assertEquals(627, result.intermediateSearchObligations());
+        assertEquals(627, result.propagatedResiduals());
+        assertEquals(623_283, result.rootSearchObligations());
+        assertEquals(623_283, result.trivialClosures());
         assertEquals(0, result.certificates());
         assertTrue(persistedMisses.isEmpty());
     }
@@ -76,7 +110,7 @@ class ObstructionAvoidanceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> ObstructionAvoidance.resolve(List.of(residual),
-                        (pair, rate, moves) ->
+                        (pair, rate, moves, fullDomain) ->
                                 WitnessSearch.SearchResult.triviallySettled(),
                         miss -> { }));
     }

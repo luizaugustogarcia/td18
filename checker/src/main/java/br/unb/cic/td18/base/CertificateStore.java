@@ -23,10 +23,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** Read-only two-column-family TD(18) certificate database. */
+/** Read-only TD(18) certificate database with separated witness namespaces. */
 public final class CertificateStore implements AutoCloseable {
     private static final byte[] OBSTRUCTIONS_COLUMN_FAMILY =
             "obstructions".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] INTERMEDIATE_WITNESSES_COLUMN_FAMILY =
+            "avoidance-intermediate-witnesses"
+                    .getBytes(StandardCharsets.UTF_8);
     private static final String STATS_PROPERTY =
             "td18.certificateStatsPeriodSeconds";
 
@@ -36,10 +39,12 @@ public final class CertificateStore implements AutoCloseable {
 
     private final DBOptions options;
     private final ColumnFamilyOptions witnessOptions;
+    private final ColumnFamilyOptions intermediateWitnessOptions;
     private final ColumnFamilyOptions obstructionOptions;
     private final ReadOptions readOptions;
     private final RocksDB database;
     private final ColumnFamilyHandle witnesses;
+    private final ColumnFamilyHandle intermediateWitnesses;
     private final ColumnFamilyHandle obstructions;
     private final CertificateManifestStore manifests;
     private final AtomicLong replayed = new AtomicLong();
@@ -51,6 +56,7 @@ public final class CertificateStore implements AutoCloseable {
         requireCompatibleColumnFamilies(absolute);
         options = new DBOptions().setMaxOpenFiles(-1);
         witnessOptions = columnFamilyOptions();
+        intermediateWitnessOptions = columnFamilyOptions();
         obstructionOptions = columnFamilyOptions();
         readOptions = new ReadOptions()
                 .setVerifyChecksums(true)
@@ -59,19 +65,23 @@ public final class CertificateStore implements AutoCloseable {
                 new ColumnFamilyDescriptor(
                         RocksDB.DEFAULT_COLUMN_FAMILY, witnessOptions),
                 new ColumnFamilyDescriptor(
-                        OBSTRUCTIONS_COLUMN_FAMILY, obstructionOptions));
-        final var handles = new ArrayList<ColumnFamilyHandle>(2);
+                        OBSTRUCTIONS_COLUMN_FAMILY, obstructionOptions),
+                new ColumnFamilyDescriptor(
+                        INTERMEDIATE_WITNESSES_COLUMN_FAMILY,
+                        intermediateWitnessOptions));
+        final var handles = new ArrayList<ColumnFamilyHandle>(3);
         RocksDB opened = null;
         try {
             opened = RocksDB.openReadOnly(
                     options, absolute.toString(), descriptors, handles);
-            if (handles.size() != 2) {
+            if (handles.size() != 3) {
                 throw new IllegalStateException(
-                        "TD(18) database did not open both column families");
+                        "TD(18) database did not open all column families");
             }
             database = opened;
             witnesses = handles.get(0);
             obstructions = handles.get(1);
+            intermediateWitnesses = handles.get(2);
         } catch (final RocksDBException failure) {
             closeHandles(handles);
             if (opened != null) {
@@ -112,11 +122,13 @@ public final class CertificateStore implements AutoCloseable {
         try (final var listOptions = new Options()) {
             final var families = RocksDB.listColumnFamilies(
                     listOptions, directory.toString());
-            if (families.size() != 2
+            if (families.size() != 3
                     || families.stream().noneMatch(name -> Arrays.equals(
                     name, RocksDB.DEFAULT_COLUMN_FAMILY))
                     || families.stream().noneMatch(name -> Arrays.equals(
-                    name, OBSTRUCTIONS_COLUMN_FAMILY))) {
+                    name, OBSTRUCTIONS_COLUMN_FAMILY))
+                    || families.stream().noneMatch(name -> Arrays.equals(
+                    name, INTERMEDIATE_WITNESSES_COLUMN_FAMILY))) {
                 throw new IllegalStateException(
                         "Unsupported TD(18) column-family schema");
             }
@@ -129,6 +141,22 @@ public final class CertificateStore implements AutoCloseable {
     public Optional<List<Cycle>> find(final CyclicTargetPair pair,
                                       final int maximumMoves) {
         final var value = get(witnesses, CertificateCodec.keyFor(pair));
+        if (value == null) {
+            return Optional.empty();
+        }
+        final var moves = CertificateCodec.decodeValue(value);
+        CertificateValidator.validate(pair, moves, maximumMoves);
+        replayed.incrementAndGet();
+        return Optional.of(moves);
+    }
+
+    /** Looks up and independently replays an avoidance-intermediate witness. */
+    public Optional<List<Cycle>> findIntermediate(
+            final CyclicTargetPair pair,
+            final int maximumMoves
+    ) {
+        final var value = get(intermediateWitnesses,
+                CertificateCodec.intermediateKeyFor(pair, maximumMoves));
         if (value == null) {
             return Optional.empty();
         }
@@ -259,6 +287,7 @@ public final class CertificateStore implements AutoCloseable {
         if (reporter != null) {
             reporter.shutdownNow();
         }
+        intermediateWitnesses.close();
         obstructions.close();
         witnesses.close();
         database.close();
@@ -268,6 +297,7 @@ public final class CertificateStore implements AutoCloseable {
     private void closeResources() {
         readOptions.close();
         obstructionOptions.close();
+        intermediateWitnessOptions.close();
         witnessOptions.close();
         options.close();
     }

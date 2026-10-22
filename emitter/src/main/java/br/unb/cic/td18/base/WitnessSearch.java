@@ -25,6 +25,30 @@ public final class WitnessSearch {
     public static SearchResult search(final CyclicTargetPair pair,
                                       final float minimumRate,
                                       final int maximumMoves) {
+        return search(pair, minimumRate, maximumMoves, false);
+    }
+
+    /** Searches an avoidance intermediate and persists it in its own namespace. */
+    public static SearchResult searchIntermediate(
+            final CyclicTargetPair pair,
+            final float minimumRate,
+            final int maximumMoves
+    ) {
+        if (maximumMoves >= ReductionTypeEnumerator.MAX_BUDGET
+                || pair.getBeta().size()
+                >= ReductionTypeEnumerator.ROOT_SYMBOLS) {
+            throw new IllegalArgumentException(
+                    "An avoidance intermediate must precede the full-domain root stage");
+        }
+        return search(pair, minimumRate, maximumMoves, true);
+    }
+
+    private static SearchResult search(
+            final CyclicTargetPair pair,
+            final float minimumRate,
+            final int maximumMoves,
+            final boolean intermediate
+    ) {
         final var omega = pair.getOmega();
         final var beta = pair.getBeta();
         final var betaBytes = new byte[beta.size()];
@@ -63,7 +87,11 @@ public final class WitnessSearch {
             throw new IllegalStateException(
                     "Native witness succeeded without a proof-scoped certificate writer");
         }
-        writer.enqueue(pair, moves);
+        if (intermediate) {
+            writer.enqueueIntermediate(pair, maximumMoves, moves);
+        } else {
+            writer.enqueue(pair, moves);
+        }
         writer.throwIfFailed();
         return SearchResult.certificate(moves);
     }
