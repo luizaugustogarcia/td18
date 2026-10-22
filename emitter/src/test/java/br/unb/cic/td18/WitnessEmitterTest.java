@@ -107,7 +107,6 @@ class WitnessEmitterTest {
         assertEquals(expected, persisted.size());
         assertTrue(persisted.stream().allMatch(obligation ->
                 obligation.row() == entry.number()
-                        && obligation.type().equals(entry.type())
                         && obligation.maximumMoves() == entry.remainingMoves()));
         assertEquals(persisted.stream()
                         .mapToLong(ResidualObligation::checksumContribution)

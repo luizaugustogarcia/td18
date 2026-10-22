@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -36,14 +37,16 @@ class CertificateCodecTest {
     }
 
     @Test
-    void rejectsAnotherCertificateFormatVersion() {
+    void matchesTheRawTd16EncodingAndRejectsNonzeroPadding() {
         final var pair = CyclicTargetPair.of(
                 new MulticyclePermutation(Cycle.of(0, 1, 2)),
-                Cycle.of(0, 1, 2)).canonicalRepresentative();
+                Cycle.of(0, 1, 2));
         final var key = CertificateCodec.keyFor(pair);
-        key[1]++;
         final var value = CertificateCodec.valueFor(List.of(Cycle.of(0, 1, 2)));
-        value[0]++;
+        assertArrayEquals(new byte[]{0x08, (byte) 0x80}, key);
+        assertArrayEquals(new byte[]{0x00, 0x44}, value);
+        key[key.length - 1] |= 1;
+        value[value.length - 1] |= 1;
 
         assertThrows(IllegalArgumentException.class,
                 () -> CertificateCodec.pairForKey(key, 3));

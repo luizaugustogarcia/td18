@@ -132,13 +132,16 @@ $3$-norm lower bound. Whenever a known diameter does not close a state,
 the budget still leaves sorting within reach, and we take the risk of
 searching for a sorting sequence. Obstruction closure must account for every
 full reduction path that can produce the obstructing instance from a
-fixed-point-free root on $19$ symbols. The emitter persists a versioned
-terminal residual record containing the instance, its class key, row, type,
-attempted budget, and checksum before the row manifest. Rather than selecting
-one path, its final phase reconstructs every reachable predecessor described
-below and persists a range-level completion manifest. The independent checker
-reconstructs that final phase and compares its counts and checksum with the
-manifest; a complete run remains pending.
+fixed-point-free root on $19$ symbols. The database has two column families.
+The default family maps a raw five-bit instance key to the sorting sequence
+encoded in consecutive fifteen-bit transposition triples, exactly as in the
+checked TD(16) computation. The 	exttt{obstructions} family stores only the
+same raw five-bit key with an empty value. It does not duplicate the row, type,
+budget, or reduction path: Table~ef{tab:complete} and the checked recursion
+reconstruct that context while regenerating the instance. Versioned row and
+range completion manifests are sidecar artifacts rather than database keys.
+The independent checker reconstructs the final phase and compares its counts
+and checksum with those manifests; a complete run remains pending.
 
 \section{Reduction policy and recursion}
 
@@ -305,7 +308,8 @@ by extended-toric class and sort one representative of each root class
 independently within $10$ moves. Consequently every persisted avoidance
 certificate has the full-domain key that the checker will query; it never needs
 to look up an intermediate permutation in $S_{17}$. A ten-move root
-obstruction is an unresolved obligation and makes the emitter fail.
+obstruction is stored as a key-only entry in the 	exttt{obstructions} column
+family, remains unresolved, and makes the emitter fail.
 
 \clearpage
 \appendix

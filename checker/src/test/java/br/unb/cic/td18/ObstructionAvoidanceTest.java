@@ -48,8 +48,8 @@ class ObstructionAvoidanceTest {
 
     @Test
     void closesTerminalMissesThroughIndependentlySortedPreimages() {
-        final var residual = new ResidualObligation(130,
-                "(11-O,5-O)", 8, controlResidual());
+        final var residual = new ResidualObligation(
+                130, 8, controlResidual());
         final var persistedMisses = new ConcurrentLinkedQueue<>();
 
         final var result = ObstructionAvoidance.resolve(List.of(residual),
@@ -71,8 +71,8 @@ class ObstructionAvoidanceTest {
 
     @Test
     void rejectsAResidualAssignedToTheWrongTableRow() {
-        final var residual = new ResidualObligation(129,
-                "(11-O,5-O)", 8, controlResidual());
+        final var residual = new ResidualObligation(
+                129, 8, controlResidual());
 
         assertThrows(IllegalArgumentException.class,
                 () -> ObstructionAvoidance.resolve(List.of(residual),

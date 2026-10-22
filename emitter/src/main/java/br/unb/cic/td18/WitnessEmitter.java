@@ -25,9 +25,9 @@ import java.util.function.Consumer;
 
 /**
  * Exhaustive obligation emitter for the annotated types in Table 2 of the
- * TD(18) two-reduction document. Its durable output is a RocksDB database of
- * independently replayable GPU sorting certificates, terminal residual
- * obligations, and row manifests.
+ * TD(18) two-reduction document. Its durable output is a two-column-family
+ * RocksDB database of independently replayable sorting witnesses and key-only
+ * obstruction hits, together with versioned sidecar manifests.
  *
  * <p>For each selected row with {@code Q = R}, direct twisted-bracelet
  * generation emits one cyclic-target pair per remaining extended-toric class.
@@ -213,8 +213,7 @@ public final class WitnessEmitter {
                         }
                         case RESIDUAL -> {
                             final var obligation = new ResidualObligation(
-                                    entry.number(), entry.type(),
-                                    entry.remainingMoves(), pair);
+                                    entry.number(), entry.remainingMoves(), pair);
                             residualSink.accept(obligation);
                             residuals.increment();
                             checksum.add(obligation.checksumContribution());

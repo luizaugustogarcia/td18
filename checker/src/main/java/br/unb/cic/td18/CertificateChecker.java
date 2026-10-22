@@ -310,7 +310,7 @@ public final class CertificateChecker {
             }
 
             final var expectedResidual = new ResidualObligation(
-                    entry.number(), entry.type(), entry.remainingMoves(), pair);
+                    entry.number(), entry.remainingMoves(), pair);
             final var storedResidual = certificates.findResidual(
                     expectedResidual).orElseThrow(() ->
                     new IllegalStateException(

@@ -2,13 +2,16 @@ package br.unb.cic.td18.base;
 
 import br.unb.cic.td18.permutation.Cycle;
 import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.DBOptions;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,11 +23,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** Read-only TD(18) certificate database with replay on every witness lookup. */
+/** Read-only two-column-family TD(18) certificate database. */
 public final class CertificateStore implements AutoCloseable {
-    private static final byte[] DATABASE_FORMAT_KEY =
-            new byte[]{0, 'T', 'D', '1', '8'};
-    private static final byte[] DATABASE_FORMAT_VALUE = new byte[]{5};
+    private static final byte[] OBSTRUCTIONS_COLUMN_FAMILY =
+            "obstructions".getBytes(StandardCharsets.UTF_8);
     private static final String STATS_PROPERTY =
             "td18.certificateStatsPeriodSeconds";
 
@@ -32,45 +34,61 @@ public final class CertificateStore implements AutoCloseable {
         RocksDB.loadLibrary();
     }
 
-    private final Options options = new Options()
-            .setMaxOpenFiles(-1)
-            .setTableFormatConfig(new BlockBasedTableConfig()
-                    .setCacheIndexAndFilterBlocks(false));
-    private final ReadOptions readOptions = new ReadOptions()
-            .setVerifyChecksums(true)
-            .setFillCache(false);
+    private final DBOptions options;
+    private final ColumnFamilyOptions witnessOptions;
+    private final ColumnFamilyOptions obstructionOptions;
+    private final ReadOptions readOptions;
     private final RocksDB database;
+    private final ColumnFamilyHandle witnesses;
+    private final ColumnFamilyHandle obstructions;
+    private final CertificateManifestStore manifests;
     private final AtomicLong replayed = new AtomicLong();
     private final ScheduledExecutorService reporter;
     private volatile long reportStarted = System.nanoTime();
 
     public CertificateStore(final Path directory) {
+        final var absolute = directory.toAbsolutePath();
+        requireCompatibleColumnFamilies(absolute);
+        options = new DBOptions().setMaxOpenFiles(-1);
+        witnessOptions = columnFamilyOptions();
+        obstructionOptions = columnFamilyOptions();
+        readOptions = new ReadOptions()
+                .setVerifyChecksums(true)
+                .setFillCache(false);
+        final var descriptors = List.of(
+                new ColumnFamilyDescriptor(
+                        RocksDB.DEFAULT_COLUMN_FAMILY, witnessOptions),
+                new ColumnFamilyDescriptor(
+                        OBSTRUCTIONS_COLUMN_FAMILY, obstructionOptions));
+        final var handles = new ArrayList<ColumnFamilyHandle>(2);
         RocksDB opened = null;
         try {
             opened = RocksDB.openReadOnly(
-                    options, directory.toAbsolutePath().toString());
-            final var format = opened.get(readOptions, DATABASE_FORMAT_KEY);
-            if (!Arrays.equals(format, DATABASE_FORMAT_VALUE)) {
+                    options, absolute.toString(), descriptors, handles);
+            if (handles.size() != 2) {
                 throw new IllegalStateException(
-                        "Unsupported TD(18) certificate database format");
+                        "TD(18) database did not open both column families");
             }
             database = opened;
+            witnesses = handles.get(0);
+            obstructions = handles.get(1);
         } catch (final RocksDBException failure) {
+            closeHandles(handles);
             if (opened != null) {
                 opened.close();
             }
-            readOptions.close();
-            options.close();
+            closeResources();
             throw new IllegalStateException(
                     "Cannot open certificate database " + directory, failure);
         } catch (final RuntimeException failure) {
+            closeHandles(handles);
             if (opened != null) {
                 opened.close();
             }
-            readOptions.close();
-            options.close();
+            closeResources();
             throw failure;
         }
+        manifests = new CertificateManifestStore(absolute);
 
         final long period = parsePeriod();
         if (period == 0) {
@@ -84,9 +102,33 @@ public final class CertificateStore implements AutoCloseable {
         }
     }
 
+    private static ColumnFamilyOptions columnFamilyOptions() {
+        return new ColumnFamilyOptions()
+                .setTableFormatConfig(new BlockBasedTableConfig()
+                        .setCacheIndexAndFilterBlocks(false));
+    }
+
+    private static void requireCompatibleColumnFamilies(final Path directory) {
+        try (final var listOptions = new Options()) {
+            final var families = RocksDB.listColumnFamilies(
+                    listOptions, directory.toString());
+            if (families.size() != 2
+                    || families.stream().noneMatch(name -> Arrays.equals(
+                    name, RocksDB.DEFAULT_COLUMN_FAMILY))
+                    || families.stream().noneMatch(name -> Arrays.equals(
+                    name, OBSTRUCTIONS_COLUMN_FAMILY))) {
+                throw new IllegalStateException(
+                        "Unsupported TD(18) column-family schema");
+            }
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException(
+                    "Cannot inspect certificate database " + directory, failure);
+        }
+    }
+
     public Optional<List<Cycle>> find(final CyclicTargetPair pair,
                                       final int maximumMoves) {
-        final var value = get(CertificateCodec.keyFor(pair));
+        final var value = get(witnesses, CertificateCodec.keyFor(pair));
         if (value == null) {
             return Optional.empty();
         }
@@ -96,22 +138,21 @@ public final class CertificateStore implements AutoCloseable {
         return Optional.of(moves);
     }
 
-    /**
-     * Looks up and independently replays a position-preserving batch with one
-     * RocksDB multi-get operation.
-     */
+    /** Looks up and independently replays a position-preserving batch. */
     public List<Optional<List<Cycle>>> find(
             final CyclicTargetPair[] pairs,
             final int maximumMoves
     ) {
         final var keys = new ArrayList<byte[]>(pairs.length);
+        final var handles = new ArrayList<ColumnFamilyHandle>(pairs.length);
         for (final var pair : pairs) {
             keys.add(CertificateCodec.keyFor(pair));
+            handles.add(witnesses);
         }
 
         final List<byte[]> values;
         try {
-            values = database.multiGetAsList(readOptions, keys);
+            values = database.multiGetAsList(readOptions, handles, keys);
         } catch (final RocksDBException failure) {
             throw new IllegalStateException(
                     "Cannot read certificate database", failure);
@@ -144,70 +185,42 @@ public final class CertificateStore implements AutoCloseable {
 
     public CertificateRowManifest requireRowManifest(final int row) {
         if (row <= 0 || row > 0xFFFF) {
-            throw new IllegalArgumentException("Invalid Table 2 row: " + row);
+            throw new IllegalArgumentException(
+                    "Invalid Table 2 row: " + row);
         }
-        final var key = new byte[]{
-                2, 3, (byte) (row >>> Byte.SIZE), (byte) row
-        };
-        final var value = get(key);
-        if (value == null) {
-            throw new IllegalStateException(
-                    "Missing certificate row manifest: " + row);
-        }
-        return CertificateRowManifest.decode(key, value);
+        return manifests.requireRow(row);
     }
 
     public Optional<ResidualObligation> findResidual(
             final ResidualObligation expected
     ) {
-        final var value = get(expected.key());
-        if (value == null) {
-            return Optional.empty();
-        }
-        final var decoded = ResidualObligation.decode(expected.key(), value);
-        if (!decoded.equals(expected)) {
-            throw new IllegalStateException(
-                    "Residual record does not match its generated class");
-        }
-        return Optional.of(decoded);
+        return hasObstruction(expected.key())
+                ? Optional.of(expected) : Optional.empty();
     }
 
     public boolean hasAvoidanceMiss(final AvoidanceSearchMiss expected) {
-        final var value = get(expected.key());
+        return hasObstruction(expected.key());
+    }
+
+    public List<AvoidancePhaseManifest> avoidanceManifests() {
+        return manifests.avoidanceManifests();
+    }
+
+    private boolean hasObstruction(final byte[] key) {
+        final var value = get(obstructions, key);
         if (value == null) {
             return false;
         }
-        final var decoded = AvoidanceSearchMiss.decode(expected.key(), value);
-        if (!decoded.equals(expected)) {
+        if (value.length != 0) {
             throw new IllegalStateException(
-                    "Avoidance-miss record does not match its class");
+                    "An obstruction entry must have an empty value");
         }
         return true;
     }
 
-    /** Reads the small range-manifest keyspace without scanning certificates. */
-    public List<AvoidancePhaseManifest> avoidanceManifests() {
-        final var result = new ArrayList<AvoidancePhaseManifest>();
-        try (final var iterator = database.newIterator(readOptions)) {
-            iterator.seek(new byte[]{4});
-            while (iterator.isValid()
-                    && iterator.key().length > 0
-                    && Byte.toUnsignedInt(iterator.key()[0]) == 4) {
-                result.add(AvoidancePhaseManifest.decode(
-                        iterator.key(), iterator.value()));
-                iterator.next();
-            }
-            iterator.status();
-        } catch (final RocksDBException failure) {
-            throw new IllegalStateException(
-                    "Cannot read avoidance manifests", failure);
-        }
-        return List.copyOf(result);
-    }
-
-    private byte[] get(final byte[] key) {
+    private byte[] get(final ColumnFamilyHandle handle, final byte[] key) {
         try {
-            return database.get(readOptions, key);
+            return database.get(handle, readOptions, key);
         } catch (final RocksDBException failure) {
             throw new IllegalStateException(
                     "Cannot read certificate database", failure);
@@ -246,8 +259,22 @@ public final class CertificateStore implements AutoCloseable {
         if (reporter != null) {
             reporter.shutdownNow();
         }
+        obstructions.close();
+        witnesses.close();
         database.close();
+        closeResources();
+    }
+
+    private void closeResources() {
         readOptions.close();
+        obstructionOptions.close();
+        witnessOptions.close();
         options.close();
+    }
+
+    private static void closeHandles(
+            final List<ColumnFamilyHandle> handles
+    ) {
+        handles.forEach(ColumnFamilyHandle::close);
     }
 }

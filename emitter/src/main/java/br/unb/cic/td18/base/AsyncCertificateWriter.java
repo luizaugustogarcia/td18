@@ -1,7 +1,11 @@
 package br.unb.cic.td18.base;
 
 import br.unb.cic.td18.permutation.Cycle;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompactionStyle;
+import org.rocksdb.DBOptions;
 import org.rocksdb.FlushOptions;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
@@ -9,9 +13,14 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -21,13 +30,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Proof-scoped asynchronous RocksDB certificate sink. Search-completion
- * threads enqueue validated witnesses; one writer owns every database call.
+ * Proof-scoped asynchronous sink. The default column family contains only
+ * TD(16)-encoded witnesses; the {@code obstructions} column family contains
+ * only TD(16)-encoded instance keys with empty values.
  */
 public final class AsyncCertificateWriter implements AutoCloseable {
-    private static final byte[] DATABASE_FORMAT_KEY =
-            new byte[]{0, 'T', 'D', '1', '8'};
-    private static final byte[] DATABASE_FORMAT_VALUE = new byte[]{5};
+    static final byte[] OBSTRUCTIONS_COLUMN_FAMILY =
+            "obstructions".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] EMPTY_VALUE = new byte[0];
     private static final long GIBIBYTE = 1L << 30;
     private static final long CERTIFICATE_SST_TARGET_SIZE = GIBIBYTE;
     private static final long CERTIFICATE_BASE_LEVEL_SIZE = 10L * GIBIBYTE;
@@ -36,124 +46,159 @@ public final class AsyncCertificateWriter implements AutoCloseable {
         RocksDB.loadLibrary();
     }
 
-    private final Options options = new Options()
-            .setCreateIfMissing(true)
-            .setCompactionStyle(CompactionStyle.LEVEL)
-            .setDisableAutoCompactions(false)
-            .setTargetFileSizeBase(CERTIFICATE_SST_TARGET_SIZE)
-            .setMaxBytesForLevelBase(CERTIFICATE_BASE_LEVEL_SIZE)
-            .setLevel0FileNumCompactionTrigger(4)
-            .setMaxBackgroundJobs(4)
-            .setMaxSubcompactions(2);
+    private final DBOptions options;
+    private final ColumnFamilyOptions witnessOptions;
+    private final ColumnFamilyOptions obstructionOptions;
     private final RocksDB database;
-    private final LinkedBlockingQueue<Entry> pending = new LinkedBlockingQueue<>();
+    private final ColumnFamilyHandle witnesses;
+    private final ColumnFamilyHandle obstructions;
+    private final CertificateManifestStore manifests;
+    private final LinkedBlockingQueue<PendingEntry> pending =
+            new LinkedBlockingQueue<>();
     private final ScheduledExecutorService writer;
-    private final AtomicReference<Throwable> backgroundFailure = new AtomicReference<>();
+    private final AtomicReference<Throwable> backgroundFailure =
+            new AtomicReference<>();
     private final Object drainLock = new Object();
     private volatile boolean closed;
 
-    public AsyncCertificateWriter(final Path directory, final long flushPeriodSeconds) {
+    public AsyncCertificateWriter(final Path directory,
+                                  final long flushPeriodSeconds) {
         if (flushPeriodSeconds <= 0) {
-            throw new IllegalArgumentException("Certificate flush period must be positive");
+            throw new IllegalArgumentException(
+                    "Certificate flush period must be positive");
         }
+        final var absolute = directory.toAbsolutePath();
+        requireCompatibleColumnFamilies(absolute);
+        options = new DBOptions()
+                .setCreateIfMissing(true)
+                .setCreateMissingColumnFamilies(true)
+                .setMaxBackgroundJobs(4)
+                .setMaxSubcompactions(2);
+        witnessOptions = columnFamilyOptions();
+        obstructionOptions = columnFamilyOptions();
+        final var descriptors = List.of(
+                new ColumnFamilyDescriptor(
+                        RocksDB.DEFAULT_COLUMN_FAMILY, witnessOptions),
+                new ColumnFamilyDescriptor(
+                        OBSTRUCTIONS_COLUMN_FAMILY, obstructionOptions));
+        final var handles = new ArrayList<ColumnFamilyHandle>(2);
         RocksDB openedDatabase = null;
         try {
             openedDatabase = RocksDB.open(
-                    options, directory.toAbsolutePath().toString());
-            initializeDatabaseFormat(openedDatabase);
+                    options, absolute.toString(), descriptors, handles);
+            if (handles.size() != 2) {
+                throw new IllegalStateException(
+                        "TD(18) database did not open both column families");
+            }
         } catch (final RocksDBException failure) {
+            closeHandles(handles);
             if (openedDatabase != null) {
                 openedDatabase.close();
             }
-            options.close();
-            throw new IllegalStateException("Cannot open certificate database " + directory, failure);
+            closeOptions();
+            throw new IllegalStateException(
+                    "Cannot open certificate database " + directory, failure);
         } catch (final RuntimeException failure) {
+            closeHandles(handles);
             if (openedDatabase != null) {
                 openedDatabase.close();
             }
-            options.close();
+            closeOptions();
             throw failure;
         }
         database = openedDatabase;
+        witnesses = handles.get(0);
+        obstructions = handles.get(1);
+        manifests = new CertificateManifestStore(absolute);
         writer = Executors.newSingleThreadScheduledExecutor(
-                Thread.ofPlatform().name("certificate-rocksdb-writer-", 0).factory());
+                Thread.ofPlatform().name("certificate-rocksdb-writer-", 0)
+                        .factory());
         writer.scheduleWithFixedDelay(this::drainFromBackground,
                 flushPeriodSeconds, flushPeriodSeconds, TimeUnit.SECONDS);
     }
 
-    private static void initializeDatabaseFormat(final RocksDB database)
-            throws RocksDBException {
-        final var storedFormat = database.get(DATABASE_FORMAT_KEY);
-        if (storedFormat != null) {
-            if (!Arrays.equals(storedFormat, DATABASE_FORMAT_VALUE)) {
-                throw new IllegalStateException(
-                        "Unsupported TD(18) certificate database format");
+    private static ColumnFamilyOptions columnFamilyOptions() {
+        return new ColumnFamilyOptions()
+                .setCompactionStyle(CompactionStyle.LEVEL)
+                .setDisableAutoCompactions(false)
+                .setTargetFileSizeBase(CERTIFICATE_SST_TARGET_SIZE)
+                .setMaxBytesForLevelBase(CERTIFICATE_BASE_LEVEL_SIZE)
+                .setLevel0FileNumCompactionTrigger(4);
+    }
+
+    private static void requireCompatibleColumnFamilies(final Path directory) {
+        if (!Files.isRegularFile(directory.resolve("CURRENT"))) {
+            if (Files.exists(directory)) {
+                try (final var contents = Files.list(directory)) {
+                    if (contents.findAny().isPresent()) {
+                        throw new IllegalStateException(
+                                "Refusing to create a TD(18) database in a nonempty directory");
+                    }
+                } catch (final IOException failure) {
+                    throw new IllegalStateException(
+                            "Cannot inspect certificate directory " + directory, failure);
+                }
             }
             return;
         }
-        try (final var iterator = database.newIterator()) {
-            iterator.seekToFirst();
-            if (iterator.isValid()) {
+        try (final var listOptions = new Options()) {
+            final var families = RocksDB.listColumnFamilies(
+                    listOptions, directory.toString());
+            if (families.size() != 2
+                    || families.stream().noneMatch(name -> Arrays.equals(
+                    name, RocksDB.DEFAULT_COLUMN_FAMILY))
+                    || families.stream().noneMatch(name -> Arrays.equals(
+                    name, OBSTRUCTIONS_COLUMN_FAMILY))) {
                 throw new IllegalStateException(
-                        "Refusing to mix an unversioned database with TD(18) certificates");
+                        "Unsupported TD(18) column-family schema");
             }
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException(
+                    "Cannot inspect certificate database " + directory, failure);
         }
-        database.put(DATABASE_FORMAT_KEY, DATABASE_FORMAT_VALUE);
     }
 
-    /** Nonblocking with respect to the RocksDB writer and GPU completion threads. */
-    public void enqueue(final CyclicTargetPair canonicalPair, final List<Cycle> moves) {
+    /** Nonblocking with respect to the RocksDB writer and GPU threads. */
+    public void enqueue(final CyclicTargetPair canonicalPair,
+                        final List<Cycle> moves) {
         Objects.requireNonNull(canonicalPair);
         Objects.requireNonNull(moves);
-        throwIfFailed();
-        if (closed) {
-            throw new IllegalStateException("Certificate writer is closed");
-        }
-        pending.add(new Entry(
+        enqueue(new DatabaseEntry(Target.WITNESS,
                 CertificateCodec.keyFor(canonicalPair),
                 CertificateCodec.valueFor(moves)));
     }
 
-    /** Queues a row marker after all of that row's certificate entries. */
+    /** Queues a row sidecar after every outcome from that row. */
     public void enqueueManifest(final CertificateRowManifest manifest) {
-        Objects.requireNonNull(manifest);
-        throwIfFailed();
-        if (closed) {
-            throw new IllegalStateException("Certificate writer is closed");
-        }
-        pending.add(new Entry(manifest.key(), manifest.value()));
+        enqueue(new RowManifestEntry(Objects.requireNonNull(manifest)));
     }
 
-    /** Queues a bounded-search miss for the final obstruction phase. */
+    /** Queues a bounded-search obstruction as a key-only entry. */
     public void enqueueResidual(final ResidualObligation obligation) {
         Objects.requireNonNull(obligation);
-        throwIfFailed();
-        if (closed) {
-            throw new IllegalStateException("Certificate writer is closed");
-        }
-        pending.add(new Entry(obligation.key(), obligation.value()));
+        enqueue(new DatabaseEntry(
+                Target.OBSTRUCTION, obligation.key(), EMPTY_VALUE));
     }
 
-    /** Queues a miss produced by an avoidance-preimage search. */
+    /** Queues an avoidance-root obstruction as a key-only entry. */
     public void enqueueAvoidanceMiss(final AvoidanceSearchMiss miss) {
         Objects.requireNonNull(miss);
-        throwIfFailed();
-        if (closed) {
-            throw new IllegalStateException("Certificate writer is closed");
-        }
-        pending.add(new Entry(miss.key(), miss.value()));
+        enqueue(new DatabaseEntry(Target.OBSTRUCTION, miss.key(), EMPTY_VALUE));
     }
 
-    /** Queues the final marker after every avoidance-preimage entry. */
+    /** Queues the final range sidecar after every avoidance outcome. */
     public void enqueueAvoidanceManifest(
             final AvoidancePhaseManifest manifest
     ) {
-        Objects.requireNonNull(manifest);
+        enqueue(new AvoidanceManifestEntry(Objects.requireNonNull(manifest)));
+    }
+
+    private void enqueue(final PendingEntry entry) {
         throwIfFailed();
         if (closed) {
             throw new IllegalStateException("Certificate writer is closed");
         }
-        pending.add(new Entry(manifest.key(), manifest.value()));
+        pending.add(entry);
     }
 
     public void throwIfFailed() {
@@ -173,20 +218,52 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     private void drain(final boolean flush) throws RocksDBException {
         synchronized (drainLock) {
-            final var drained = new ArrayList<Entry>();
+            final var drained = new ArrayList<PendingEntry>();
             pending.drainTo(drained);
+            final var batchWitnesses = new HashSet<ByteBuffer>();
+            for (final var entry : drained) {
+                if (entry instanceof DatabaseEntry databaseEntry
+                        && databaseEntry.target() == Target.WITNESS) {
+                    batchWitnesses.add(ByteBuffer.wrap(databaseEntry.key()));
+                }
+            }
+
             if (!drained.isEmpty()) {
                 try (final var batch = new WriteBatch();
                      final var writeOptions = new WriteOptions()) {
                     for (final var entry : drained) {
-                        batch.put(entry.key(), entry.value());
+                        if (!(entry instanceof DatabaseEntry databaseEntry)) {
+                            continue;
+                        }
+                        if (databaseEntry.target() == Target.WITNESS) {
+                            batch.put(witnesses, databaseEntry.key(),
+                                    databaseEntry.value());
+                            batch.delete(obstructions, databaseEntry.key());
+                        } else if (!batchWitnesses.contains(
+                                ByteBuffer.wrap(databaseEntry.key()))
+                                && !database.keyExists(
+                                witnesses, databaseEntry.key())) {
+                            batch.put(obstructions, databaseEntry.key(),
+                                    EMPTY_VALUE);
+                        }
                     }
-                    database.write(writeOptions, batch);
+                    if (batch.count() > 0) {
+                        database.write(writeOptions, batch);
+                    }
                 }
             }
             if (flush) {
-                try (final var flushOptions = new FlushOptions().setWaitForFlush(true)) {
-                    database.flush(flushOptions);
+                try (final var flushOptions =
+                             new FlushOptions().setWaitForFlush(true)) {
+                    database.flush(flushOptions,
+                            List.of(witnesses, obstructions));
+                }
+            }
+            for (final var entry : drained) {
+                if (entry instanceof RowManifestEntry row) {
+                    manifests.write(row.manifest());
+                } else if (entry instanceof AvoidanceManifestEntry avoidance) {
+                    manifests.write(avoidance.manifest());
                 }
             }
         }
@@ -209,15 +286,49 @@ public final class AsyncCertificateWriter implements AutoCloseable {
             throwIfFailed();
         } catch (final InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while closing certificate writer", exception);
+            throw new IllegalStateException(
+                    "Interrupted while closing certificate writer", exception);
         } catch (final RocksDBException exception) {
-            throw new IllegalStateException("Cannot finish certificate database", exception);
+            throw new IllegalStateException(
+                    "Cannot finish certificate database", exception);
         } finally {
+            obstructions.close();
+            witnesses.close();
             database.close();
-            options.close();
+            closeOptions();
         }
     }
 
-    private record Entry(byte[] key, byte[] value) {
+    private void closeOptions() {
+        obstructionOptions.close();
+        witnessOptions.close();
+        options.close();
+    }
+
+    private static void closeHandles(
+            final List<ColumnFamilyHandle> handles
+    ) {
+        handles.forEach(ColumnFamilyHandle::close);
+    }
+
+    private enum Target {
+        WITNESS,
+        OBSTRUCTION
+    }
+
+    private sealed interface PendingEntry permits DatabaseEntry,
+            RowManifestEntry, AvoidanceManifestEntry {
+    }
+
+    private record DatabaseEntry(Target target, byte[] key, byte[] value)
+            implements PendingEntry {
+    }
+
+    private record RowManifestEntry(CertificateRowManifest manifest)
+            implements PendingEntry {
+    }
+
+    private record AvoidanceManifestEntry(AvoidancePhaseManifest manifest)
+            implements PendingEntry {
     }
 }

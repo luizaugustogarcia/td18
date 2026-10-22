@@ -2,6 +2,7 @@ package br.unb.cic.td18.base;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 /** Versioned completion record for one full-domain avoidance-preimage phase. */
 public record AvoidancePhaseManifest(
@@ -63,6 +64,22 @@ public record AvoidancePhaseManifest(
                 .putLong(checksum)
                 .put((byte) (complete ? 1 : 0))
                 .array();
+    }
+
+    /** Standalone sidecar encoding; manifests are not RocksDB records. */
+    public byte[] encoded() {
+        final var key = key();
+        final var value = value();
+        return ByteBuffer.allocate(key.length + value.length)
+                .put(key).put(value).array();
+    }
+
+    public static AvoidancePhaseManifest decode(final byte[] encoded) {
+        if (encoded == null || encoded.length <= KEY_BYTES) {
+            throw new IllegalArgumentException("Malformed avoidance-phase manifest");
+        }
+        return decode(Arrays.copyOf(encoded, KEY_BYTES),
+                Arrays.copyOfRange(encoded, KEY_BYTES, encoded.length));
     }
 
     public static AvoidancePhaseManifest decode(

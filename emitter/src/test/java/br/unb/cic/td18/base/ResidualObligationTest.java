@@ -5,21 +5,20 @@ import br.unb.cic.td18.permutation.MulticyclePermutation;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 class ResidualObligationTest {
     @Test
-    void roundTripsAResidualAndItsChecksum() {
+    void usesOnlyTheRawInstanceKey() {
         final var pair = CyclicTargetPair.of(
                 new MulticyclePermutation(Cycle.of(0, 1, 2)),
                 Cycle.of(0, 1, 2));
-        final var obligation = new ResidualObligation(
-                130, "(3-O)", 8, pair);
+        final var obligation = new ResidualObligation(130, 8, pair);
 
-        final var restored = ResidualObligation.decode(
-                obligation.key(), obligation.value());
-
-        assertEquals(obligation, restored);
-        assertEquals(obligation.checksumContribution(),
-                restored.checksumContribution());
+        assertArrayEquals(CertificateCodec.keyFor(
+                pair.canonicalRepresentative()), obligation.key());
+        assertEquals(CertificateCodec.classKeyChecksumContribution(
+                        pair.canonicalRepresentative()),
+                obligation.checksumContribution());
     }
 }

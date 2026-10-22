@@ -215,8 +215,7 @@ public final class ObstructionAvoidance {
         final var recordedType = new AnnotatedType(
                 tableType.lengths(), tableType.oriented());
         if (tableType.budget() != residual.maximumMoves()
-                || !formatType(recordedType).equals(residual.type())
-                || !formatType(type).equals(residual.type())
+                || !formatType(recordedType).equals(formatType(type))
                 || !ReductionTypeEnumerator.isReachableOpenState(
                 type.lengths(), type.oriented(), movesUsed)) {
             throw new IllegalArgumentException(

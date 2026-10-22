@@ -101,12 +101,12 @@ certificate. The independent verifier must regenerate the representative,
 replay the prefix, check its fixed-point gain and rate, check the contracted
 domain, and check the cited known diameter against the global budget.
 
-If bounded search fails for a representative, record:
-
-- the representative and deterministic class key;
-- the root annotated type on 19 symbols;
-- the ordered reduction path and every intermediate annotated type;
-- the attempted bound, search configuration, and code revision.
+If bounded search fails for a representative, store only its deterministic
+raw five-bit instance key in the `obstructions` column family, with an empty
+value. The checker regenerates the representative in its Table 2 context; the
+row, terminal annotated type, attempted bound, root annotated types, ordered
+reductions, and intermediate annotated types are reconstructed from Table 2
+and the checked reduction recursion rather than duplicated in the database.
 
 Such a record is a residual obligation, not evidence for the upper bound. The
 TD(18) conclusion remains pending until every residual obligation is resolved
@@ -122,10 +122,10 @@ all remaining reduction levels before deduplicating the full-domain root
 preimages by extended-toric class. It then searches each root independently
 with budget 10. Thus avoidance certificates use the 19-symbol cyclic-target
 keys corresponding to permutations in `S_18`; the checker need not look up an
-intermediate `S_17` class. A root obstruction is persisted and remains
-unresolved.
-The final range manifest records reconstruction and root-search counts, the
-class-key checksum, and whether any root obstruction remains.
+intermediate `S_17` class. A root obstruction is persisted as another key-only
+entry in the `obstructions` column family and remains unresolved.
+The versioned sidecar range manifest records reconstruction and root-search
+counts, the class-key checksum, and whether any root obstruction remains.
 
 Exit criterion: every class counted by `Q` has either a checked
 prefix-plus-known-diameter closure or a replayable valid witness within its row
@@ -151,10 +151,12 @@ report must state all hypotheses and artifact versions explicitly.
 
 The repository currently implements the type enumerator, twisted-bracelet
 generation/counting framework, cyclic-target validation, CUDA search, and an
-emitter that streams Table 2 classes into a versioned RocksDB certificate
-database with per-row counts, checksums, completion records, and versioned
-terminal residual records. It also implements the full-domain
-avoidance-preimage treatment and its versioned completion manifest. It also
+emitter that streams Table 2 classes into a two-column-family RocksDB database.
+The default family stores raw TD(16)-encoded instance/sorting pairs, and the
+`obstructions` family stores raw instance keys with empty values. Versioned
+sidecar manifests carry per-row and avoidance-range counts, checksums, and
+completion records. It also implements the full-domain
+avoidance-preimage treatment. It also
 implements focused emission of complete sorting certificates for the two
 oriented 19-cycle survivors found by the completed depth-first search. A
 CPU-only checker now independently reconstructs the 204-row inventory with a
@@ -162,11 +164,10 @@ separate work-list implementation, reproduces the 9,304,845-node
 oriented-19-cycle classification, checks the paper-backed `Q = 0` discharge,
 regenerates representatives and CPU prefix closures, replays certificates,
 and checks row and avoidance manifests. No completed large checker run or
-verification report is included.
-The terminal record identifies the Table 2 row and the final pair; it does not
-yet persist an individual root path, the search configuration, or the code
-revision required by Stage 4. The avoidance phase instead regenerates every
-reachable predecessor type from the checked policy.
+verification report is included. Obstruction provenance is intentionally not
+persisted: the avoidance phase and independent checker regenerate every
+reachable predecessor type and reduction path from Table 2 and the checked
+policy.
 Stages 0 through 5 do not yet have the complete checked artifacts required
 above.
 

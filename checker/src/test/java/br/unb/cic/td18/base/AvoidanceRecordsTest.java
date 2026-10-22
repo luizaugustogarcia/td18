@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AvoidanceRecordsTest {
@@ -18,11 +19,11 @@ class AvoidanceRecordsTest {
     }
 
     @Test
-    void roundTripsAnAvoidanceSearchMiss() {
+    void avoidanceSearchMissUsesOnlyTheRawInstanceKey() {
         final var miss = new AvoidanceSearchMiss(10, rootPair());
 
-        assertEquals(miss, AvoidanceSearchMiss.decode(
-                miss.key(), miss.value()));
+        assertArrayEquals(CertificateCodec.keyFor(
+                rootPair().canonicalRepresentative()), miss.key());
     }
 
     @Test
@@ -43,6 +44,6 @@ class AvoidanceRecordsTest {
                 2_036, 10_000, 110, 20, 90, 0, 1234, true);
 
         assertEquals(manifest, AvoidancePhaseManifest.decode(
-                manifest.key(), manifest.value()));
+                manifest.encoded()));
     }
 }

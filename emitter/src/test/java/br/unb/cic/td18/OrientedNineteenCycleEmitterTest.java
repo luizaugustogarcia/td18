@@ -45,7 +45,7 @@ class OrientedNineteenCycleEmitterTest {
         assertEquals(2, calls.get());
         assertEquals(2, result.survivors());
         assertEquals(2, result.certificates());
-        assertEquals(5_945_871_690L, result.checksum());
+        assertEquals(2_350_688_689L, result.checksum());
     }
 
     @Test

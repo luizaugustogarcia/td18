@@ -4,11 +4,17 @@ import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.rocksdb.Options;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.DBOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,10 +22,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CertificateStoreTest {
+    private static final byte[] OBSTRUCTIONS =
+            "obstructions".getBytes(StandardCharsets.UTF_8);
+
     @Test
-    void readsVersionedRecordsAndReplaysWitnesses(
+    void readsRawWitnessesAndSidecarManifests(
             @TempDir final Path directory
-    ) {
+    ) throws Exception {
         final var pair = CyclicTargetPair.of(
                 new MulticyclePermutation(Cycle.of(0, 1, 2)),
                 Cycle.of(0, 1, 2)).canonicalRepresentative();
@@ -29,7 +38,8 @@ class CertificateStoreTest {
                 CertificateCodec.checksumContribution(pair, moves), true);
         final var avoidance = new AvoidancePhaseManifest(1, 204,
                 0, 0, 0, 0, 0, 0, 0, true);
-        writeDatabase(directory, pair, moves, row, avoidance);
+        writeDatabase(directory, pair, moves);
+        writeManifests(directory, row, avoidance);
 
         System.setProperty(
                 "td18.certificateStatsPeriodSeconds", "0");
@@ -43,7 +53,7 @@ class CertificateStoreTest {
             assertEquals(row, store.requireRowManifest(1));
             assertEquals(List.of(avoidance), store.avoidanceManifests());
             assertFalse(store.findResidual(new ResidualObligation(
-                    1, "(3-O)", 1, pair)).isPresent());
+                    1, 1, pair)).isPresent());
         } finally {
             System.clearProperty(
                     "td18.certificateStatsPeriodSeconds");
@@ -53,22 +63,47 @@ class CertificateStoreTest {
     private static void writeDatabase(
             final Path directory,
             final CyclicTargetPair pair,
-            final List<Cycle> moves,
-            final CertificateRowManifest row,
-            final AvoidancePhaseManifest avoidance
+            final List<Cycle> moves
     ) {
         RocksDB.loadLibrary();
-        try (final var options = new Options().setCreateIfMissing(true);
-             final var database = RocksDB.open(
-                     options, directory.toAbsolutePath().toString())) {
-            database.put(new byte[]{0, 'T', 'D', '1', '8'}, new byte[]{5});
-            database.put(CertificateCodec.keyFor(pair),
+        final var handles = new ArrayList<ColumnFamilyHandle>();
+        final var options = new DBOptions()
+                .setCreateIfMissing(true)
+                .setCreateMissingColumnFamilies(true);
+        final var witnessOptions = new ColumnFamilyOptions();
+        final var obstructionOptions = new ColumnFamilyOptions();
+        RocksDB database = null;
+        try {
+            database = RocksDB.open(options, directory.toString(), List.of(
+                    new ColumnFamilyDescriptor(
+                            RocksDB.DEFAULT_COLUMN_FAMILY, witnessOptions),
+                    new ColumnFamilyDescriptor(
+                            OBSTRUCTIONS, obstructionOptions)), handles);
+            database.put(handles.get(0), CertificateCodec.keyFor(pair),
                     CertificateCodec.valueFor(moves));
-            database.put(row.key(), row.value());
-            database.put(avoidance.key(), avoidance.value());
         } catch (final RocksDBException failure) {
             throw new IllegalStateException(
                     "Cannot create test certificate database", failure);
+        } finally {
+            handles.forEach(ColumnFamilyHandle::close);
+            if (database != null) {
+                database.close();
+            }
+            obstructionOptions.close();
+            witnessOptions.close();
+            options.close();
         }
+    }
+
+    private static void writeManifests(
+            final Path directory,
+            final CertificateRowManifest row,
+            final AvoidancePhaseManifest avoidance
+    ) throws Exception {
+        final var manifests = directory.resolve("proof-manifests");
+        Files.createDirectories(manifests);
+        Files.write(manifests.resolve("row-00001.bin"), row.encoded());
+        Files.write(manifests.resolve("avoidance-00001-00204.bin"),
+                avoidance.encoded());
     }
 }

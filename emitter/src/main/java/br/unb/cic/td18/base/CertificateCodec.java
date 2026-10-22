@@ -4,16 +4,11 @@ import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.zip.CRC32C;
 
 /** Compact on-disk encoding for normalized certificate pairs and witnesses. */
 public final class CertificateCodec {
-    private static final int CERTIFICATE_RECORD = 1;
-    private static final int FORMAT_VERSION = 1;
-    private static final int KEY_HEADER_BYTES = 3;
-    private static final int VALUE_HEADER_BYTES = 2;
     private static final int SYMBOL_BITS = 5;
     private static final int SYMBOL_LIMIT = 1 << SYMBOL_BITS;
     private static final int TRIPLE_BITS = 3 * SYMBOL_BITS;
@@ -34,51 +29,26 @@ public final class CertificateCodec {
         }
         requireDomainSize(oneLine.length);
 
-        final var payload = new byte[byteLength((long) SYMBOL_BITS * oneLine.length)];
+        final var encoded = new byte[byteLength((long) SYMBOL_BITS * oneLine.length)];
         var bitOffset = 0;
         for (final var image : oneLine) {
-            bitOffset = writeSymbol(payload, bitOffset, Byte.toUnsignedInt(image));
+            bitOffset = writeSymbol(encoded, bitOffset, Byte.toUnsignedInt(image));
         }
-        final var encoded = new byte[KEY_HEADER_BYTES + payload.length];
-        encoded[0] = CERTIFICATE_RECORD;
-        encoded[1] = FORMAT_VERSION;
-        encoded[2] = (byte) oneLine.length;
-        System.arraycopy(payload, 0, encoded, KEY_HEADER_BYTES, payload.length);
         return encoded;
     }
 
     /** Decodes the one-line algebraic permutation stored in a key. */
     public static byte[] decodeKeyOmega(final byte[] encoded, final int domainSize) {
         requireDomainSize(domainSize);
-        if (encoded == null || encoded.length < KEY_HEADER_BYTES
-                || Byte.toUnsignedInt(encoded[0]) != CERTIFICATE_RECORD
-                || Byte.toUnsignedInt(encoded[1]) != FORMAT_VERSION
-                || Byte.toUnsignedInt(encoded[2]) != domainSize) {
-            throw new IllegalArgumentException(
-                    "Unsupported certificate key header");
-        }
-        final var payload = Arrays.copyOfRange(encoded, KEY_HEADER_BYTES, encoded.length);
-        requirePayload(payload, (long) SYMBOL_BITS * domainSize, "key");
+        requirePayload(encoded, (long) SYMBOL_BITS * domainSize, "key");
 
         final var oneLine = new byte[domainSize];
         var bitOffset = 0;
         for (var symbol = 0; symbol < domainSize; symbol++) {
-            oneLine[symbol] = (byte) readSymbol(payload, bitOffset);
+            oneLine[symbol] = (byte) readSymbol(encoded, bitOffset);
             bitOffset += SYMBOL_BITS;
         }
         return oneLine;
-    }
-
-    /** Returns the domain size declared by a versioned certificate key. */
-    public static int domainSizeForKey(final byte[] encoded) {
-        if (encoded == null || encoded.length < KEY_HEADER_BYTES
-                || Byte.toUnsignedInt(encoded[0]) != CERTIFICATE_RECORD
-                || Byte.toUnsignedInt(encoded[1]) != FORMAT_VERSION) {
-            throw new IllegalArgumentException("Unsupported certificate key header");
-        }
-        final int domainSize = Byte.toUnsignedInt(encoded[2]);
-        decodeKeyOmega(encoded, domainSize);
-        return domainSize;
     }
 
     /** Reconstructs the canonical cyclic-target representative stored by a key. */
@@ -136,46 +106,37 @@ public final class CertificateCodec {
             throw new IllegalArgumentException("A certificate must contain at least one move");
         }
 
-        if (moves.size() > 255) {
-            throw new IllegalArgumentException(
-                    "A certificate cannot contain more than 255 moves");
-        }
-        final var payload = new byte[byteLength((long) TRIPLE_BITS * moves.size())];
+        final var encoded = new byte[byteLength((long) TRIPLE_BITS * moves.size())];
         var bitOffset = 0;
         for (final var move : moves) {
             if (move.size() != 3) {
                 throw new IllegalArgumentException("A certificate move must be a symbol triple");
             }
-            bitOffset = writeSymbol(payload, bitOffset, move.get(0));
-            bitOffset = writeSymbol(payload, bitOffset, move.get(1));
-            bitOffset = writeSymbol(payload, bitOffset, move.get(2));
+            bitOffset = writeSymbol(encoded, bitOffset, move.get(0));
+            bitOffset = writeSymbol(encoded, bitOffset, move.get(1));
+            bitOffset = writeSymbol(encoded, bitOffset, move.get(2));
         }
-        final var encoded = new byte[VALUE_HEADER_BYTES + payload.length];
-        encoded[0] = FORMAT_VERSION;
-        encoded[1] = (byte) moves.size();
-        System.arraycopy(payload, 0, encoded, VALUE_HEADER_BYTES, payload.length);
         return encoded;
     }
 
     /** Decodes the concatenated fifteen-bit move triples stored in a value. */
     public static List<Cycle> decodeValue(final byte[] encoded) {
-        if (encoded == null || encoded.length < VALUE_HEADER_BYTES
-                || Byte.toUnsignedInt(encoded[0]) != FORMAT_VERSION) {
-            throw new IllegalArgumentException("Unsupported certificate value header");
+        if (encoded == null || encoded.length == 0) {
+            throw new IllegalArgumentException("Truncated certificate value");
         }
-        final int moveCount = Byte.toUnsignedInt(encoded[1]);
+        final long capacityBits = (long) Byte.SIZE * encoded.length;
+        final int moveCount = Math.toIntExact(capacityBits / TRIPLE_BITS);
         if (moveCount == 0) {
             throw new IllegalArgumentException("Truncated certificate value");
         }
-        final var payload = Arrays.copyOfRange(encoded, VALUE_HEADER_BYTES, encoded.length);
-        requirePayload(payload, (long) TRIPLE_BITS * moveCount, "value");
+        requirePayload(encoded, (long) TRIPLE_BITS * moveCount, "value");
 
         final var moves = new ArrayList<Cycle>(moveCount);
         var bitOffset = 0;
         for (var index = 0; index < moveCount; index++) {
-            final int first = readSymbol(payload, bitOffset);
-            final int second = readSymbol(payload, bitOffset + SYMBOL_BITS);
-            final int third = readSymbol(payload, bitOffset + 2 * SYMBOL_BITS);
+            final int first = readSymbol(encoded, bitOffset);
+            final int second = readSymbol(encoded, bitOffset + SYMBOL_BITS);
+            final int third = readSymbol(encoded, bitOffset + 2 * SYMBOL_BITS);
             moves.add(Cycle.of(first, second, third));
             bitOffset += TRIPLE_BITS;
         }

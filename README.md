@@ -57,8 +57,8 @@ The `emitter` module contains:
 - direct twisted-bracelet generation and exact Burnside counting;
 - cyclic-target realizability checks and extended-toric canonicalization;
 - exhaustive Table 2 orchestration over the Java/JNI/CUDA exact bounded search;
-- versioned RocksDB certificate output with row counts, checksums, and
-  completion records;
+- two-column-family RocksDB output using the raw TD(16) five-bit instance and
+  fifteen-bit sorting encodings, plus versioned sidecar completion manifests;
 - full-domain avoidance-preimage reconstruction and root sorting for
   bounded-search obstructions;
 - focused emission of complete sorting certificates for the two oriented
@@ -112,8 +112,8 @@ mvn -pl emitter -Pgpu compile exec:exec \
 ~~~
 
 The emitter uses deterministic extended-toric class keys, a
-ten-transposition bound, and the versioned certificate codec used by the
-Table 2 pipeline. It fails unless both survivors produce complete,
+ten-transposition bound, and the raw five-bit/three-symbol encoding used by
+`../td16`. It fails unless both survivors produce complete,
 replay-validated sorting certificates. The checker reproduces the DFS
 coverage, excludes its unoriented output, and rejects either missing
 certificate.
@@ -182,15 +182,18 @@ mvn -pl emitter -Pgpu compile exec:exec \
 
 The emitter reads Table 2 directly from
 [docs/td18-reduction-count.tex](docs/td18-reduction-count.tex). Rows with
-`Q = 0` are recorded as already discharged and bypass generation and search.
+`Q = 0` are recorded in sidecar manifests as already discharged and bypass
+generation and search.
 Rows with `Q = R` are directly generated and checked against `Q`, including
 starred rows 130 and 134 in their normal positions. The manifest partitions
 generated classes into trivial CPU/known-diameter closures, validated GPU
 certificates, and residuals. CPU prefixes are not certificate records and are
 not stored in RocksDB; an independent checker must regenerate and recheck those
-closures. A row marker is complete only when it has no residual. Any native
-obstruction is persisted as a versioned residual obligation before the row
-manifest. After all selected rows have been processed, every such obstruction
+closures. A row marker is complete only when it has no obstruction. Any native
+obstruction is persisted as only its raw five-bit instance key, with an empty
+value, in the `obstructions` column family before the sidecar row manifest.
+Its row, annotated type, budget, and reduction path are reconstructed from
+Table 2 rather than stored. After all selected rows have been processed, every such obstruction
 is routed to the same final obstruction phase. Following the construction used
 by `../td16`, the emitter restores every possible contracted fixed-point placement, applies
 every inverse support for the selected reduction, and retains only reachable
@@ -199,12 +202,13 @@ intermediate predecessor, until it reaches the full 19-symbol cyclic-target
 domain corresponding to a permutation in S18. The resulting root classes are
 deduplicated by extended-toric class and sorted independently with budget 10,
 so every avoidance certificate has the root-domain key expected by the
-checker. Only a ten-move root obstruction leaves the run unsuccessful.
-Avoidance obstructions and the final range manifest are versioned database
-records. The database is ignored by Git and may be very large. Use a new or
-already versioned TD(18) database directory;
-the emitter rejects an incompatible or unversioned nonempty database rather
-than mixing formats.
+checker. Only a ten-move root obstruction leaves the run unsuccessful. Such a
+root obstruction is another key-only entry in the `obstructions` family. The
+default column family contains only raw instance-to-sorting entries; versioned
+row and range manifests live under the `proof-manifests` sidecar directory.
+The artifact is ignored by Git and may be very large. Use a new or compatible
+TD(18) database directory; the emitter rejects the old prefixed single-family
+format rather than mixing formats.
 
 ## Check sorting certificates
 
@@ -232,8 +236,8 @@ successor types with 495 and 1,541 residuals retain `Q = R` and are fully
 generated. Representative lookups use position-preserving RocksDB multi-get
 batches; `td18.twistedBraceletBatchSize` controls the batch size.
 
-The checker rejects a missing or mismatched row manifest, certificate,
-residual, avoidance manifest, survivor certificate, count, checksum, or move
+The checker rejects a missing or mismatched row manifest, witness, obstruction
+key, avoidance manifest, survivor certificate, count, checksum, or move
 budget. A structural-only run checks the inventory, the paper-backed `Q`
 lemma, and the complete oriented-19 DFS without opening RocksDB or enumerating
 the large class corpus:

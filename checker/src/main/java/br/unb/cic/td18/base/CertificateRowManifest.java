@@ -74,6 +74,22 @@ public record CertificateRowManifest(
                 .array();
     }
 
+    /** Standalone sidecar encoding; manifests are not RocksDB records. */
+    public byte[] encoded() {
+        final var key = key();
+        final var value = value();
+        return ByteBuffer.allocate(key.length + value.length)
+                .put(key).put(value).array();
+    }
+
+    public static CertificateRowManifest decode(final byte[] encoded) {
+        if (encoded == null || encoded.length <= KEY_BYTES) {
+            throw new IllegalArgumentException("Malformed certificate row manifest");
+        }
+        return decode(Arrays.copyOf(encoded, KEY_BYTES),
+                Arrays.copyOfRange(encoded, KEY_BYTES, encoded.length));
+    }
+
     public static CertificateRowManifest decode(final byte[] key, final byte[] value) {
         if (key == null || key.length != KEY_BYTES
                 || Byte.toUnsignedInt(key[0]) != MANIFEST_RECORD
