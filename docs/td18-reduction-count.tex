@@ -136,10 +136,11 @@ fixed-point-free root on $19$ symbols. The database has three column families.
 The default family maps the raw five-bit key of a Table~\ref{tab:complete}
 instance or a full-domain avoidance root to its sorting sequence, encoded in
 consecutive fifteen-bit transposition triples exactly as in the checked
-TD(16) computation. The \texttt{avoidance-intermediate-witnesses} family
-stores intermediate witnesses under a version-, domain-, and budget-prefixed
-key. This separate namespace prevents an intermediate key from being confused
-with a raw full-domain key. The \texttt{obstructions} family stores only a raw
+TD(16) computation. The legacy
+\texttt{avoidance-intermediate-witnesses} family is retained for database
+schema compatibility, but the present route neither writes nor reads it:
+intermediate predecessors receive only the non-persisted CPU prefix test. The
+\texttt{obstructions} family stores only a raw
 five-bit key with an empty value. It does not duplicate the row, type, budget,
 or reduction path: Table~\ref{tab:complete} and the checked recursion
 reconstruct that context while regenerating the instance. Versioned row and
@@ -263,6 +264,16 @@ $\ctype{\cyc{9}{O},\cyc{7}{O}}$ retains $1\,541$. The later avoidance
 step in the $\TD(16)$ proof acts at the parent state and therefore does not
 discharge these $2\,036$ standalone terminal-class obligations after the
 two present reductions have already been selected.
+These residuals do not come from the oriented-$3$-cycle route. In the checked
+$\TD(16)$ computation they are contracted one-fixed-point successors of
+either a qualifying odd-cycle split or an even-pair reduction; successors
+containing an oriented $3$-cycle are already closed. In the present
+$19$-symbol recursion, the two selected reductions contract three symbols in
+total. Their inverse waves therefore restore one and two fixed symbols, in
+whichever order is admitted by the priority policy. The one-symbol inverse is
+an odd-split or even-pair inverse, and the two-symbol inverse reverses the
+odd-cycle shrink. An oriented-$3$-cycle inverse would restore all three
+symbols in one wave and cannot occur on such a two-edge path.
 
 Define $Q$ to be the number of realizable classes emitted as obligations in
 this computation. Thus $Q=0$ for the $102$ fully settled rows and $Q=R$ for
@@ -304,28 +315,28 @@ in question. These tests remove inverse applications that could not occur on a
 forward reduction path. Conversely, every actual forward path to the
 obstruction has one of the restored gap placements and one of the enumerated
 supports, so its predecessor class is retained. Deduplicate the reconstructed
-predecessors by extended-toric class. At the one-reduction level, search each
-distinct predecessor independently within its remaining budget of nine moves.
-If this search supplies a checked prefix closure or a replayable witness, then
+predecessors by extended-toric class. At the one-reduction level, run only the
+CPU prefix-closure test on each distinct predecessor with its remaining budget
+of nine moves; do not dispatch an intermediate CUDA search. If the test
+supplies a checked prefix closure, then
 prepending the already selected root reduction sorts every represented root
 path within ten moves. Such a predecessor therefore needs no further inverse
-construction. A bounded-search miss is not treated as a lower bound: retain it
+construction. A prefix miss is not treated as a lower bound: retain it
 conservatively and reconstruct all of its compatible full-domain parents.
 
-Persist a complete intermediate witness in the dedicated intermediate-witness
-column family under a key prefixed by
-the format version, cyclic-domain size, and budget. Continue inverse
-construction only from the intermediate misses until reaching the full
+Continue inverse construction from every intermediate prefix miss until
+reaching the full
 $19$-symbol cyclic-target domain, which corresponds to a permutation in
-$S_{18}$. Deduplicate those root pairs by extended-toric class and sort one
-representative of each root class independently within $10$ moves. A ten-move
+$S_{18}$. Deduplicate those root pairs by extended-toric class. For each root,
+first run the same CPU prefix-closure test and, only on a prefix miss, search
+the GPU independently within $10$ moves. A ten-move
 root obstruction is stored as a key-only entry in the
 \texttt{obstructions} column family, remains unresolved, and makes the emitter
-fail. The versioned range manifest records the intermediate search count, the
-number of conservatively propagated misses, the root search count, all outcome
+fail. The versioned range manifest records the intermediate prefix-check
+count, the number of conservatively propagated prefix misses, the root search count, all outcome
 counts, and the class-key checksum. The independent checker regenerates both
-preimage waves, rechecks non-persisted prefix closures, replays witnesses from
-the appropriate namespace, and rejects a missing outcome or count.
+preimage waves, rechecks non-persisted prefix closures, replays full-domain
+witnesses, and rejects a missing outcome or count.
 
 \clearpage
 \appendix

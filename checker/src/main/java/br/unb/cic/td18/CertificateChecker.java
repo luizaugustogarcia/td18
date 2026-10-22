@@ -471,9 +471,10 @@ public final class CertificateChecker {
                                 return CheckedSearchResult
                                     .triviallySettled();
                         }
-                        final var moves = fullDomain
-                                ? certificates.find(pair, maximumMoves)
-                                : certificates.findIntermediate(
+                        if (!fullDomain) {
+                            return CheckedSearchResult.residual();
+                        }
+                        final var moves = certificates.find(
                                 pair, maximumMoves);
                         return moves.isPresent()
                                 ? CheckedSearchResult.certificate(
@@ -486,8 +487,8 @@ public final class CertificateChecker {
                     manifest.firstRow(), manifest.lastRow(),
                     checked.terminalResiduals(),
                     checked.reconstructionApplications(),
-                    checked.intermediateSearchObligations(),
-                    checked.propagatedResiduals(),
+                    checked.intermediatePrefixObligations(),
+                    checked.propagatedPrefixMisses(),
                     checked.rootSearchObligations(),
                     checked.trivialClosures(), checked.certificates(),
                     checked.unresolved(), checked.checksum(),

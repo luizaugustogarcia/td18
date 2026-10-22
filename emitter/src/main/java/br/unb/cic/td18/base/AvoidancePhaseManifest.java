@@ -10,8 +10,8 @@ public record AvoidancePhaseManifest(
         int lastRow,
         long terminalResidualCount,
         long reconstructionApplications,
-        long intermediateSearchObligationCount,
-        long propagatedResidualCount,
+        long intermediatePrefixObligationCount,
+        long propagatedPrefixMissCount,
         long rootSearchObligationCount,
         long trivialClosureCount,
         long certificateCount,
@@ -20,7 +20,7 @@ public record AvoidancePhaseManifest(
         boolean complete
 ) {
     private static final int RECORD_TYPE = 4;
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
     private static final int KEY_BYTES = 6;
     private static final int VALUE_BYTES = 9 * Long.BYTES + 1;
 
@@ -28,21 +28,21 @@ public record AvoidancePhaseManifest(
         if (firstRow <= 0 || firstRow > lastRow || lastRow > 0xFFFF
                 || terminalResidualCount < 0
                 || reconstructionApplications < 0
-                || intermediateSearchObligationCount < 0
-                || propagatedResidualCount < 0
+                || intermediatePrefixObligationCount < 0
+                || propagatedPrefixMissCount < 0
                 || rootSearchObligationCount < 0
                 || trivialClosureCount < 0
                 || certificateCount < 0
                 || unresolvedCount < 0
-                || propagatedResidualCount > intermediateSearchObligationCount
+                || propagatedPrefixMissCount > intermediatePrefixObligationCount
                 || trivialClosureCount + certificateCount
-                + propagatedResidualCount + unresolvedCount
-                != intermediateSearchObligationCount + rootSearchObligationCount
+                + propagatedPrefixMissCount + unresolvedCount
+                != intermediatePrefixObligationCount + rootSearchObligationCount
                 || complete != (unresolvedCount == 0)
                 || (terminalResidualCount == 0
                 && (reconstructionApplications != 0
-                || intermediateSearchObligationCount != 0
-                || propagatedResidualCount != 0
+                || intermediatePrefixObligationCount != 0
+                || propagatedPrefixMissCount != 0
                 || rootSearchObligationCount != 0
                 || unresolvedCount != 0))) {
             throw new IllegalArgumentException(
@@ -65,8 +65,8 @@ public record AvoidancePhaseManifest(
                 .order(ByteOrder.BIG_ENDIAN)
                 .putLong(terminalResidualCount)
                 .putLong(reconstructionApplications)
-                .putLong(intermediateSearchObligationCount)
-                .putLong(propagatedResidualCount)
+                .putLong(intermediatePrefixObligationCount)
+                .putLong(propagatedPrefixMissCount)
                 .putLong(rootSearchObligationCount)
                 .putLong(trivialClosureCount)
                 .putLong(certificateCount)
@@ -110,8 +110,8 @@ public record AvoidancePhaseManifest(
         final var buffer = ByteBuffer.wrap(value).order(ByteOrder.BIG_ENDIAN);
         final long terminalResidualCount = buffer.getLong();
         final long reconstructionApplications = buffer.getLong();
-        final long intermediateSearchObligationCount = buffer.getLong();
-        final long propagatedResidualCount = buffer.getLong();
+        final long intermediatePrefixObligationCount = buffer.getLong();
+        final long propagatedPrefixMissCount = buffer.getLong();
         final long rootSearchObligationCount = buffer.getLong();
         final long trivialClosureCount = buffer.getLong();
         final long certificateCount = buffer.getLong();
@@ -124,7 +124,7 @@ public record AvoidancePhaseManifest(
         }
         return new AvoidancePhaseManifest(firstRow, lastRow,
                 terminalResidualCount, reconstructionApplications,
-                intermediateSearchObligationCount, propagatedResidualCount,
+                intermediatePrefixObligationCount, propagatedPrefixMissCount,
                 rootSearchObligationCount, trivialClosureCount, certificateCount,
                 unresolvedCount, checksum, completion == 1);
     }

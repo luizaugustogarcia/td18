@@ -58,9 +58,9 @@ The `emitter` module contains:
 - cyclic-target realizability checks and extended-toric canonicalization;
 - exhaustive Table 2 orchestration over the Java/JNI/CUDA exact bounded search;
 - three-column-family RocksDB output using the raw TD(16) five-bit instance
-  and fifteen-bit sorting encodings, a domain-separated intermediate-witness
+  and fifteen-bit sorting encodings, a retained legacy intermediate-witness
   namespace, and versioned sidecar completion manifests;
-- intermediate screening, selective avoidance-preimage reconstruction, and
+- CPU-only intermediate prefix screening, avoidance-preimage reconstruction, and
   root sorting for bounded-search obstructions;
 - focused emission of complete sorting certificates for the two oriented
   19-cycle survivors;
@@ -198,14 +198,15 @@ Table 2 rather than stored. After all selected rows have been processed, every s
 is routed to the same final obstruction phase. Following the construction used
 by `../td16`, the emitter restores every possible contracted fixed-point placement, applies
 every inverse support for the selected reduction, and retains only reachable
-predecessor types. It deduplicates and searches each one-reduction predecessor
-with budget 9. A settled predecessor closes its represented root paths; only a
-conservative miss is propagated through the final inverse wave. The resulting
-19-symbol root classes are deduplicated by extended-toric class and sorted
-independently with budget 10. Complete intermediate witnesses are stored in
-the `avoidance-intermediate-witnesses` family under version/domain/budget
-prefixed keys. Table 2 and full-domain root witnesses retain raw keys in the
-default family. Only a ten-move root obstruction leaves the run unsuccessful;
+predecessor types. It deduplicates each one-reduction predecessor and runs only
+the CPU prefix-closure test with budget 9. A settled predecessor closes its
+represented root paths; every prefix miss is propagated through the final
+inverse wave without an intermediate GPU attempt. The resulting 19-symbol root
+classes are deduplicated by extended-toric class, screened again for a CPU
+prefix closure, and otherwise sorted independently on the GPU with budget 10.
+Table 2 and full-domain root witnesses retain raw keys in the default family.
+The `avoidance-intermediate-witnesses` family remains only for compatibility
+with existing three-family databases and is not consulted. Only a ten-move root obstruction leaves the run unsuccessful;
 it is another key-only entry in the `obstructions` family. Versioned row and
 range manifests live under the `proof-manifests` sidecar directory.
 The artifact is ignored by Git and may be very large. Use a new or compatible
@@ -223,9 +224,10 @@ mvn -pl emitter -Pgpu compile exec:exec \
   -Dtd18.args="--work-database=$PWD/avoidance-work"
 ~~~
 
-The work database records candidate and conservative-residual inventories,
-checksums, and completed reconstruction/search waves. An existing compatible
-database is reused without deleting its candidate classes.
+The work database records candidate and prefix-miss inventories, checksums, and
+completed reconstruction/screening waves. Versioned screening metadata ignores
+manifests from the former intermediate-GPU policy while reusing compatible
+candidate inventories.
 
 ## Check sorting certificates
 

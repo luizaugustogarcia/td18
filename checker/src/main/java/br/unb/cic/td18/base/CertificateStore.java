@@ -150,7 +150,7 @@ public final class CertificateStore implements AutoCloseable {
         return Optional.of(moves);
     }
 
-    /** Looks up and independently replays an avoidance-intermediate witness. */
+    /** Legacy lookup retained for compatibility tests and old artifacts. */
     public Optional<List<Cycle>> findIntermediate(
             final CyclicTargetPair pair,
             final int maximumMoves

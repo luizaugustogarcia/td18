@@ -13,13 +13,11 @@ public final class SortingSearch {
         return WitnessSearch.search(pair, minimumRate, maximumMoves);
     }
 
-    /** Classifies and persists an avoidance-intermediate search outcome. */
-    public static WitnessSearch.SearchResult searchAvoidanceIntermediate(
+    /** Screens an avoidance intermediate using only the CPU prefix closure. */
+    public static WitnessSearch.SearchResult screenAvoidanceIntermediate(
             final CyclicTargetPair pair,
-            final float minimumRate,
             final int maximumMoves
     ) {
-        return WitnessSearch.searchIntermediate(
-                pair, minimumRate, maximumMoves);
+        return WitnessSearch.screenIntermediatePrefix(pair, maximumMoves);
     }
 }

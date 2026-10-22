@@ -37,6 +37,7 @@ import java.util.zip.CRC32C;
 /** Versioned RocksDB work store for unique avoidance-preimage classes. */
 final class AvoidancePreimageStore implements AutoCloseable {
     private static final int FORMAT_VERSION = 1;
+    private static final int SCREENING_POLICY_VERSION = 2;
     private static final byte[] PREIMAGES_COLUMN_FAMILY =
             "avoidance-preimages".getBytes(StandardCharsets.UTF_8);
     private static final byte[] HARD_COLUMN_FAMILY =
@@ -446,7 +447,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
     }
 
     private static byte[] searchKey(final int maximumMoves) {
-        return ("search-" + maximumMoves)
+        return ("screen-" + SCREENING_POLICY_VERSION + '-' + maximumMoves)
                 .getBytes(StandardCharsets.UTF_8);
     }
 
@@ -642,6 +643,8 @@ final class AvoidancePreimageStore implements AutoCloseable {
         SearchManifest {
             if (maximumMoves <= 0 || candidates == null || residuals == null
                     || trivialClosures < 0 || certificates < 0 || checksum < 0
+                    || (maximumMoves < ReductionTypeEnumerator.MAX_BUDGET
+                    && certificates != 0)
                     || trivialClosures + certificates + residuals.count()
                     != candidates.count()) {
                 throw new IllegalArgumentException(

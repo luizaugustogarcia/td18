@@ -31,9 +31,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Proof-scoped asynchronous sink. The default column family contains Table 2
- * and full-domain witnesses, {@code avoidance-intermediate-witnesses} contains
- * domain-separated intermediate avoidance witnesses, and {@code obstructions}
- * contains key-only residual obligations.
+ * and full-domain witnesses, {@code avoidance-intermediate-witnesses} is a
+ * retained legacy namespace, and {@code obstructions} contains key-only
+ * residual obligations.
  */
 public final class AsyncCertificateWriter implements AutoCloseable {
     static final byte[] OBSTRUCTIONS_COLUMN_FAMILY =
@@ -182,7 +182,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
                 CertificateCodec.valueFor(moves)));
     }
 
-    /** Queues a domain- and budget-separated avoidance-intermediate witness. */
+    /** Legacy writer retained only for compatibility tests and old artifacts. */
     public void enqueueIntermediate(
             final CyclicTargetPair canonicalPair,
             final int maximumMoves,

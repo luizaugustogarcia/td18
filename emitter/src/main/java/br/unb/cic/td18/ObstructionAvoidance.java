@@ -31,8 +31,8 @@ import java.util.function.Consumer;
 /**
  * Reconstructs preimages of terminal misses using the avoidance-preimage
  * method implemented for TD(16) in {@code ../td16}. Each distinct
- * intermediate predecessor is first searched within its remaining budget;
- * only a conservative miss is propagated to the next inverse wave. Root
+ * intermediate predecessor is first screened for a CPU prefix closure;
+ * only a prefix miss is propagated to the next inverse wave. Root
  * preimages are independently searched on the full 19-symbol domain.
  */
 @Slf4j
@@ -46,8 +46,8 @@ public final class ObstructionAvoidance {
     public record AvoidanceResult(
             long terminalResiduals,
             long reconstructionApplications,
-            long intermediateSearchObligations,
-            long propagatedResiduals,
+            long intermediatePrefixObligations,
+            long propagatedPrefixMisses,
             long rootSearchObligations,
             long trivialClosures,
             long certificates,
@@ -57,13 +57,13 @@ public final class ObstructionAvoidance {
     ) {
         public AvoidanceResult {
             if (terminalResiduals < 0 || reconstructionApplications < 0
-                    || intermediateSearchObligations < 0
-                    || propagatedResiduals < 0
+                    || intermediatePrefixObligations < 0
+                    || propagatedPrefixMisses < 0
                     || rootSearchObligations < 0 || trivialClosures < 0
                     || certificates < 0 || unresolved < 0
-                    || propagatedResiduals > intermediateSearchObligations
-                    || trivialClosures + certificates + propagatedResiduals
-                    + unresolved != intermediateSearchObligations
+                    || propagatedPrefixMisses > intermediatePrefixObligations
+                    || trivialClosures + certificates + propagatedPrefixMisses
+                    + unresolved != intermediatePrefixObligations
                     + rootSearchObligations
                     || (unresolved == 0) != (firstUnresolved == null)) {
                 throw new IllegalArgumentException(
@@ -75,9 +75,9 @@ public final class ObstructionAvoidance {
             return unresolved == 0;
         }
 
-        public long searchObligations() {
+        public long screenedObligations() {
             return Math.addExact(
-                    intermediateSearchObligations, rootSearchObligations);
+                    intermediatePrefixObligations, rootSearchObligations);
         }
     }
 
@@ -150,9 +150,8 @@ public final class ObstructionAvoidance {
         long reconstructionApplications = 0;
         final var roots = new ConcurrentHashMap<StateKey, SearchState>();
         final var intermediateTrivial = new LongAdder();
-        final var intermediateCertificates = new LongAdder();
-        final var intermediateObligations = new LongAdder();
-        final var propagatedResiduals = new LongAdder();
+        final var intermediatePrefixObligations = new LongAdder();
+        final var propagatedPrefixMisses = new LongAdder();
         final var checksum = new LongAdder();
         for (var maximumMoves = ReductionTypeEnumerator.MAX_BUDGET - 2;
              maximumMoves < ReductionTypeEnumerator.MAX_BUDGET;
@@ -191,19 +190,16 @@ public final class ObstructionAvoidance {
             final var propagated = new ConcurrentHashMap<StateKey, SearchState>();
             final var result = searchStates(orderedCandidates, search,
                     null, propagated, false);
-            intermediateObligations.add(orderedCandidates.size());
+            intermediatePrefixObligations.add(orderedCandidates.size());
             intermediateTrivial.add(result.trivialClosures());
-            intermediateCertificates.add(result.certificates());
-            propagatedResiduals.add(result.residuals());
+            propagatedPrefixMisses.add(result.residuals());
             checksum.add(result.checksum());
             propagated.values().forEach(state -> addState(
                     alreadyHard, state.maximumMoves(), state.pair()));
-            log.info("Avoidance intermediate search {}: candidates={}, "
-                            + "triviallySettled={}, certificates={}, "
-                            + "propagatedResiduals={}",
+            log.info("Avoidance intermediate prefix screen {}: candidates={}, "
+                            + "triviallySettled={}, propagatedPrefixMisses={}",
                     parentMaximumMoves, orderedCandidates.size(),
-                    result.trivialClosures(), result.certificates(),
-                    result.residuals());
+                    result.trivialClosures(), result.residuals());
         }
 
         hardByBudget.getOrDefault(ReductionTypeEnumerator.MAX_BUDGET,
@@ -225,10 +221,10 @@ public final class ObstructionAvoidance {
                 .sorted(ObstructionAvoidance::compareCertificateKeys)
                 .toList();
         return new AvoidanceResult(residuals.size(),
-                reconstructionApplications, intermediateObligations.sum(),
-                propagatedResiduals.sum(), orderedRoots.size(),
+                reconstructionApplications, intermediatePrefixObligations.sum(),
+                propagatedPrefixMisses.sum(), orderedRoots.size(),
                 intermediateTrivial.sum() + rootResult.trivialClosures(),
-                intermediateCertificates.sum() + rootResult.certificates(),
+                rootResult.certificates(),
                 orderedUnresolved.size(), checksum.sum(),
                 orderedUnresolved.isEmpty()
                 ? null : orderedUnresolved.getFirst());
@@ -736,7 +732,13 @@ public final class ObstructionAvoidance {
                                     state.pair(), state.maximumMoves()));
                             switch (result.disposition()) {
                                 case TRIVIALLY_SETTLED -> trivial.increment();
-                                case CERTIFICATE -> certificates.increment();
+                                case CERTIFICATE -> {
+                                    if (!requireFullDomain) {
+                                        throw new IllegalStateException(
+                                                "Intermediate avoidance screening must not run CUDA");
+                                    }
+                                    certificates.increment();
+                                }
                                 case RESIDUAL -> {
                                     if (requireFullDomain) {
                                         final var miss = new AvoidanceSearchMiss(
@@ -756,7 +758,7 @@ public final class ObstructionAvoidance {
                     }
                 }));
             }
-            awaitAll(futures, "avoidance-preimage sorting");
+            awaitAll(futures, "avoidance-preimage screening");
             completed = true;
         } finally {
             if (!completed) {

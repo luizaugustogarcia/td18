@@ -117,18 +117,19 @@ The emitter implements the obstruction-avoidance construction adapted from
 in every cyclic gap and enumerates the inverse supports of each reduction family capable
 of producing the terminal pair. It retains only predecessors admitted by the
 checked TD(18) priority policy at the preceding depth. It deduplicates the
-one-reduction predecessors by extended-toric class and searches each within
-budget 9. A checked closure at that level also closes every represented root
-path after prepending its selected first reduction. Only a conservative
-intermediate search miss is propagated through the final inverse wave. The
-resulting full-domain roots are again deduplicated by extended-toric class and
-searched independently with budget 10. Complete intermediate witnesses use a
-dedicated `avoidance-intermediate-witnesses` column family and a key prefixed
-by format version, cyclic-domain size, and budget; Table 2 and full-domain root
-witnesses retain their raw keys in the default family. A root obstruction is
+one-reduction predecessors by extended-toric class and runs only the CPU prefix
+closure test within budget 9; it does not dispatch intermediate GPU searches.
+A checked closure at that level also closes every represented root path after
+prepending its selected first reduction. Every prefix miss is propagated
+conservatively through the final inverse wave. The resulting full-domain roots
+are again deduplicated by extended-toric class, checked for a CPU prefix
+closure, and sent to the GPU independently with budget 10 only on a prefix
+miss. Table 2 and full-domain root witnesses retain their raw keys in the
+default family. The legacy `avoidance-intermediate-witnesses` family remains
+only for database-schema compatibility and is not a proof input. A root obstruction is
 persisted as another key-only entry in the `obstructions` column family and
 remains unresolved. The versioned sidecar range manifest records
-reconstruction counts, intermediate search and propagated-miss counts, root
+reconstruction counts, intermediate prefix-check and propagated-miss counts, root
 search counts, all outcomes, the class-key checksum, and whether any root
 obstruction remains.
 
@@ -159,8 +160,8 @@ generation/counting framework, cyclic-target validation, CUDA search, and an
 emitter that streams Table 2 classes into a three-column-family RocksDB
 database.
 The default family stores raw TD(16)-encoded Table 2 and root witness pairs,
-`avoidance-intermediate-witnesses` stores domain-separated intermediate
-witnesses, and `obstructions` stores raw instance keys with empty values.
+the legacy `avoidance-intermediate-witnesses` family is unused by the current
+route, and `obstructions` stores raw instance keys with empty values.
 Versioned sidecar manifests carry per-row and avoidance-range counts,
 checksums, and completion records. It implements intermediate screening, the
 full-domain avoidance-preimage treatment, and focused emission of complete

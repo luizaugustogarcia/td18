@@ -134,15 +134,15 @@ public final class WitnessEmitter {
                     (pair, rate, maximumMoves, fullDomain) -> fullDomain
                             ? SortingSearch.searchForSorting(
                             pair, rate, maximumMoves)
-                            : SortingSearch.searchAvoidanceIntermediate(
-                            pair, rate, maximumMoves),
+                            : SortingSearch.screenAvoidanceIntermediate(
+                            pair, maximumMoves),
                     writer::enqueueAvoidanceMiss);
             writer.enqueueAvoidanceManifest(new AvoidancePhaseManifest(
                     options.firstRow(), options.lastRow(),
                     avoidanceResult.terminalResiduals(),
                     avoidanceResult.reconstructionApplications(),
-                    avoidanceResult.intermediateSearchObligations(),
-                    avoidanceResult.propagatedResiduals(),
+                    avoidanceResult.intermediatePrefixObligations(),
+                    avoidanceResult.propagatedPrefixMisses(),
                     avoidanceResult.rootSearchObligations(),
                     avoidanceResult.trivialClosures(),
                     avoidanceResult.certificates(),
@@ -162,7 +162,7 @@ public final class WitnessEmitter {
                         + "unresolved={}, database={}",
                 options.firstRow(), options.lastRow(), generated,
                 trivialClosures, certificates, residuals,
-                avoidanceResult.searchObligations(),
+                avoidanceResult.screenedObligations(),
                 avoidanceResult.unresolved(), database.toAbsolutePath());
         if (!avoidanceResult.complete()) {
             final var first = avoidanceResult.firstUnresolved();

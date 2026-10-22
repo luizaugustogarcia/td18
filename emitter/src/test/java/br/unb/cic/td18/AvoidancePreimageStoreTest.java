@@ -90,7 +90,7 @@ class AvoidancePreimageStoreTest {
     }
 
     @Test
-    void searchesPersistedCandidatesWithoutCudaAndEmitsOnlyRootMisses() {
+    void screensIntermediatePrefixesAndEmitsOnlyRootMisses() {
         final var beta = Cycle.of(0, 1, 2);
         final var threeCycle = CyclicTargetPair.of(
                 new MulticyclePermutation(Cycle.of(0, 1, 2)), beta)

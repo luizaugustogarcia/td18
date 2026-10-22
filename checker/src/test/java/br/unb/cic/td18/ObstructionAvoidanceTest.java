@@ -47,7 +47,7 @@ class ObstructionAvoidanceTest {
     }
 
     @Test
-    void closesTerminalMissesAtTheIntermediatePredecessors() {
+    void closesTerminalMissesAtTheIntermediatePrefixScreen() {
         final var residual = new ResidualObligation(
                 130, 8, controlResidual());
         final var persistedMisses = new ConcurrentLinkedQueue<>();
@@ -66,8 +66,8 @@ class ObstructionAvoidanceTest {
         assertTrue(result.complete());
         assertEquals(1, result.terminalResiduals());
         assertEquals(6_272, result.reconstructionApplications());
-        assertEquals(627, result.intermediateSearchObligations());
-        assertEquals(0, result.propagatedResiduals());
+        assertEquals(627, result.intermediatePrefixObligations());
+        assertEquals(0, result.propagatedPrefixMisses());
         assertEquals(0, result.rootSearchObligations());
         assertEquals(627, result.trivialClosures());
         assertEquals(0, result.certificates());
@@ -75,7 +75,7 @@ class ObstructionAvoidanceTest {
     }
 
     @Test
-    void propagatesOnlyIntermediateMissesToTheRootSearch() {
+    void propagatesOnlyIntermediatePrefixMissesToTheRootSearch() {
         final var residual = new ResidualObligation(
                 130, 8, controlResidual());
         final var persistedMisses = new ConcurrentLinkedQueue<>();
@@ -95,8 +95,8 @@ class ObstructionAvoidanceTest {
         assertTrue(result.complete());
         assertEquals(1, result.terminalResiduals());
         assertEquals(1_733_030, result.reconstructionApplications());
-        assertEquals(627, result.intermediateSearchObligations());
-        assertEquals(627, result.propagatedResiduals());
+        assertEquals(627, result.intermediatePrefixObligations());
+        assertEquals(627, result.propagatedPrefixMisses());
         assertEquals(623_283, result.rootSearchObligations());
         assertEquals(623_283, result.trivialClosures());
         assertEquals(0, result.certificates());

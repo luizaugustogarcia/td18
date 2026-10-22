@@ -40,7 +40,7 @@ public final class CertificateCodec {
     }
 
     /**
-     * Encodes an avoidance-intermediate witness key with an explicit format,
+     * Encodes a legacy avoidance-intermediate key with an explicit format,
      * domain, and move budget. This namespace is deliberately distinct from
      * the raw keys used by Table 2 and full-domain root witnesses.
      */

@@ -25,13 +25,12 @@ public final class WitnessSearch {
     public static SearchResult search(final CyclicTargetPair pair,
                                       final float minimumRate,
                                       final int maximumMoves) {
-        return search(pair, minimumRate, maximumMoves, false);
+        return searchWithGpu(pair, minimumRate, maximumMoves);
     }
 
-    /** Searches an avoidance intermediate and persists it in its own namespace. */
-    public static SearchResult searchIntermediate(
+    /** Screens an avoidance intermediate without dispatching a CUDA search. */
+    public static SearchResult screenIntermediatePrefix(
             final CyclicTargetPair pair,
-            final float minimumRate,
             final int maximumMoves
     ) {
         if (maximumMoves >= ReductionTypeEnumerator.MAX_BUDGET
@@ -40,36 +39,29 @@ public final class WitnessSearch {
             throw new IllegalArgumentException(
                     "An avoidance intermediate must precede the full-domain root stage");
         }
-        return search(pair, minimumRate, maximumMoves, true);
+        final var input = input(pair);
+        return closesByCpuPrefix(input, maximumMoves)
+                ? SearchResult.triviallySettled()
+                : SearchResult.residual();
     }
 
-    private static SearchResult search(
+    private static SearchResult searchWithGpu(
             final CyclicTargetPair pair,
             final float minimumRate,
-            final int maximumMoves,
-            final boolean intermediate
+            final int maximumMoves
     ) {
         final var omega = pair.getOmega();
-        final var beta = pair.getBeta();
-        final var betaBytes = new byte[beta.size()];
-        for (var index = 0; index < beta.size(); index++) {
-            betaBytes[index] = (byte) beta.get(index);
-        }
-        final byte[] omegaBytes = omega.getOneLineNotation();
+        final var input = input(pair);
 
         // This prefix is a proof closure, not a complete sorting witness. If
         // its contracted remainder closes by a known diameter, stop here.
-        final var prefix = CommonOperations.searchForSorting(
-                omegaBytes, betaBytes, maximumMoves);
-        if (prefix.isPresent()) {
-            validateCpuClosure(omegaBytes, betaBytes,
-                    prefix.orElseThrow(), maximumMoves);
+        if (closesByCpuPrefix(input, maximumMoves)) {
             return SearchResult.triviallySettled();
         }
 
         // CUDA is reached only when no qualifying CPU prefix exists.
         final var moves = GPUSortingSearch.getInstance().search(
-                        betaBytes, new OneLinePermutation(omegaBytes),
+                        input.beta(), new OneLinePermutation(input.omega()),
                         omega.getNumberOfEvenCycles(),
                         minimumRate, maximumMoves, true)
                 .stream()
@@ -87,13 +79,35 @@ public final class WitnessSearch {
             throw new IllegalStateException(
                     "Native witness succeeded without a proof-scoped certificate writer");
         }
-        if (intermediate) {
-            writer.enqueueIntermediate(pair, maximumMoves, moves);
-        } else {
-            writer.enqueue(pair, moves);
-        }
+        writer.enqueue(pair, moves);
         writer.throwIfFailed();
         return SearchResult.certificate(moves);
+    }
+
+    private static SearchInput input(final CyclicTargetPair pair) {
+        final var beta = pair.getBeta();
+        final var betaBytes = new byte[beta.size()];
+        for (var index = 0; index < beta.size(); index++) {
+            betaBytes[index] = (byte) beta.get(index);
+        }
+        return new SearchInput(pair.getOmega().getOneLineNotation(), betaBytes);
+    }
+
+    private static boolean closesByCpuPrefix(
+            final SearchInput input,
+            final int maximumMoves
+    ) {
+        final var prefix = CommonOperations.searchForSorting(
+                input.omega(), input.beta(), maximumMoves);
+        if (prefix.isEmpty()) {
+            return false;
+        }
+        validateCpuClosure(input.omega(), input.beta(),
+                prefix.orElseThrow(), maximumMoves);
+        return true;
+    }
+
+    private record SearchInput(byte[] omega, byte[] beta) {
     }
 
     /** Replays the non-persisted prefix before classifying its proof closure. */

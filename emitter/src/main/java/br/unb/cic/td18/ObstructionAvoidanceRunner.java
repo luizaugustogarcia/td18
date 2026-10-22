@@ -114,8 +114,8 @@ public final class ObstructionAvoidanceRunner {
                     options.workDatabase().toAbsolutePath());
 
             long reconstructionApplications = 0;
-            long intermediateSearchObligations = 0;
-            long propagatedResiduals = 0;
+            long intermediatePrefixObligations = 0;
+            long propagatedPrefixMisses = 0;
             long rootSearchObligations = 0;
             long trivialClosures = 0;
             long certificates = 0;
@@ -159,7 +159,8 @@ public final class ObstructionAvoidanceRunner {
                 }
 
                 final int searchBudget = maximumMoves + 1;
-                if (store.searchManifest(searchBudget).isEmpty()
+                if (searchBudget == ReductionTypeEnumerator.MAX_BUDGET
+                        && store.searchManifest(searchBudget).isEmpty()
                         && store.inventory(searchBudget).count() != 0
                         && !gpuInitialized) {
                     initializeGpu();
@@ -174,11 +175,11 @@ public final class ObstructionAvoidanceRunner {
                     unresolved = Math.addExact(
                             unresolved, search.residuals().count());
                 } else {
-                    intermediateSearchObligations = Math.addExact(
-                            intermediateSearchObligations,
+                    intermediatePrefixObligations = Math.addExact(
+                            intermediatePrefixObligations,
                             search.candidates().count());
-                    propagatedResiduals = Math.addExact(
-                            propagatedResiduals, search.residuals().count());
+                    propagatedPrefixMisses = Math.addExact(
+                            propagatedPrefixMisses, search.residuals().count());
                 }
                 trivialClosures = Math.addExact(
                         trivialClosures, search.trivialClosures());
@@ -189,17 +190,17 @@ public final class ObstructionAvoidanceRunner {
 
             final var manifest = new AvoidancePhaseManifest(1, 204,
                     residuals.size(), reconstructionApplications,
-                    intermediateSearchObligations, propagatedResiduals,
+                    intermediatePrefixObligations, propagatedPrefixMisses,
                     rootSearchObligations, trivialClosures, certificates,
                     unresolved, checksum, unresolved == 0);
             writer.enqueueAvoidanceManifest(manifest);
             writer.flush();
             log.info("Avoidance propagation complete: terminalResiduals={}, "
-                            + "intermediateSearches={}, propagatedResiduals={}, "
+                            + "intermediatePrefixChecks={}, propagatedPrefixMisses={}, "
                             + "rootSearches={}, unresolved={}, "
                             + "reconstructionApplications={}",
-                    residuals.size(), intermediateSearchObligations,
-                    propagatedResiduals, rootSearchObligations, unresolved,
+                    residuals.size(), intermediatePrefixObligations,
+                    propagatedPrefixMisses, rootSearchObligations, unresolved,
                     reconstructionApplications);
             if (unresolved != 0) {
                 throw new IllegalStateException(
@@ -364,8 +365,8 @@ public final class ObstructionAvoidanceRunner {
         return fullDomain
                 ? SortingSearch.searchForSorting(
                 pair, minimumRate, maximumMoves)
-                : SortingSearch.searchAvoidanceIntermediate(
-                pair, minimumRate, maximumMoves);
+                : SortingSearch.screenAvoidanceIntermediate(
+                pair, maximumMoves);
     }
 
     @FunctionalInterface
@@ -486,7 +487,13 @@ public final class ObstructionAvoidanceRunner {
                             pair, maximumMoves));
                     switch (result.disposition()) {
                         case TRIVIALLY_SETTLED -> trivialClosures.increment();
-                        case CERTIFICATE -> certificates.increment();
+                        case CERTIFICATE -> {
+                            if (!fullDomain) {
+                                throw new IllegalStateException(
+                                        "Intermediate avoidance screening must not run CUDA");
+                            }
+                            certificates.increment();
+                        }
                         case RESIDUAL -> {
                             store.putHardPairs(maximumMoves, List.of(pair));
                             if (fullDomain) {
