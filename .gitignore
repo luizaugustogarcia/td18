@@ -6,6 +6,7 @@
 certificates/
 data/
 checkpoints/
+avoidance-work/
 
 # Native/CMake build products
 **/CMakeFiles/

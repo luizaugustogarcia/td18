@@ -112,16 +112,29 @@ public final class ObstructionAvoidance {
         Objects.requireNonNull(search);
         Objects.requireNonNull(missSink);
 
+        log.info("Avoidance initialization: terminalResiduals={}, "
+                        + "heapUsedMiB={}, heapCommittedMiB={}, heapMaximumMiB={}",
+                residuals.size(), usedHeapMiB(), committedHeapMiB(),
+                maximumHeapMiB());
         final var frontier = new ConcurrentHashMap<StateKey, SearchState>();
+        var loaded = 0;
         for (final var residual : residuals) {
             validateTerminalResidual(residual);
             addState(frontier, residual.maximumMoves(), residual.pair());
+            loaded++;
+            if (loaded % 25_000 == 0 || loaded == residuals.size()) {
+                log.info("Avoidance frontier loading: processed={}, "
+                                + "distinctClasses={}, heapUsedMiB={}",
+                        loaded, frontier.mappingCount(), usedHeapMiB());
+            }
         }
 
         long reconstructionApplications = 0;
         final var roots = new ConcurrentHashMap<StateKey, SearchState>();
         var current = frontier;
+        var wave = 0;
         while (!current.isEmpty()) {
+            wave++;
             final var reconstructable = new ArrayList<SearchState>();
             for (final var state : current.values()) {
                 if (state.maximumMoves() == ReductionTypeEnumerator.MAX_BUDGET) {
@@ -137,14 +150,17 @@ public final class ObstructionAvoidance {
 
             final var parents = new ConcurrentHashMap<StateKey, SearchState>();
             final var applications = new LongAdder();
+            log.info("Avoidance reconstruction wave {} starting: inputs={}, "
+                            + "heapUsedMiB={}",
+                    wave, reconstructable.size(), usedHeapMiB());
             runReconstructionTasks(reconstructable, parents, applications);
             reconstructionApplications = Math.addExact(
                     reconstructionApplications, applications.sum());
-            log.info("Avoidance reconstruction wave: inputs={}, "
+            log.info("Avoidance reconstruction wave {}: inputs={}, "
                             + "reconstructionApplications={}, "
-                            + "predecessorClasses={}",
-                    reconstructable.size(), applications.sum(),
-                    parents.size());
+                            + "predecessorClasses={}, heapUsedMiB={}",
+                    wave, reconstructable.size(), applications.sum(),
+                    parents.size(), usedHeapMiB());
             current = parents;
         }
 
@@ -187,14 +203,38 @@ public final class ObstructionAvoidance {
             final CyclicTargetPair pair,
             final int maximumMoves
     ) {
+        Objects.requireNonNull(pair);
         final var parents = new ConcurrentHashMap<StateKey, SearchState>();
         final long applications = reconstructParentsInto(
                 new SearchState(maximumMoves, pair), parents);
-        final var ordered = parents.values().stream()
+        return new ReconstructionBatch(applications, orderedParents(parents));
+    }
+
+    static ReconstructionBatch reconstructParentsBatch(
+            final List<CyclicTargetPair> pairs,
+            final int maximumMoves
+    ) {
+        Objects.requireNonNull(pairs);
+        if (pairs.isEmpty()) {
+            return new ReconstructionBatch(0, List.of());
+        }
+        final var parents = new ConcurrentHashMap<StateKey, SearchState>();
+        final var applications = new LongAdder();
+        final var states = pairs.stream()
+                .map(pair -> new SearchState(maximumMoves, pair))
+                .toList();
+        runReconstructionTasks(states, parents, applications);
+        return new ReconstructionBatch(
+                applications.sum(), orderedParents(parents));
+    }
+
+    private static List<CyclicTargetPair> orderedParents(
+            final ConcurrentHashMap<StateKey, SearchState> parents
+    ) {
+        return parents.values().stream()
                 .map(state -> state.pair().canonicalRepresentative())
                 .sorted(ObstructionAvoidance::compareCertificateKeys)
                 .toList();
-        return new ReconstructionBatch(applications, ordered);
     }
 
     private static void validateTerminalResidual(
@@ -229,6 +269,7 @@ public final class ObstructionAvoidance {
             final LongAdder applications
     ) {
         final var cursor = new AtomicInteger();
+        final var processed = new AtomicInteger();
         final var stop = new AtomicBoolean();
         final int workers = Math.min(states.size(),
                 Math.max(1, Runtime.getRuntime().availableProcessors()));
@@ -249,6 +290,17 @@ public final class ObstructionAvoidance {
                             }
                             applications.add(reconstructParentsInto(
                                     states.get(index), parents));
+                            final int completedCount = processed.incrementAndGet();
+                            if (states.size() >= 10_000
+                                    && (completedCount % 10_000 == 0
+                                    || completedCount == states.size())) {
+                                log.info("Avoidance reconstruction progress: "
+                                                + "processed={}/{}, "
+                                                + "predecessorClasses={}, "
+                                                + "heapUsedMiB={}",
+                                        completedCount, states.size(),
+                                        parents.mappingCount(), usedHeapMiB());
+                            }
                         }
                     } catch (final RuntimeException | Error throwable) {
                         stop.set(true);
@@ -654,6 +706,23 @@ public final class ObstructionAvoidance {
     ) {
         return Arrays.compareUnsigned(
                 CertificateCodec.keyFor(first), CertificateCodec.keyFor(second));
+    }
+
+    static String annotatedTypeOf(final CyclicTargetPair pair) {
+        return formatType(annotatedType(pair));
+    }
+
+    private static long usedHeapMiB() {
+        final var runtime = Runtime.getRuntime();
+        return (runtime.totalMemory() - runtime.freeMemory()) >> 20;
+    }
+
+    private static long committedHeapMiB() {
+        return Runtime.getRuntime().totalMemory() >> 20;
+    }
+
+    private static long maximumHeapMiB() {
+        return Runtime.getRuntime().maxMemory() >> 20;
     }
 
     private static void awaitAll(
