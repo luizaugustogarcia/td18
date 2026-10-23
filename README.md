@@ -198,7 +198,12 @@ Table 2 rather than stored. After all selected rows have been processed, every s
 is routed to the same final obstruction phase. Following the construction used
 by `../td16`, the emitter restores every possible contracted fixed-point placement, applies
 every inverse support for the selected reduction, and retains only reachable
-predecessor types. It deduplicates each one-reduction predecessor and runs only
+predecessor types. It skips predecessor sizes already closed by a known
+diameter, directly generates gap multiplicities, and labels restored fixed
+points in current-cycle traversal order. This removes redundant labelings
+while preserving the predecessor classes. The checker independently selects
+the same label order from sequential insertions. It deduplicates each
+one-reduction predecessor and runs only
 the CPU prefix-closure test with budget 9. A settled predecessor closes its
 represented root paths; every prefix miss is propagated through the final
 inverse wave without an intermediate GPU attempt. The resulting 19-symbol root
@@ -225,9 +230,21 @@ mvn -pl emitter -Pgpu compile exec:exec \
 ~~~
 
 The work database records candidate and prefix-miss inventories, checksums, and
-completed reconstruction/screening waves. Versioned screening metadata ignores
-manifests from the former intermediate-GPU policy while reusing compatible
-candidate inventories.
+completed reconstruction/screening waves. Its writer flushes to disk every
+five seconds or when one million keys are buffered, whichever occurs first.
+The cap includes keys in an active drain and covers both column families;
+producers wait for space when the writer falls behind. Successfully written
+100,000-key batches release their Java references immediately. Drain logs
+report the trigger, duration, current buffer size, and peak buffer size.
+This buffering policy does not change stored keys or reconstruction counts.
+
+Work-database format version 2 and
+avoidance-manifest version 4 count inverse
+supports on canonical restorations after domain, depth, and known-diameter
+tests, before parent-type filtering and class deduplication. Earlier work
+databases and avoidance manifests are rejected. Use a new work directory to
+reconstruct the avoidance phase from the existing Table 2 row artifacts; an
+existing avoidance manifest must be regenerated with the current format.
 
 ## Check sorting certificates
 

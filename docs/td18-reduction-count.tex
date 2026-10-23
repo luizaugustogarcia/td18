@@ -299,6 +299,28 @@ $f\in\{1,2,3\}$ of fixed points compatible with a predecessor at the
 preceding recursion depth, restore
 the $f$ symbols in every cyclic gap of $\beta$. Each restored symbol is fixed
 by $\omega$, so its incoming edge is common to the current and target cycles.
+Let $N=|\beta|$. Before restoration, discard a predecessor size $N+f$
+if $D(N+f)\leq b+1$: that predecessor already closes within its remaining
+budget and therefore cannot be an open state of the checked recursion.
+
+Let $g_0,\ldots,g_{N-1}$ range over nonnegative gap multiplicities with
+$\sum_i g_i=f$. Generate each remaining restoration as follows. Traverse
+$\beta$ from its stored first symbol, insert $g_i$ symbols after its $i$th
+symbol, and label the new
+symbols $N,\ldots,N+f-1$ in traversal order. This gives
+$\binom{N+f-1}{f}$ restorations. Sequential insertion of distinctly labeled
+symbols would give $N(N+1)\cdots(N+f-1)$ histories. For each multiplicity
+vector, the $f!$ resulting label orders differ only by a relabeling that fixes
+all original symbols. Such a relabeling simultaneously conjugates
+$\omega$, $\beta$, and $\rho$ and bijects the inverse supports below.
+Consequently, the canonical label order retains every predecessor class;
+it removes labeling duplicates rather than selecting a single gap placement.
+Different multiplicity vectors can still yield the same predecessor class,
+so extended-toric deduplication remains necessary. The independent checker
+uses sequential insertion and selects the final words whose restored labels
+increase in current-cycle traversal order, instead of using the emitter's
+gap recursion.
+
 The emitter then enumerates the inverse supports of the selected reduction:
 one restored fixed point and one symbol from each of two odd-length child
 cycles for the one-fixed-point odd split; one restored fixed point and two
@@ -334,7 +356,12 @@ root obstruction is stored as a key-only entry in the
 \texttt{obstructions} column family, remains unresolved, and makes the emitter
 fail. The versioned range manifest records the intermediate prefix-check
 count, the number of conservatively propagated prefix misses, the root search count, all outcome
-counts, and the class-key checksum. The independent checker regenerates both
+counts, and the class-key checksum. Avoidance manifest version $4$ counts
+inverse-support applications on canonical restorations after the domain,
+depth, and known-diameter tests, before parent-type filtering and class
+deduplication. Work-database format version $2$ uses the same convention;
+earlier work databases and avoidance manifests are rejected because their
+application counts use insertion histories. The independent checker regenerates both
 preimage waves, rechecks non-persisted prefix closures, replays full-domain
 witnesses, and rejects a missing outcome or count.
 

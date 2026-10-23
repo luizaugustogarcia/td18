@@ -14,6 +14,8 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.Snapshot;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -21,6 +23,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,7 +39,9 @@ import java.util.zip.CRC32C;
 
 /** Versioned RocksDB work store for unique avoidance-preimage classes. */
 final class AvoidancePreimageStore implements AutoCloseable {
-    private static final int FORMAT_VERSION = 1;
+    private static final Logger log = LoggerFactory.getLogger(AvoidancePreimageStore.class);
+    // Version 2 uses canonical restorations and early diameter filtering.
+    private static final int FORMAT_VERSION = 2;
     private static final int SCREENING_POLICY_VERSION = 2;
     private static final byte[] PREIMAGES_COLUMN_FAMILY =
             "avoidance-preimages".getBytes(StandardCharsets.UTF_8);
@@ -49,6 +54,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
     private static final byte[] EMPTY = new byte[0];
     private static final int STATE_HEADER_BYTES = 3;
     private static final int FLUSH_SECONDS = 5;
+    private static final int MAX_BUFFERED_KEYS = 1_000_000;
     private static final int ROCKS_WRITE_BATCH_SIZE = 100_000;
 
     static {
@@ -67,14 +73,30 @@ final class AvoidancePreimageStore implements AutoCloseable {
     private final ColumnFamilyHandle hard;
     private final Object bufferLock = new Object();
     private final Object drainLock = new Object();
+    private final int maximumBufferedKeys;
     private final AtomicReference<Throwable> backgroundFailure =
             new AtomicReference<>();
     private Map<ByteBuffer, byte[]> pendingPreimages = new HashMap<>();
     private Map<ByteBuffer, byte[]> pendingHard = new HashMap<>();
+    // Includes detached maps and the batch currently being written.
+    private long bufferedKeys;
+    private long peakBufferedKeys;
+    private long writtenKeys;
+    private long completedDrains;
+    private boolean sizeDrainQueued;
     private ScheduledExecutorService flusher;
     private volatile boolean closed;
 
     AvoidancePreimageStore(final Path directory) {
+        this(directory, MAX_BUFFERED_KEYS, Duration.ofSeconds(FLUSH_SECONDS));
+    }
+
+    AvoidancePreimageStore(final Path directory, final int maximumBufferedKeys,
+                           final Duration flushInterval) {
+        if (maximumBufferedKeys <= 0 || flushInterval.toMillis() <= 0) {
+            throw new IllegalArgumentException("Avoidance buffer limits must be positive");
+        }
+        this.maximumBufferedKeys = maximumBufferedKeys;
         this.directory = directory.toAbsolutePath();
         final boolean existing = Files.isRegularFile(
                 this.directory.resolve("CURRENT"));
@@ -113,8 +135,9 @@ final class AvoidancePreimageStore implements AutoCloseable {
             flusher = Executors.newSingleThreadScheduledExecutor(
                     Thread.ofPlatform().daemon(true)
                             .name("avoidance-preimage-writer").factory());
-            flusher.scheduleAtFixedRate(this::flushFromBackground,
-                    FLUSH_SECONDS, FLUSH_SECONDS, TimeUnit.SECONDS);
+            flusher.scheduleAtFixedRate(() -> flushFromBackground("timer"),
+                    flushInterval.toMillis(), flushInterval.toMillis(),
+                    TimeUnit.MILLISECONDS);
         } catch (final RocksDBException | RuntimeException failure) {
             handles.forEach(ColumnFamilyHandle::close);
             if (opened != null) {
@@ -167,16 +190,72 @@ final class AvoidancePreimageStore implements AutoCloseable {
     private void putKeys(final List<byte[]> keys,
                          final ColumnFamilyHandle destination) {
         synchronized (bufferLock) {
-            throwIfFailed();
-            if (closed) {
-                throw new IllegalStateException(
-                        "Avoidance-preimage store is closed");
-            }
-            final Map<ByteBuffer, byte[]> pending = destination == hard
-                    ? pendingHard : pendingPreimages;
             for (final var key : keys) {
-                pending.put(ByteBuffer.wrap(key), key);
+                final var wrapped = ByteBuffer.wrap(key);
+                while (true) {
+                    throwIfFailed();
+                    if (closed) {
+                        throw new IllegalStateException(
+                                "Avoidance-preimage store is closed");
+                    }
+                    // Re-read the map after waiting: a drain may have detached it.
+                    final Map<ByteBuffer, byte[]> pending = destination == hard
+                            ? pendingHard : pendingPreimages;
+                    if (pending.containsKey(wrapped)) {
+                        break;
+                    }
+                    if (bufferedKeys < maximumBufferedKeys) {
+                        pending.put(wrapped, key);
+                        bufferedKeys++;
+                        peakBufferedKeys = Math.max(peakBufferedKeys, bufferedKeys);
+                        if (bufferedKeys == maximumBufferedKeys) {
+                            requestSizeDrain();
+                        }
+                        break;
+                    }
+                    requestSizeDrain();
+                    try {
+                        bufferLock.wait();
+                    } catch (final InterruptedException interruption) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(
+                                "Interrupted while waiting for avoidance buffer space",
+                                interruption);
+                    }
+                }
             }
+        }
+    }
+
+    /** Called with bufferLock held; at most one size-triggered task is queued. */
+    private void requestSizeDrain() {
+        if (sizeDrainQueued || closed || backgroundFailure.get() != null) {
+            return;
+        }
+        sizeDrainQueued = true;
+        flusher.execute(() -> {
+            try {
+                flushFromBackground("size");
+            } finally {
+                synchronized (bufferLock) {
+                    sizeDrainQueued = false;
+                    bufferLock.notifyAll();
+                    if (bufferedKeys == maximumBufferedKeys) {
+                        requestSizeDrain();
+                    }
+                }
+            }
+        });
+    }
+
+    record BufferStatistics(long bufferedKeys, long peakBufferedKeys,
+                            long writtenKeys, long completedDrains) {
+    }
+
+    BufferStatistics bufferStatistics() {
+        synchronized (bufferLock) {
+            return new BufferStatistics(bufferedKeys, peakBufferedKeys,
+                    writtenKeys, completedDrains);
         }
     }
 
@@ -388,7 +467,8 @@ final class AvoidancePreimageStore implements AutoCloseable {
             flushRocks();
         } else if (!Arrays.equals(actual, expected)) {
             throw new IllegalStateException(
-                    "Unsupported avoidance work format version");
+                    "Unsupported avoidance work format version; use a new "
+                            + "work directory for canonical restoration counts");
         }
     }
 
@@ -451,17 +531,25 @@ final class AvoidancePreimageStore implements AutoCloseable {
                 .getBytes(StandardCharsets.UTF_8);
     }
 
-    private void flushFromBackground() {
+    private void flushFromBackground(final String trigger) {
         try {
-            drain(false);
+            drain(true, trigger);
         } catch (final Throwable failure) {
             backgroundFailure.compareAndSet(null, failure);
+            synchronized (bufferLock) {
+                bufferLock.notifyAll();
+            }
         }
     }
 
     private void drain(final boolean flushRocks) {
+        drain(flushRocks, "checkpoint");
+    }
+
+    private void drain(final boolean flushRocks, final String trigger) {
         synchronized (drainLock) {
             throwIfFailed();
+            final long started = System.nanoTime();
             final Map<ByteBuffer, byte[]> drainedPreimages;
             final Map<ByteBuffer, byte[]> drainedHard;
             synchronized (bufferLock) {
@@ -470,25 +558,40 @@ final class AvoidancePreimageStore implements AutoCloseable {
                 pendingPreimages = new HashMap<>();
                 pendingHard = new HashMap<>();
             }
+            final int count = drainedPreimages.size() + drainedHard.size();
             try {
-                if (!drainedPreimages.isEmpty()) {
-                    writeKeys(preimages,
-                            drainedPreimages.values().stream().toList());
-                }
-                if (!drainedHard.isEmpty()) {
-                    writeKeys(hard, drainedHard.values().stream().toList());
-                }
+                writeKeys(preimages, drainedPreimages);
+                writeKeys(hard, drainedHard);
                 if (flushRocks) {
                     flushRocks();
+                }
+                if (count != 0) {
+                    final BufferStatistics statistics;
+                    synchronized (bufferLock) {
+                        completedDrains++;
+                        statistics = bufferStatistics();
+                    }
+                    log.info("Avoidance buffer drained: trigger={}, keys={}, "
+                                    + "elapsedMs={}, bufferedKeys={}, peakBufferedKeys={}, "
+                                    + "writtenKeys={}, diskFlush={}",
+                            trigger, count,
+                            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started),
+                            statistics.bufferedKeys(), statistics.peakBufferedKeys(),
+                            statistics.writtenKeys(), flushRocks);
                 }
             } catch (final RocksDBException | RuntimeException failure) {
                 synchronized (bufferLock) {
                     for (final var key : drainedPreimages.values()) {
-                        pendingPreimages.putIfAbsent(ByteBuffer.wrap(key), key);
+                        if (pendingPreimages.putIfAbsent(ByteBuffer.wrap(key), key) != null) {
+                            bufferedKeys--;
+                        }
                     }
                     for (final var key : drainedHard.values()) {
-                        pendingHard.putIfAbsent(ByteBuffer.wrap(key), key);
+                        if (pendingHard.putIfAbsent(ByteBuffer.wrap(key), key) != null) {
+                            bufferedKeys--;
+                        }
                     }
+                    bufferLock.notifyAll();
                 }
                 throw new IllegalStateException(
                         "Cannot drain avoidance-preimage buffer", failure);
@@ -497,16 +600,34 @@ final class AvoidancePreimageStore implements AutoCloseable {
     }
 
     private void writeKeys(final ColumnFamilyHandle destination,
-                           final List<byte[]> keys) throws RocksDBException {
-        for (var start = 0; start < keys.size();
-             start += ROCKS_WRITE_BATCH_SIZE) {
-            final int end = Math.min(
-                    keys.size(), start + ROCKS_WRITE_BATCH_SIZE);
-            try (final var batch = new WriteBatch()) {
-                for (var index = start; index < end; index++) {
-                    batch.put(destination, keys.get(index), EMPTY);
+                           final Map<ByteBuffer, byte[]> keys) throws RocksDBException {
+        final var iterator = keys.entrySet().iterator();
+        final var chunk = new ArrayList<byte[]>(
+                Math.min(ROCKS_WRITE_BATCH_SIZE, keys.size()));
+        while (iterator.hasNext()) {
+            try {
+                try (final var batch = new WriteBatch()) {
+                    while (iterator.hasNext() && chunk.size() < ROCKS_WRITE_BATCH_SIZE) {
+                        final var entry = iterator.next();
+                        chunk.add(entry.getValue());
+                        iterator.remove();
+                        batch.put(destination, chunk.getLast(), EMPTY);
+                    }
+                    database.write(writeOptions, batch);
                 }
-                database.write(writeOptions, batch);
+            } catch (final RocksDBException | RuntimeException failure) {
+                for (final var key : chunk) {
+                    keys.put(ByteBuffer.wrap(key), key);
+                }
+                throw failure;
+            }
+            final int written = chunk.size();
+            // Release successful entries before accepting more buffered keys.
+            chunk.clear();
+            synchronized (bufferLock) {
+                bufferedKeys -= written;
+                writtenKeys += written;
+                bufferLock.notifyAll();
             }
         }
     }
@@ -531,6 +652,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
         try {
             synchronized (bufferLock) {
                 closed = true;
+                bufferLock.notifyAll();
             }
             if (flusher != null) {
                 flusher.shutdown();

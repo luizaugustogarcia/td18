@@ -46,4 +46,16 @@ class AvoidanceRecordsTest {
         assertEquals(manifest, AvoidancePhaseManifest.decode(
                 manifest.encoded()));
     }
+
+    @Test
+    void rejectsManifestsWithInsertionHistoryApplicationCounts() {
+        final var manifest = new AvoidancePhaseManifest(1, 204,
+                2_036, 10_000, 60, 10, 50, 20, 80, 0, 1234, true);
+        final byte[] legacy = manifest.encoded();
+        assertEquals(4, Byte.toUnsignedInt(legacy[1]));
+        legacy[1] = 3;
+
+        assertThrows(IllegalArgumentException.class,
+                () -> AvoidancePhaseManifest.decode(legacy));
+    }
 }

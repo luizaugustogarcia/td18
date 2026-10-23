@@ -6,21 +6,163 @@ import br.unb.cic.td18.base.WitnessSearch;
 import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.DBOptions;
+import org.rocksdb.RocksDB;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AvoidancePreimageStoreTest {
     @TempDir
     Path temporaryDirectory;
+
+    @Test
+    @Timeout(30)
+    void flushesAtTheSizeLimitAndReleasesCompletedKeys() throws Exception {
+        final var directory = temporaryDirectory.resolve("size-limit");
+        final var pair = smallPair();
+        try (final var store = new AvoidancePreimageStore(
+                directory, 8, Duration.ofHours(1))) {
+            store.putStates(IntStream.rangeClosed(1, 32)
+                    .mapToObj(budget -> new AvoidancePreimageStore.State(budget, pair))
+                    .toList());
+            awaitWritten(store, 32, 4);
+            final var statistics = store.bufferStatistics();
+            assertEquals(8, statistics.peakBufferedKeys());
+            assertEquals(0, statistics.bufferedKeys());
+            assertEquals(32, statistics.writtenKeys());
+            assertTrue(statistics.completedDrains() >= 4);
+        }
+        try (final var reopened = new AvoidancePreimageStore(directory)) {
+            for (var budget = 1; budget <= 32; budget++) {
+                assertEquals(1, reopened.inventory(budget).count());
+            }
+        }
+    }
+
+    @Test
+    @Timeout(30)
+    void flushesOnTheTimerBelowTheSizeLimit() throws Exception {
+        final var directory = temporaryDirectory.resolve("timed-flush");
+        try (final var store = new AvoidancePreimageStore(
+                directory, 1_000, Duration.ofMillis(100))) {
+            store.putStates(List.of(new AvoidancePreimageStore.State(8, smallPair())));
+            awaitWritten(store, 1);
+            assertEquals(0, store.bufferStatistics().bufferedKeys());
+            assertEquals(1, store.bufferStatistics().peakBufferedKeys());
+        }
+        try (final var reopened = new AvoidancePreimageStore(directory)) {
+            assertEquals(1, reopened.inventory(8).count());
+        }
+    }
+
+    @Test
+    @Timeout(30)
+    void capsBothFamiliesAcrossConcurrentProducersAndPreservesEveryKey()
+            throws Exception {
+        final var directory = temporaryDirectory.resolve("bounded-concurrent");
+        final var pair = smallPair();
+        final var states = IntStream.rangeClosed(1, 64)
+                .mapToObj(budget -> new AvoidancePreimageStore.State(budget, pair))
+                .toList();
+        final var store = new AvoidancePreimageStore(
+                directory, 17, Duration.ofHours(1));
+        try (store; final var producers = Executors.newFixedThreadPool(8)) {
+            final var futures = IntStream.range(0, 8)
+                    .mapToObj(worker -> producers.submit(() -> {
+                        store.putStates(states);
+                        store.putHardStates(states);
+                    })).toList();
+            for (final var future : futures) {
+                future.get(20, TimeUnit.SECONDS);
+            }
+            assertTrue(store.bufferStatistics().peakBufferedKeys() <= 17);
+        }
+        assertEquals(0, store.bufferStatistics().bufferedKeys());
+        try (final var reopened = new AvoidancePreimageStore(directory)) {
+            for (var budget = 1; budget <= 64; budget++) {
+                assertEquals(1, reopened.inventory(budget).count());
+                assertEquals(1, reopened.hardInventory(budget).count());
+            }
+        }
+    }
+
+    private static CyclicTargetPair smallPair() {
+        return CyclicTargetPair.of(new MulticyclePermutation(Cycle.of(0, 1, 2)),
+                Cycle.of(0, 1, 2)).canonicalRepresentative();
+    }
+
+    private static void awaitWritten(final AvoidancePreimageStore store,
+                                     final long expected) throws InterruptedException {
+        awaitWritten(store, expected, 1);
+    }
+
+    private static void awaitWritten(final AvoidancePreimageStore store,
+                                     final long expected, final long minimumDrains)
+            throws InterruptedException {
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+        while (System.nanoTime() < deadline) {
+            final var statistics = store.bufferStatistics();
+            if (statistics.writtenKeys() >= expected
+                    && statistics.completedDrains() >= minimumDrains
+                    && statistics.bufferedKeys() == 0) {
+                return;
+            }
+            Thread.sleep(10);
+        }
+        throw new AssertionError("Avoidance buffer did not flush: " + store.bufferStatistics());
+    }
+
+    @Test
+    void rejectsWorkDatabasesWithInsertionHistoryApplicationCounts()
+            throws Exception {
+        final var directory = temporaryDirectory.resolve("legacy-work");
+        RocksDB.loadLibrary();
+        try (final var options = new DBOptions().setCreateIfMissing(true)
+                .setCreateMissingColumnFamilies(true);
+             final var familyOptions = new ColumnFamilyOptions()) {
+            final var handles = new ArrayList<ColumnFamilyHandle>();
+            try (final var database = RocksDB.open(options, directory.toString(),
+                    List.of(new ColumnFamilyDescriptor(
+                                    RocksDB.DEFAULT_COLUMN_FAMILY, familyOptions),
+                            new ColumnFamilyDescriptor("avoidance-preimages"
+                                    .getBytes(StandardCharsets.UTF_8), familyOptions),
+                            new ColumnFamilyDescriptor("avoidance-hard"
+                                    .getBytes(StandardCharsets.UTF_8), familyOptions)),
+                    handles)) {
+                try {
+                    database.put(handles.getFirst(),
+                            "format-version".getBytes(StandardCharsets.UTF_8),
+                            ByteBuffer.allocate(Integer.BYTES).putInt(1).array());
+                } finally {
+                    handles.forEach(ColumnFamilyHandle::close);
+                }
+            }
+        }
+
+        final var failure = assertThrows(IllegalStateException.class,
+                () -> new AvoidancePreimageStore(directory));
+        assertTrue(failure.getCause().getMessage()
+                .contains("Unsupported avoidance work format version"));
+    }
 
     @Test
     void deduplicatesClassesAndPersistsWaveInventories() {

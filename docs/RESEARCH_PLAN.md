@@ -115,7 +115,13 @@ within the reduction argument.
 The emitter implements the obstruction-avoidance construction adapted from
 `../td16`. For an obstruction with budget `b`, it uncontracts the fixed points
 in every cyclic gap and enumerates the inverse supports of each reduction family capable
-of producing the terminal pair. It retains only predecessors admitted by the
+of producing the terminal pair. Predecessor sizes already closed by a known
+diameter are skipped before restoration. The emitter directly generates gap
+multiplicities and labels restored fixed points in current-cycle traversal
+order. Permuting only the restored labels bijects the inverse supports and
+preserves their predecessor classes, so one such label order suffices. The
+checker independently enumerates sequential insertions and selects that label
+order at the end. It retains only predecessors admitted by the
 checked TD(18) priority policy at the preceding depth. It deduplicates the
 one-reduction predecessors by extended-toric class and runs only the CPU prefix
 closure test within budget 9; it does not dispatch intermediate GPU searches.
@@ -132,6 +138,11 @@ remains unresolved. The versioned sidecar range manifest records
 reconstruction counts, intermediate prefix-check and propagated-miss counts, root
 search counts, all outcomes, the class-key checksum, and whether any root
 obstruction remains.
+Avoidance manifests use version 4 and the work database uses format version 2.
+Reconstruction counts include inverse supports on canonical restorations after
+the domain, depth, and known-diameter tests, before parent-type filtering and
+class deduplication. Older work databases and avoidance manifests are rejected
+because their counts include redundant insertion histories.
 
 Exit criterion: every class counted by `Q` has either a checked
 prefix-plus-known-diameter closure or a replayable valid witness within its row

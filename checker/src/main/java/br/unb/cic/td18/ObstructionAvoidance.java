@@ -95,8 +95,8 @@ public final class ObstructionAvoidance {
     private record SearchState(int maximumMoves, CyclicTargetPair pair) {
     }
 
-    private record RestoredState(CyclicTargetPair pair, int[] fixedPoints) {
-        private RestoredState {
+    record RestoredState(CyclicTargetPair pair, int[] fixedPoints) {
+        RestoredState {
             fixedPoints = fixedPoints.clone();
         }
     }
@@ -337,7 +337,9 @@ public final class ObstructionAvoidance {
                     - parentSymbols;
             if (parentSymbols > ReductionTypeEnumerator.ROOT_SYMBOLS
                     || earlierContraction < parentMovesUsed
-                    || earlierContraction > 3 * parentMovesUsed) {
+                    || earlierContraction > 3 * parentMovesUsed
+                    || ReductionTypeEnumerator.knownDiameter(parentSymbols)
+                    <= successor.maximumMoves() + 1) {
                 continue;
             }
             final int restoredCount = fixedPointCount;
@@ -505,11 +507,16 @@ public final class ObstructionAvoidance {
         }
     }
 
-    private static void forEachRestoration(
+    /** Independently selects canonical labels from sequential insertions. */
+    static void forEachRestoration(
             final CyclicTargetPair pair,
             final int count,
             final Consumer<RestoredState> consumer
     ) {
+        if (count < 1 || count > 3) {
+            throw new IllegalArgumentException(
+                    "A restoration requires one to three fixed points");
+        }
         restoreRecursively(pair, count, new int[count], 0, consumer);
     }
 
@@ -521,6 +528,15 @@ public final class ObstructionAvoidance {
             final Consumer<RestoredState> consumer
     ) {
         if (remaining == 0) {
+            // Keep exactly one labeling for each gap-multiplicity vector.
+            // This deliberately retains the original insertion enumeration
+            // rather than reusing the emitter's gap recursion.
+            for (var index = 1; index < fixedPoints.length; index++) {
+                if (pair.getBeta().indexOf(fixedPoints[index - 1])
+                        > pair.getBeta().indexOf(fixedPoints[index])) {
+                    return;
+                }
+            }
             consumer.accept(new RestoredState(pair, fixedPoints));
             return;
         }

@@ -95,8 +95,8 @@ public final class ObstructionAvoidance {
     private record SearchState(int maximumMoves, CyclicTargetPair pair) {
     }
 
-    private record RestoredState(CyclicTargetPair pair, int[] fixedPoints) {
-        private RestoredState {
+    record RestoredState(CyclicTargetPair pair, int[] fixedPoints) {
+        RestoredState {
             fixedPoints = fixedPoints.clone();
         }
     }
@@ -389,7 +389,9 @@ public final class ObstructionAvoidance {
                     - parentSymbols;
             if (parentSymbols > ReductionTypeEnumerator.ROOT_SYMBOLS
                     || earlierContraction < parentMovesUsed
-                    || earlierContraction > 3 * parentMovesUsed) {
+                    || earlierContraction > 3 * parentMovesUsed
+                    || ReductionTypeEnumerator.knownDiameter(parentSymbols)
+                    <= successor.maximumMoves() + 1) {
                 continue;
             }
             final int restoredCount = fixedPointCount;
@@ -557,56 +559,70 @@ public final class ObstructionAvoidance {
         }
     }
 
-    private static void forEachRestoration(
+    /**
+     * Enumerates gap multiplicities, labeling the restored fixed points in
+     * current-cycle traversal order from the first original symbol. Permuting
+     * these labels only simultaneously relabels the reconstructed pair, so
+     * the inverse supports represent the same extended-toric classes.
+     */
+    static void forEachRestoration(
             final CyclicTargetPair pair,
             final int count,
             final Consumer<RestoredState> consumer
     ) {
-        restoreRecursively(pair, count, new int[count], 0, consumer);
+        if (count < 1 || count > 3) {
+            throw new IllegalArgumentException(
+                    "A restoration requires one to three fixed points");
+        }
+        final var omega = new MulticyclePermutation(pair.getOmega());
+        final int[] fixedPoints = new int[count];
+        for (var index = 0; index < count; index++) {
+            fixedPoints[index] = pair.getBeta().size() + index;
+            omega.add(Cycle.of(fixedPoints[index]));
+        }
+        restoreGaps(pair.getBeta(), omega,
+                new int[pair.getBeta().size() + count], fixedPoints,
+                0, 0, 0, consumer);
     }
 
-    private static void restoreRecursively(
-            final CyclicTargetPair pair,
-            final int remaining,
+    private static void restoreGaps(
+            final Cycle beta,
+            final MulticyclePermutation omega,
+            final int[] symbols,
             final int[] fixedPoints,
-            final int offset,
+            final int gap,
+            final int destination,
+            final int restoredCount,
             final Consumer<RestoredState> consumer
     ) {
-        if (remaining == 0) {
-            consumer.accept(new RestoredState(pair, fixedPoints));
+        if (gap == beta.size()) {
+            final var restored = CyclicTargetPair.of(
+                    omega, Cycle.of(symbols));
+            for (final int fixedPoint : fixedPoints) {
+                final int position = restored.getBeta().indexOf(fixedPoint);
+                final int predecessor = symbols[
+                        (position + symbols.length - 1) % symbols.length];
+                if (restored.getRho().image(predecessor) != fixedPoint) {
+                    throw new IllegalStateException(
+                            "Restored fixed point is not a common current/target edge");
+                }
+            }
+            consumer.accept(new RestoredState(restored, fixedPoints));
             return;
         }
-        final int fixedPoint = pair.getBeta().size();
-        fixedPoints[offset] = fixedPoint;
-        final var omega = new MulticyclePermutation(pair.getOmega());
-        omega.add(Cycle.of(fixedPoint));
-        for (final int predecessor : pair.getBeta().getSymbols()) {
-            final var beta = insertAfter(
-                    pair.getBeta(), predecessor, fixedPoint);
-            final var restored = CyclicTargetPair.of(omega, beta);
-            if (restored.getRho().image(predecessor) != fixedPoint) {
-                throw new IllegalStateException(
-                        "Restored fixed point is not a common current/target edge");
-            }
-            restoreRecursively(restored, remaining - 1, fixedPoints,
-                    offset + 1, consumer);
-        }
-    }
 
-    private static Cycle insertAfter(
-            final Cycle beta,
-            final int predecessor,
-            final int fixedPoint
-    ) {
-        final int[] symbols = new int[beta.size() + 1];
-        var destination = 0;
-        for (final int symbol : beta.getSymbols()) {
-            symbols[destination++] = symbol;
-            if (symbol == predecessor) {
-                symbols[destination++] = fixedPoint;
+        symbols[destination] = beta.get(gap);
+        final int remaining = fixedPoints.length - restoredCount;
+        // The final gap must receive every remaining symbol.
+        final int minimum = gap == beta.size() - 1 ? remaining : 0;
+        for (var inGap = minimum; inGap <= remaining; inGap++) {
+            for (var index = 0; index < inGap; index++) {
+                symbols[destination + 1 + index] =
+                        fixedPoints[restoredCount + index];
             }
+            restoreGaps(beta, omega, symbols, fixedPoints, gap + 1,
+                    destination + 1 + inGap, restoredCount + inGap, consumer);
         }
-        return Cycle.of(symbols);
     }
 
     private static Cycle orderedCycle(
