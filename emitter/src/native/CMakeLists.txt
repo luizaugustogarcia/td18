@@ -29,7 +29,7 @@ if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.8)
 endif()
 list(APPEND TD18_DEFAULT_CUDA_ARCHITECTURES ${TD18_FORWARD_CUDA_ARCHITECTURE})
 set(TD18_CUDA_ARCHITECTURES "${TD18_DEFAULT_CUDA_ARCHITECTURES}"
-    CACHE STRING "CUDA architectures supported by the native libraries" FORCE)
+    CACHE STRING "CUDA architectures supported by the native libraries")
 set(CMAKE_CUDA_ARCHITECTURES ${TD18_CUDA_ARCHITECTURES})
 message(STATUS "CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
 
@@ -49,6 +49,7 @@ find_package(JNI)
 if(JNI_FOUND)
     add_library(td18_jni SHARED
         jni/jni_sorter.cu
+        jni/jni_avoidance.cu
         backtracking/slot_manager.cu
         backtracking/sorting_search.cu
     )

@@ -28,13 +28,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -61,6 +64,9 @@ public final class ObstructionAvoidanceRunner {
     public static void main(final String[] arguments) throws IOException {
         final var root = CountTD18Bracelets.projectRoot(Path.of(""));
         final var options = Options.parse(arguments, root);
+        final boolean trustWaveManifest = Boolean.parseBoolean(
+                System.getProperty(
+                        "td18.avoidanceTrustWaveManifest", "false"));
         if (options.help()) {
             printUsage();
             return;
@@ -126,11 +132,15 @@ public final class ObstructionAvoidanceRunner {
                  maximumMoves++) {
                 final var input = store.hardInventory(maximumMoves);
                 final var existing = store.waveManifest(maximumMoves);
+                final AvoidancePreimageStore.StateInventory reconstructed;
                 if (existing.isPresent()) {
                     final var manifest = existing.orElseThrow();
-                    final var actualOutput = store.inventory(maximumMoves + 1);
+                    final var actualOutput = trustWaveManifest
+                            ? manifest.output()
+                            : store.inventory(maximumMoves + 1);
                     if (!manifest.input().equals(input)
-                            || !manifest.output().equals(actualOutput)) {
+                            || (!trustWaveManifest
+                            && !manifest.output().equals(actualOutput))) {
                         throw new IllegalStateException(
                                 "Persisted avoidance wave inventory mismatch at budget "
                                         + maximumMoves);
@@ -142,7 +152,14 @@ public final class ObstructionAvoidanceRunner {
                                     + "inputs={}, predecessorClasses={}, checksum={}",
                             maximumMoves, input.count(), actualOutput.count(),
                             actualOutput.checksum());
+                    if (trustWaveManifest) {
+                        log.warn("Avoidance wave {} output trusted from its "
+                                        + "checked manifest without resume-time inventory scan",
+                                maximumMoves);
+                    }
+                    reconstructed = actualOutput;
                 } else {
+                    store.clearUncommittedWaveOutput(maximumMoves);
                     final var wave = reconstructWave(
                             store, maximumMoves, input.count());
                     final var output = store.inventory(maximumMoves + 1);
@@ -156,18 +173,19 @@ public final class ObstructionAvoidanceRunner {
                                     + "uniquePredecessorClasses={}, checksum={}",
                             maximumMoves, input.count(), wave.applications(),
                             output.count(), output.checksum());
+                    reconstructed = output;
                 }
 
                 final int searchBudget = maximumMoves + 1;
                 if (searchBudget == ReductionTypeEnumerator.MAX_BUDGET
                         && store.searchManifest(searchBudget).isEmpty()
-                        && store.inventory(searchBudget).count() != 0
+                        && reconstructed.count() != 0
                         && !gpuInitialized) {
                     initializeGpu();
                     gpuInitialized = true;
                 }
                 final var search = requireOrRunSearch(
-                        store, searchBudget, writer,
+                        store, searchBudget, reconstructed, writer,
                         searchBudget == ReductionTypeEnumerator.MAX_BUDGET);
                 if (searchBudget == ReductionTypeEnumerator.MAX_BUDGET) {
                     rootSearchObligations = Math.addExact(
@@ -230,6 +248,10 @@ public final class ObstructionAvoidanceRunner {
             final int maximumMoves,
             final long expectedInputs
     ) {
+        if (Boolean.parseBoolean(System.getProperty(
+                "td18.avoidanceGpu", "false"))) {
+            return reconstructWaveOnGpu(store, maximumMoves, expectedInputs);
+        }
         final int availableProcessors = Math.max(
                 1, Runtime.getRuntime().availableProcessors());
         final int parallelism = (int) Math.min(availableProcessors,
@@ -253,6 +275,190 @@ public final class ObstructionAvoidanceRunner {
         return result;
     }
 
+    private static WaveResult reconstructWaveOnGpu(
+            final AvoidancePreimageStore store,
+            final int maximumMoves,
+            final long expectedInputs
+    ) {
+        final int[] devices = GpuDeviceLayout.parseDevices(
+                System.getProperty("td18.gpuDevices", "0"));
+        final long budgetMiB = Long.parseLong(System.getProperty(
+                "td18.avoidanceGpuBudgetMB", "1024"));
+        final int batchSize = Integer.parseInt(System.getProperty(
+                "td18.avoidanceGpuBatchSize",
+                Integer.toString(ROCKS_SCAN_BATCH_SIZE)));
+        final int verifyBatches = Integer.parseInt(System.getProperty(
+                "td18.avoidanceGpuVerifyBatches", "1"));
+        if (budgetMiB <= 0 || batchSize <= 0 || verifyBatches <= 0) {
+            throw new IllegalArgumentException(
+                    "GPU avoidance budget, batch size, and verification count must be positive");
+        }
+        final long budgetBytes = Math.multiplyExact(
+                budgetMiB, 1024L * 1024L);
+        final var reconstructors = Arrays.stream(devices)
+                .mapToObj(device -> new GpuAvoidanceReconstructor(
+                        device, budgetBytes))
+                .toList();
+        final var processed = new AtomicLong();
+        final var applications = new LongAdder();
+        final var accepted = new LongAdder();
+        final var unique = new LongAdder();
+        final var gpuNanos = new LongAdder();
+        final var batches = new AtomicLong();
+        final var nextProgress = new AtomicLong(10_000);
+        log.info("Avoidance reconstruction wave {} starting on CUDA devices {}: "
+                        + "inputs={}, batchSize={}, budgetMiB={}, verifyBatches={}, "
+                        + "heapUsedMiB={}",
+                maximumMoves, Arrays.toString(devices), expectedInputs,
+                batchSize, budgetMiB, verifyBatches, usedHeapMiB());
+
+        final Consumer<CompletedGpuBatch> persist = completedBatch -> {
+            for (final var batch : completedBatch.batches()) {
+                store.putCanonicalKeyRecords(
+                        maximumMoves + 1, batch.keyRecords());
+                applications.add(batch.applications());
+                accepted.add(batch.acceptedBeforeDeduplication());
+                unique.add(batch.uniqueKeys());
+                gpuNanos.add(batch.pipelineNanos());
+            }
+            final long completed = processed.addAndGet(completedBatch.inputs());
+            long threshold = nextProgress.get();
+            if (completed >= threshold || completed == expectedInputs) {
+                while (threshold <= completed
+                        && !nextProgress.compareAndSet(
+                        threshold, threshold + 10_000)) {
+                    threshold = nextProgress.get();
+                }
+                log.info("Avoidance reconstruction wave {} progress: "
+                                + "processed={}/{}, backend=CUDA, devices={}, "
+                                + "applications={}, acceptedKeys={}, "
+                                + "batchUniqueKeys={}, gpuSeconds={}, heapUsedMiB={}",
+                        maximumMoves, completed, expectedInputs,
+                        Arrays.toString(devices), applications.sum(),
+                        accepted.sum(), unique.sum(),
+                        gpuNanos.sum() / 1_000_000_000.0, usedHeapMiB());
+            }
+        };
+
+        final long scanned;
+        try (final var executor = Executors.newFixedThreadPool(devices.length)) {
+            final var completion =
+                    new ExecutorCompletionService<CompletedGpuBatch>(executor);
+            final var inFlight = new AtomicLong();
+            scanned = store.scanHardBatches(
+                    maximumMoves, batchSize, ROCKS_SCAN_BATCH_SIZE, pairs -> {
+                        final long batchIndex = batches.getAndIncrement();
+                        if (batchIndex < verifyBatches) {
+                            final var batch = reconstructors.getFirst()
+                                    .reconstruct(pairs, maximumMoves);
+                            final var reference =
+                                    GpuAvoidanceReconstructor.cpuReference(
+                                            pairs, maximumMoves);
+                            if (batch.applications() != reference.applications()
+                                    || !Arrays.equals(batch.keyRecords(),
+                                    reference.keyRecords())) {
+                                throw new IllegalStateException(
+                                        "CUDA avoidance reconstruction disagrees with the CPU reference");
+                            }
+                            log.info("Avoidance CUDA batch {} verified against CPU: "
+                                            + "device={}, inputs={}, applications={}, "
+                                            + "uniqueKeys={}",
+                                    batchIndex + 1, devices[0], pairs.size(),
+                                    batch.applications(), batch.uniqueKeys());
+                            persist.accept(new CompletedGpuBatch(
+                                    pairs.size(), devices[0], List.of(batch)));
+                            return;
+                        }
+                        final int deviceIndex = Math.toIntExact(
+                                (batchIndex - verifyBatches) % devices.length);
+                        completion.submit(() -> new CompletedGpuBatch(
+                                pairs.size(), devices[deviceIndex],
+                                reconstructAdaptively(
+                                        reconstructors.get(deviceIndex), pairs,
+                                        maximumMoves, devices[deviceIndex])));
+                        if (inFlight.incrementAndGet() == devices.length) {
+                            for (var completed = 0; completed < devices.length;
+                                 completed++) {
+                                persist.accept(awaitGpuBatch(completion));
+                            }
+                            inFlight.set(0);
+                        }
+                    });
+            while (inFlight.get() > 0) {
+                persist.accept(awaitGpuBatch(completion));
+                inFlight.decrementAndGet();
+            }
+        }
+        if (scanned != expectedInputs || processed.get() != expectedInputs) {
+            throw new IllegalStateException(
+                    "Avoidance wave input changed during its CUDA snapshot");
+        }
+        log.info("Avoidance reconstruction wave {} CUDA generation complete: "
+                        + "inputs={}, applications={}, acceptedKeys={}, "
+                        + "batchUniqueKeys={}, gpuSeconds={}",
+                maximumMoves, processed.get(), applications.sum(),
+                accepted.sum(), unique.sum(),
+                gpuNanos.sum() / 1_000_000_000.0);
+        return new WaveResult(
+                processed.get(), applications.sum(), devices.length);
+    }
+
+    private static CompletedGpuBatch awaitGpuBatch(
+            final ExecutorCompletionService<CompletedGpuBatch> completion
+    ) {
+        try {
+            return completion.take().get();
+        } catch (final InterruptedException interruption) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "Interrupted while waiting for CUDA avoidance reconstruction",
+                    interruption);
+        } catch (final ExecutionException execution) {
+            throw new IllegalStateException(
+                    "CUDA avoidance reconstruction worker failed",
+                    execution.getCause());
+        }
+    }
+
+    private static List<GpuAvoidanceReconstructor.Batch> reconstructAdaptively(
+            final GpuAvoidanceReconstructor reconstructor,
+            final List<CyclicTargetPair> pairs,
+            final int maximumMoves,
+            final int device
+    ) {
+        try {
+            return List.of(reconstructor.reconstruct(pairs, maximumMoves));
+        } catch (final RuntimeException failure) {
+            final String message = failure.getMessage();
+            final boolean capacityFailure = message != null
+                    && (message.contains(
+                    "batch exceeds td18.avoidanceGpuBudgetMB")
+                    || message.contains(
+                    "does not fit available device memory"));
+            if (!capacityFailure || pairs.size() <= 1) {
+                throw failure;
+            }
+            final int middle = pairs.size() / 2;
+            log.info("Splitting CUDA avoidance batch on device {}: "
+                            + "inputs={} into {}+{} after memory-cap check",
+                    device, pairs.size(), middle, pairs.size() - middle);
+            final var batches = new ArrayList<GpuAvoidanceReconstructor.Batch>();
+            batches.addAll(reconstructAdaptively(
+                    reconstructor, pairs.subList(0, middle),
+                    maximumMoves, device));
+            batches.addAll(reconstructAdaptively(
+                    reconstructor, pairs.subList(middle, pairs.size()),
+                    maximumMoves, device));
+            return List.copyOf(batches);
+        }
+    }
+
+    private record CompletedGpuBatch(
+            int inputs, int device,
+            List<GpuAvoidanceReconstructor.Batch> batches
+    ) {
+    }
+
     record WaveResult(long processed, long applications, int parallelism) {
         WaveResult {
             if (processed < 0 || applications < 0 || parallelism <= 0) {
@@ -265,10 +471,10 @@ public final class ObstructionAvoidanceRunner {
     private static AvoidancePreimageStore.SearchManifest requireOrRunSearch(
             final AvoidancePreimageStore store,
             final int maximumMoves,
+            final AvoidancePreimageStore.StateInventory candidates,
             final AsyncCertificateWriter writer,
             final boolean fullDomain
     ) {
-        final var candidates = store.inventory(maximumMoves);
         final var existing = store.searchManifest(maximumMoves);
         if (existing.isPresent()) {
             final var manifest = existing.orElseThrow();
@@ -401,6 +607,7 @@ public final class ObstructionAvoidanceRunner {
         private final PairSearch search;
         private final LinkedBlockingQueue<WorkItem> queue;
         private final ExecutorService executor;
+        private final ScheduledExecutorService statsReporter;
         private final List<Future<?>> workers;
         private final LongAdder trivialClosures = new LongAdder();
         private final LongAdder certificates = new LongAdder();
@@ -409,6 +616,8 @@ public final class ObstructionAvoidanceRunner {
         private final AtomicLong processed = new AtomicLong();
         private final AtomicReference<Throwable> failure =
                 new AtomicReference<>();
+        private long lastReportNanos = System.nanoTime();
+        private long lastReportedProcessed;
         private volatile boolean finished;
 
         private SearchProcessor(
@@ -427,14 +636,32 @@ public final class ObstructionAvoidanceRunner {
             this.fullDomain = fullDomain;
             this.missSink = Objects.requireNonNull(missSink);
             this.search = Objects.requireNonNull(search);
+            final var statsPeriod = System.getProperty(
+                    "td18.gpuStatsPeriodSeconds", "").trim();
+            final long statsPeriodSeconds = statsPeriod.isEmpty()
+                    ? 60 : Long.parseLong(statsPeriod);
+            if (statsPeriodSeconds < 0) {
+                throw new IllegalArgumentException(
+                        "td18.gpuStatsPeriodSeconds must not be negative");
+            }
             queue = new LinkedBlockingQueue<>(Math.max(
                     ROCKS_SCAN_BATCH_SIZE, parallelism * 64));
             executor = Executors.newFixedThreadPool(parallelism,
                     Thread.ofPlatform()
                             .name("td18-avoidance-search-", 0).factory());
+            statsReporter = statsPeriodSeconds > 0
+                    ? Executors.newSingleThreadScheduledExecutor(
+                    Thread.ofPlatform().daemon(true)
+                            .name("td18-avoidance-search-stats-", 0).factory())
+                    : null;
             workers = new ArrayList<>(parallelism);
             for (var worker = 0; worker < parallelism; worker++) {
                 workers.add(executor.submit(this::runWorker));
+            }
+            if (statsReporter != null) {
+                statsReporter.scheduleAtFixedRate(
+                        () -> logProgress(false), statsPeriodSeconds,
+                        statsPeriodSeconds, TimeUnit.SECONDS);
             }
         }
 
@@ -503,16 +730,7 @@ public final class ObstructionAvoidanceRunner {
                             residuals.increment();
                         }
                     }
-                    final long completed = processed.incrementAndGet();
-                    if (completed % 10_000 == 0
-                            || completed == expectedInputs) {
-                        log.info("Avoidance search {} progress: processed={}/{}, "
-                                        + "trivial={}, certificates={}, residuals={}, "
-                                        + "heapUsedMiB={}",
-                                maximumMoves, completed, expectedInputs,
-                                trivialClosures.sum(), certificates.sum(),
-                                residuals.sum(), usedHeapMiB());
-                    }
+                    processed.incrementAndGet();
                 }
             } catch (final InterruptedException interruption) {
                 Thread.currentThread().interrupt();
@@ -527,6 +745,28 @@ public final class ObstructionAvoidanceRunner {
             }
         }
 
+        private synchronized void logProgress(final boolean finalReport) {
+            if (finished && !finalReport) {
+                return;
+            }
+            final long now = System.nanoTime();
+            final double elapsedSeconds = Math.max(1L, now - lastReportNanos)
+                    / 1_000_000_000.0;
+            final long completed = processed.get();
+            final double throughput = (completed - lastReportedProcessed)
+                    / elapsedSeconds;
+            log.info("Avoidance search {} stats (last {}s): processed={}/{}, "
+                            + "throughput={}/s, trivial={}, certificates={}, "
+                            + "residuals={}, heapUsedMiB={}",
+                    maximumMoves, String.format(Locale.ROOT, "%.3f", elapsedSeconds),
+                    completed, expectedInputs,
+                    String.format(Locale.ROOT, "%.3f", throughput),
+                    trivialClosures.sum(), certificates.sum(), residuals.sum(),
+                    usedHeapMiB());
+            lastReportNanos = now;
+            lastReportedProcessed = completed;
+        }
+
         private SearchWaveResult finish() {
             if (finished) {
                 throw new IllegalStateException(
@@ -538,7 +778,11 @@ public final class ObstructionAvoidanceRunner {
             awaitWorkers();
             throwIfFailed();
             finished = true;
+            if (statsReporter != null) {
+                statsReporter.shutdownNow();
+            }
             executor.shutdown();
+            logProgress(true);
             return new SearchWaveResult(processed.get(),
                     trivialClosures.sum(), certificates.sum(), residuals.sum(),
                     checksum.sum(), parallelism);
@@ -576,6 +820,9 @@ public final class ObstructionAvoidanceRunner {
 
         @Override
         public void close() {
+            if (statsReporter != null) {
+                statsReporter.shutdownNow();
+            }
             if (!finished) {
                 workers.forEach(worker -> worker.cancel(true));
                 executor.shutdownNow();

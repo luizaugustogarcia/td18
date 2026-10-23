@@ -110,6 +110,43 @@ class AvoidancePreimageStoreTest {
                 Cycle.of(0, 1, 2)).canonicalRepresentative();
     }
 
+    @Test
+    void persistsPackedCanonicalGpuKeysWithoutRecanonicalizingThem() {
+        final var pair = smallPair();
+        final byte[] encoded = CertificateCodec.keyFor(pair);
+        final byte[] record = new byte[
+                GpuAvoidanceReconstructor.KEY_RECORD_BYTES];
+        record[0] = (byte) pair.getBeta().size();
+        System.arraycopy(encoded, 0, record, 1, encoded.length);
+        final var recovered = new ArrayList<CyclicTargetPair>();
+
+        try (final var store = new AvoidancePreimageStore(
+                temporaryDirectory.resolve("gpu-keys"))) {
+            store.putCanonicalKeyRecords(9, record);
+            assertEquals(1, store.inventory(9).count());
+            assertEquals(1, store.scanBatches(9, 1, recovered::addAll));
+        }
+        assertEquals(List.of(pair), recovered);
+    }
+
+    @Test
+    void clearsOnlyTheUncommittedWaveOutputRange() {
+        final var pair = smallPair();
+        final var directory = temporaryDirectory.resolve("clear-wave");
+        try (final var store = new AvoidancePreimageStore(directory)) {
+            store.putStates(List.of(
+                    new AvoidancePreimageStore.State(8, pair),
+                    new AvoidancePreimageStore.State(9, pair)));
+            assertEquals(1, store.inventory(8).count());
+            assertEquals(1, store.inventory(9).count());
+
+            store.clearUncommittedWaveOutput(8);
+
+            assertEquals(1, store.inventory(8).count());
+            assertEquals(0, store.inventory(9).count());
+        }
+    }
+
     private static void awaitWritten(final AvoidancePreimageStore store,
                                      final long expected) throws InterruptedException {
         awaitWritten(store, expected, 1);

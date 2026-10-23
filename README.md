@@ -60,8 +60,9 @@ The `emitter` module contains:
 - three-column-family RocksDB output using the raw TD(16) five-bit instance
   and fifteen-bit sorting encodings, a retained legacy intermediate-witness
   namespace, and versioned sidecar completion manifests;
-- CPU-only intermediate prefix screening, avoidance-preimage reconstruction, and
-  root sorting for bounded-search obstructions;
+- CPU-only intermediate prefix screening, CUDA-batched avoidance-preimage
+  reconstruction with device-side canonical-key deduplication, and GPU root
+  sorting for bounded-search obstructions;
 - focused emission of complete sorting certificates for the two oriented
   19-cycle survivors;
 - certificate encoding and independent replay primitives;
@@ -234,13 +235,37 @@ writes. The certificate writer flushes every `td18.certificateFlushSeconds`
 seconds and at manifest boundaries.
 
 The work database records candidate and prefix-miss inventories, checksums, and
-completed reconstruction/screening waves. Its writer flushes to disk every
-five seconds or when one million keys are buffered, whichever occurs first.
+completed reconstruction/screening waves. By default the inverse-support
+applications, predecessor checks, twisted-bracelet canonicalization, and
+per-batch key deduplication run in parallel across the configured CUDA devices.
+The first batch of each wave is regenerated on the CPU; its application count
+and full canonical key set must agree before the run continues. Set
+`-Dtd18.avoidanceGpu=false` for the CPU backend,
+`-Dtd18.avoidanceGpuBudgetMB=...` for the reconstruction memory cap,
+`-Dtd18.avoidanceGpuBatchSize=...` for the number of inputs in one CUDA
+sort/unique operation, or
+`-Dtd18.avoidanceGpuVerifyBatches=...` for additional checked batches.
+
+The work writer drains buffered keys at the configured cap and forces
+memtables to disk every 60 seconds and at checked
+manifest boundaries. Size-triggered drains use RocksDB's normal memtable
+flushing instead of forcing a synchronous flush for every drain. Set
+`-Dtd18.avoidanceBufferKeys=...` to change the cap. The
+`td18.avoidanceRocksWriteBufferMB`, `td18.avoidanceRocksMaxWriteBuffers`,
+`td18.avoidanceRocksWriteBatchKeys`, `td18.avoidanceRocksBackgroundJobs`, and
+`td18.avoidanceRocksSubcompactions` properties tune bulk persistence.
 The cap includes keys in an active drain and covers both column families;
 producers wait for space when the writer falls behind. Successfully written
-100,000-key batches release their Java references immediately. Drain logs
+RocksDB batches release their Java references immediately. Drain logs
 report the trigger, duration, current buffer size, and peak buffer size.
 This buffering policy does not change stored keys or reconstruction counts.
+Avoidance search progress and the CPU/GPU search summaries are reported every
+`td18.gpuStatsPeriodSeconds` seconds (60 by default). Set it to `0` to disable
+periodic reporting; each search wave still reports its final totals.
+Set `-Dtd18.avoidanceTrustWaveManifest=true` to resume completed waves using
+their recorded output inventories without rescanning the output sets. The
+default is `false`; independent verification of the persisted sets is still
+required for a checked computational artifact.
 
 Work-database format version 2 and
 avoidance-manifest version 4 count inverse

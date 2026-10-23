@@ -54,8 +54,18 @@ final class AvoidancePreimageStore implements AutoCloseable {
     private static final byte[] EMPTY = new byte[0];
     private static final int STATE_HEADER_BYTES = 3;
     private static final int FLUSH_SECONDS = 60;
-    private static final int MAX_BUFFERED_KEYS = 5_000_000;
-    private static final int ROCKS_WRITE_BATCH_SIZE = 100_000;
+    private static final int MAX_BUFFERED_KEYS = Integer.getInteger(
+            "td18.avoidanceBufferKeys", 5_000_000);
+    private static final int ROCKS_WRITE_BATCH_SIZE = Integer.getInteger(
+            "td18.avoidanceRocksWriteBatchKeys", 100_000);
+    private static final long ROCKS_WRITE_BUFFER_MIB = Long.getLong(
+            "td18.avoidanceRocksWriteBufferMB", 64L);
+    private static final int ROCKS_MAX_WRITE_BUFFERS = Integer.getInteger(
+            "td18.avoidanceRocksMaxWriteBuffers", 4);
+    private static final int ROCKS_BACKGROUND_JOBS = Integer.getInteger(
+            "td18.avoidanceRocksBackgroundJobs", 4);
+    private static final int ROCKS_SUBCOMPACTIONS = Integer.getInteger(
+            "td18.avoidanceRocksSubcompactions", 2);
 
     static {
         RocksDB.loadLibrary();
@@ -78,6 +88,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
             new AtomicReference<>();
     private Map<ByteBuffer, byte[]> pendingPreimages = new HashMap<>();
     private Map<ByteBuffer, byte[]> pendingHard = new HashMap<>();
+    private List<PackedKeyRecords> pendingPackedPreimages = new ArrayList<>();
     // Includes detached maps and the batch currently being written.
     private long bufferedKeys;
     private long peakBufferedKeys;
@@ -105,11 +116,13 @@ final class AvoidancePreimageStore implements AutoCloseable {
         options = new DBOptions()
                 .setCreateIfMissing(true)
                 .setCreateMissingColumnFamilies(true)
-                .setMaxBackgroundJobs(4)
-                .setMaxSubcompactions(2);
+                .setMaxBackgroundJobs(ROCKS_BACKGROUND_JOBS)
+                .setMaxSubcompactions(ROCKS_SUBCOMPACTIONS);
         metadataOptions = new ColumnFamilyOptions();
-        preimageOptions = new ColumnFamilyOptions();
-        hardOptions = new ColumnFamilyOptions();
+        preimageOptions = bulkColumnFamilyOptions();
+        hardOptions = bulkColumnFamilyOptions();
+        // Incomplete waves are regenerated, and manifests are forced to disk.
+        // Avoid the WAL's duplicate write path for this bulk work database.
         writeOptions = new WriteOptions().setDisableWAL(true);
         final var descriptors = List.of(
                 new ColumnFamilyDescriptor(
@@ -149,6 +162,20 @@ final class AvoidancePreimageStore implements AutoCloseable {
         }
     }
 
+    private static ColumnFamilyOptions bulkColumnFamilyOptions() {
+        if (ROCKS_WRITE_BATCH_SIZE <= 0 || ROCKS_WRITE_BUFFER_MIB <= 0
+                || ROCKS_MAX_WRITE_BUFFERS < 2
+                || ROCKS_BACKGROUND_JOBS <= 0 || ROCKS_SUBCOMPACTIONS <= 0) {
+            throw new IllegalArgumentException(
+                    "Avoidance RocksDB tuning properties must be positive");
+        }
+        return new ColumnFamilyOptions()
+                .setWriteBufferSize(Math.multiplyExact(
+                        ROCKS_WRITE_BUFFER_MIB, 1024L * 1024L))
+                .setMaxWriteBufferNumber(ROCKS_MAX_WRITE_BUFFERS)
+                .setMinWriteBufferNumberToMerge(2);
+    }
+
     void putStates(final List<? extends State> states) {
         throwIfFailed();
         final var keys = new ArrayList<byte[]>(states.size());
@@ -166,6 +193,51 @@ final class AvoidancePreimageStore implements AutoCloseable {
             keys.add(stateKey(maximumMoves, pair));
         }
         putKeys(keys, preimages);
+    }
+
+    void putCanonicalKeyRecords(final int maximumMoves,
+                                final byte[] records) {
+        if (maximumMoves <= 0 || maximumMoves > 255
+                || records.length % GpuAvoidanceReconstructor.KEY_RECORD_BYTES != 0) {
+            throw new IllegalArgumentException(
+                    "Malformed GPU avoidance key records");
+        }
+        final int count = records.length
+                / GpuAvoidanceReconstructor.KEY_RECORD_BYTES;
+        for (var offset = 0; offset < records.length;
+             offset += GpuAvoidanceReconstructor.KEY_RECORD_BYTES) {
+            GpuAvoidanceReconstructor.keyBytes(
+                    Byte.toUnsignedInt(records[offset]));
+        }
+        if (count > maximumBufferedKeys) {
+            throw new IllegalArgumentException(
+                    "Packed CUDA batch exceeds td18.avoidanceBufferKeys");
+        }
+        synchronized (bufferLock) {
+            while (bufferedKeys > maximumBufferedKeys - count) {
+                throwIfFailed();
+                if (closed) {
+                    throw new IllegalStateException(
+                            "Avoidance-preimage store is closed");
+                }
+                requestSizeDrain();
+                try {
+                    bufferLock.wait();
+                } catch (final InterruptedException interruption) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(
+                            "Interrupted while waiting for avoidance buffer space",
+                            interruption);
+                }
+            }
+            pendingPackedPreimages.add(
+                    new PackedKeyRecords(maximumMoves, records));
+            bufferedKeys += count;
+            peakBufferedKeys = Math.max(peakBufferedKeys, bufferedKeys);
+            if (count != 0) {
+                requestSizeDrain();
+            }
+        }
     }
 
     void putHardStates(final List<? extends State> states) {
@@ -191,38 +263,44 @@ final class AvoidancePreimageStore implements AutoCloseable {
                          final ColumnFamilyHandle destination) {
         synchronized (bufferLock) {
             for (final var key : keys) {
-                final var wrapped = ByteBuffer.wrap(key);
-                while (true) {
-                    throwIfFailed();
-                    if (closed) {
-                        throw new IllegalStateException(
-                                "Avoidance-preimage store is closed");
-                    }
-                    // Re-read the map after waiting: a drain may have detached it.
-                    final Map<ByteBuffer, byte[]> pending = destination == hard
-                            ? pendingHard : pendingPreimages;
-                    if (pending.containsKey(wrapped)) {
-                        break;
-                    }
-                    if (bufferedKeys < maximumBufferedKeys) {
-                        pending.put(wrapped, key);
-                        bufferedKeys++;
-                        peakBufferedKeys = Math.max(peakBufferedKeys, bufferedKeys);
-                        if (bufferedKeys == maximumBufferedKeys) {
-                            requestSizeDrain();
-                        }
-                        break;
-                    }
+                bufferKey(key, destination);
+            }
+        }
+    }
+
+    /** Called with {@link #bufferLock} held. */
+    private void bufferKey(final byte[] key,
+                           final ColumnFamilyHandle destination) {
+        final var wrapped = ByteBuffer.wrap(key);
+        while (true) {
+            throwIfFailed();
+            if (closed) {
+                throw new IllegalStateException(
+                        "Avoidance-preimage store is closed");
+            }
+            // Re-read the map after waiting: a drain may have detached it.
+            final Map<ByteBuffer, byte[]> pending = destination == hard
+                    ? pendingHard : pendingPreimages;
+            if (pending.containsKey(wrapped)) {
+                return;
+            }
+            if (bufferedKeys < maximumBufferedKeys) {
+                pending.put(wrapped, key);
+                bufferedKeys++;
+                peakBufferedKeys = Math.max(peakBufferedKeys, bufferedKeys);
+                if (bufferedKeys == maximumBufferedKeys) {
                     requestSizeDrain();
-                    try {
-                        bufferLock.wait();
-                    } catch (final InterruptedException interruption) {
-                        Thread.currentThread().interrupt();
-                        throw new IllegalStateException(
-                                "Interrupted while waiting for avoidance buffer space",
-                                interruption);
-                    }
                 }
+                return;
+            }
+            requestSizeDrain();
+            try {
+                bufferLock.wait();
+            } catch (final InterruptedException interruption) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(
+                        "Interrupted while waiting for avoidance buffer space",
+                        interruption);
             }
         }
     }
@@ -240,7 +318,8 @@ final class AvoidancePreimageStore implements AutoCloseable {
                 synchronized (bufferLock) {
                     sizeDrainQueued = false;
                     bufferLock.notifyAll();
-                    if (bufferedKeys == maximumBufferedKeys) {
+                    if (bufferedKeys == maximumBufferedKeys
+                            || !pendingPackedPreimages.isEmpty()) {
                         requestSizeDrain();
                     }
                 }
@@ -250,6 +329,22 @@ final class AvoidancePreimageStore implements AutoCloseable {
 
     record BufferStatistics(long bufferedKeys, long peakBufferedKeys,
                             long writtenKeys, long completedDrains) {
+    }
+
+    private static final class PackedKeyRecords {
+        private final int maximumMoves;
+        private final byte[] records;
+        private int offset;
+
+        private PackedKeyRecords(final int maximumMoves, final byte[] records) {
+            this.maximumMoves = maximumMoves;
+            this.records = records;
+        }
+
+        private long remainingKeys() {
+            return (records.length - offset)
+                    / GpuAvoidanceReconstructor.KEY_RECORD_BYTES;
+        }
     }
 
     BufferStatistics bufferStatistics() {
@@ -269,8 +364,27 @@ final class AvoidancePreimageStore implements AutoCloseable {
         return scanBatches(hard, maximumMoves, batchSize, consumer);
     }
 
+    long scanHardBatches(final int maximumMoves, final int batchSize,
+                         final int firstBatchSize,
+                         final Consumer<List<CyclicTargetPair>> consumer) {
+        if (firstBatchSize <= 0) {
+            throw new IllegalArgumentException(
+                    "Avoidance first scan batch size must be positive");
+        }
+        return scanBatches(
+                hard, maximumMoves, batchSize, firstBatchSize, consumer);
+    }
+
     private long scanBatches(final ColumnFamilyHandle source,
                              final int maximumMoves, final int batchSize,
+                             final Consumer<List<CyclicTargetPair>> consumer) {
+        return scanBatches(
+                source, maximumMoves, batchSize, batchSize, consumer);
+    }
+
+    private long scanBatches(final ColumnFamilyHandle source,
+                             final int maximumMoves, final int batchSize,
+                             final int firstBatchSize,
                              final Consumer<List<CyclicTargetPair>> consumer) {
         drain(false);
         throwIfFailed();
@@ -285,7 +399,9 @@ final class AvoidancePreimageStore implements AutoCloseable {
                 .setSnapshot(snapshot).setVerifyChecksums(true)
                 .setFillCache(false);
              final var iterator = database.newIterator(source, readOptions)) {
-            final var batch = new ArrayList<CyclicTargetPair>(batchSize);
+            final var batch = new ArrayList<CyclicTargetPair>(
+                    Math.max(batchSize, firstBatchSize));
+            var targetBatchSize = firstBatchSize;
             iterator.seek(prefix);
             while (iterator.isValid() && hasPrefix(iterator.key(), prefix)) {
                 if (iterator.value().length != 0) {
@@ -294,9 +410,10 @@ final class AvoidancePreimageStore implements AutoCloseable {
                 }
                 batch.add(decodeState(iterator.key(), maximumMoves));
                 count++;
-                if (batch.size() == batchSize) {
+                if (batch.size() == targetBatchSize) {
                     consumer.accept(List.copyOf(batch));
                     batch.clear();
+                    targetBatchSize = batchSize;
                 }
                 iterator.next();
             }
@@ -379,6 +496,27 @@ final class AvoidancePreimageStore implements AutoCloseable {
         } catch (final RocksDBException failure) {
             throw new IllegalStateException(
                     "Cannot read avoidance wave manifest", failure);
+        }
+    }
+
+    void clearUncommittedWaveOutput(final int inputMaximumMoves) {
+        if (inputMaximumMoves <= 0 || inputMaximumMoves >= 254) {
+            throw new IllegalArgumentException(
+                    "Avoidance wave budget cannot be cleared safely");
+        }
+        final int outputMaximumMoves = inputMaximumMoves + 1;
+        final byte[] begin = statePrefix(outputMaximumMoves);
+        final byte[] end = statePrefix(outputMaximumMoves + 1);
+        try {
+            drain(true);
+            database.deleteRange(preimages, writeOptions, begin, end);
+            flushRocks();
+            log.info("Cleared uncommitted avoidance reconstruction wave {} output",
+                    inputMaximumMoves);
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException(
+                    "Cannot clear uncommitted avoidance reconstruction wave "
+                            + inputMaximumMoves, failure);
         }
     }
 
@@ -533,7 +671,10 @@ final class AvoidancePreimageStore implements AutoCloseable {
 
     private void flushFromBackground(final String trigger) {
         try {
-            drain(true, trigger);
+            // Full buffers already flow through RocksDB's memtables. A manual
+            // flush on every size drain creates small L0 files and stalls the
+            // CUDA producer. Timer and checkpoint drains remain durable.
+            drain(!"size".equals(trigger), trigger);
         } catch (final Throwable failure) {
             backgroundFailure.compareAndSet(null, failure);
             synchronized (bufferLock) {
@@ -552,16 +693,23 @@ final class AvoidancePreimageStore implements AutoCloseable {
             final long started = System.nanoTime();
             final Map<ByteBuffer, byte[]> drainedPreimages;
             final Map<ByteBuffer, byte[]> drainedHard;
+            final List<PackedKeyRecords> drainedPackedPreimages;
             synchronized (bufferLock) {
                 drainedPreimages = pendingPreimages;
                 drainedHard = pendingHard;
+                drainedPackedPreimages = pendingPackedPreimages;
                 pendingPreimages = new HashMap<>();
                 pendingHard = new HashMap<>();
+                pendingPackedPreimages = new ArrayList<>();
             }
-            final int count = drainedPreimages.size() + drainedHard.size();
+            final long count = (long) drainedPreimages.size()
+                    + drainedHard.size()
+                    + drainedPackedPreimages.stream()
+                    .mapToLong(PackedKeyRecords::remainingKeys).sum();
             try {
                 writeKeys(preimages, drainedPreimages);
                 writeKeys(hard, drainedHard);
+                writePackedKeys(preimages, drainedPackedPreimages);
                 if (flushRocks) {
                     flushRocks();
                 }
@@ -591,6 +739,10 @@ final class AvoidancePreimageStore implements AutoCloseable {
                             bufferedKeys--;
                         }
                     }
+                    pendingPackedPreimages.addAll(
+                            0, drainedPackedPreimages.stream()
+                                    .filter(records -> records.remainingKeys() != 0)
+                                    .toList());
                     bufferLock.notifyAll();
                 }
                 throw new IllegalStateException(
@@ -624,11 +776,52 @@ final class AvoidancePreimageStore implements AutoCloseable {
             final int written = chunk.size();
             // Release successful entries before accepting more buffered keys.
             chunk.clear();
-            synchronized (bufferLock) {
-                bufferedKeys -= written;
-                writtenKeys += written;
-                bufferLock.notifyAll();
+            releaseWritten(written);
+        }
+    }
+
+    private void writePackedKeys(
+            final ColumnFamilyHandle destination,
+            final List<PackedKeyRecords> recordBatches
+    ) throws RocksDBException {
+        final byte[][] reusableKeys = new byte[GpuAvoidanceReconstructor.MAX_DOMAIN + 1][];
+        for (final var records : recordBatches) {
+            while (records.remainingKeys() != 0) {
+                final int startOffset = records.offset;
+                var offset = startOffset;
+                var written = 0;
+                try (final var batch = new WriteBatch()) {
+                    while (offset < records.records.length
+                            && written < ROCKS_WRITE_BATCH_SIZE) {
+                        final int domain = Byte.toUnsignedInt(records.records[offset]);
+                        final int payloadBytes = GpuAvoidanceReconstructor.keyBytes(domain);
+                        byte[] key = reusableKeys[domain];
+                        if (key == null) {
+                            key = new byte[STATE_HEADER_BYTES + payloadBytes];
+                            key[0] = (byte) FORMAT_VERSION;
+                            key[2] = (byte) domain;
+                            reusableKeys[domain] = key;
+                        }
+                        key[1] = (byte) records.maximumMoves;
+                        System.arraycopy(records.records, offset + 1, key,
+                                STATE_HEADER_BYTES, payloadBytes);
+                        batch.put(destination, key, EMPTY);
+                        offset += GpuAvoidanceReconstructor.KEY_RECORD_BYTES;
+                        written++;
+                    }
+                    database.write(writeOptions, batch);
+                }
+                records.offset = offset;
+                releaseWritten(written);
             }
+        }
+    }
+
+    private void releaseWritten(final int count) {
+        synchronized (bufferLock) {
+            bufferedKeys -= count;
+            writtenKeys += count;
+            bufferLock.notifyAll();
         }
     }
 
