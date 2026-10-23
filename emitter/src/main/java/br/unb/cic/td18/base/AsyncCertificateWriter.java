@@ -270,7 +270,8 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
             if (!drained.isEmpty()) {
                 try (final var batch = new WriteBatch();
-                     final var writeOptions = new WriteOptions()) {
+                     final var writeOptions =
+                             new WriteOptions().setDisableWAL(true)) {
                     for (final var entry : drained) {
                         if (!(entry instanceof DatabaseEntry databaseEntry)) {
                             continue;

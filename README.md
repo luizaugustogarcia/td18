@@ -229,6 +229,10 @@ mvn -pl emitter -Pgpu compile exec:exec \
   -Dtd18.args="--work-database=$PWD/avoidance-work"
 ~~~
 
+Both the work writer and the certificate writer disable WAL for all RocksDB
+writes. The certificate writer flushes every `td18.certificateFlushSeconds`
+seconds and at manifest boundaries.
+
 The work database records candidate and prefix-miss inventories, checksums, and
 completed reconstruction/screening waves. Its writer flushes to disk every
 five seconds or when one million keys are buffered, whichever occurs first.
