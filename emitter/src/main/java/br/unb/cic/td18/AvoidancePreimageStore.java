@@ -53,8 +53,8 @@ final class AvoidancePreimageStore implements AutoCloseable {
             "terminal-source".getBytes(StandardCharsets.UTF_8);
     private static final byte[] EMPTY = new byte[0];
     private static final int STATE_HEADER_BYTES = 3;
-    private static final int FLUSH_SECONDS = 5;
-    private static final int MAX_BUFFERED_KEYS = 1_000_000;
+    private static final int FLUSH_SECONDS = 60;
+    private static final int MAX_BUFFERED_KEYS = 5_000_000;
     private static final int ROCKS_WRITE_BATCH_SIZE = 100_000;
 
     static {
