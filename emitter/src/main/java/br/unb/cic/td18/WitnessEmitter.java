@@ -88,6 +88,12 @@ public final class WitnessEmitter {
             if (requiresSearch) {
                 WitnessSearch.installWriter(writer);
             }
+            if (options.firstRow() == 1 && options.lastRow() == 204) {
+                OrientedNineteenCycleEmitter.ensure(writer, (pair, rate, budget) ->
+                        SortingSearch.searchForSorting(pair, rate, budget));
+                writer.flush();
+                log.info("Required oriented 19-cycle witnesses are present: 2");
+            }
             for (final var entry : selectedEntries) {
                 if (entry.remainingClassObligations() == 0) {
                     log.info("Table 2 row {}: status=already-settled, "

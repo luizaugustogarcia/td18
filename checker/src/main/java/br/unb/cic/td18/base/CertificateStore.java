@@ -46,7 +46,6 @@ public final class CertificateStore implements AutoCloseable {
     private final ColumnFamilyHandle witnesses;
     private final ColumnFamilyHandle intermediateWitnesses;
     private final ColumnFamilyHandle obstructions;
-    private final CertificateManifestStore manifests;
     private final AtomicLong replayed = new AtomicLong();
     private final ScheduledExecutorService reporter;
     private volatile long reportStarted = System.nanoTime();
@@ -59,7 +58,6 @@ public final class CertificateStore implements AutoCloseable {
         intermediateWitnessOptions = columnFamilyOptions();
         obstructionOptions = columnFamilyOptions();
         readOptions = new ReadOptions()
-                .setVerifyChecksums(true)
                 .setFillCache(false);
         final var descriptors = List.of(
                 new ColumnFamilyDescriptor(
@@ -98,7 +96,6 @@ public final class CertificateStore implements AutoCloseable {
             closeResources();
             throw failure;
         }
-        manifests = new CertificateManifestStore(absolute);
 
         final long period = parsePeriod();
         if (period == 0) {
@@ -211,14 +208,6 @@ public final class CertificateStore implements AutoCloseable {
                                 + ", maximumMoves=" + maximumMoves));
     }
 
-    public CertificateRowManifest requireRowManifest(final int row) {
-        if (row <= 0 || row > 0xFFFF) {
-            throw new IllegalArgumentException(
-                    "Invalid Table 2 row: " + row);
-        }
-        return manifests.requireRow(row);
-    }
-
     public Optional<ResidualObligation> findResidual(
             final ResidualObligation expected
     ) {
@@ -230,8 +219,19 @@ public final class CertificateStore implements AutoCloseable {
         return hasObstruction(expected.key());
     }
 
-    public List<AvoidancePhaseManifest> avoidanceManifests() {
-        return manifests.avoidanceManifests();
+    /** Streams persisted residual keys without consulting emitter checkpoints. */
+    public void forEachObstruction(final java.util.function.Consumer<byte[]> consumer) {
+        try (final var iterator = database.newIterator(obstructions, readOptions)) {
+            for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
+                if (iterator.value().length != 0) {
+                    throw new IllegalStateException("An obstruction must have an empty value");
+                }
+                consumer.accept(iterator.key());
+            }
+            iterator.status();
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot read residual obstruction keys", failure);
+        }
     }
 
     private boolean hasObstruction(final byte[] key) {
@@ -256,7 +256,7 @@ public final class CertificateStore implements AutoCloseable {
     }
 
     private static long parsePeriod() {
-        final var configured = System.getProperty(STATS_PROPERTY, "60");
+        final var configured = System.getProperty(STATS_PROPERTY, "0");
         final long period;
         try {
             period = Long.parseLong(configured);

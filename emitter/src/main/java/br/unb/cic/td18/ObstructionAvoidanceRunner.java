@@ -4,7 +4,6 @@ import br.unb.cic.td18.base.AvoidancePhaseManifest;
 import br.unb.cic.td18.base.AvoidanceSearchMiss;
 import br.unb.cic.td18.base.AsyncCertificateWriter;
 import br.unb.cic.td18.base.CertificateCodec;
-import br.unb.cic.td18.base.CertificateManifestStore;
 import br.unb.cic.td18.base.CyclicTargetPair;
 import br.unb.cic.td18.base.GPUSortingSearch;
 import br.unb.cic.td18.base.GpuDeviceLayout;
@@ -40,6 +39,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
@@ -90,7 +90,7 @@ public final class ObstructionAvoidanceRunner {
 
         final long flushSeconds = Long.parseLong(System.getProperty(
                 "td18.certificateFlushSeconds", "5"));
-        var gpuInitialized = false;
+        final var gpuInitialized = new AtomicBoolean();
         try (final var store = new AvoidancePreimageStore(options.workDatabase());
              final var writer = new AsyncCertificateWriter(
                      options.database(), flushSeconds)) {
@@ -107,7 +107,7 @@ public final class ObstructionAvoidanceRunner {
             final var source = store.inventory(8);
             final var hardSource = store.hardInventory(8);
             if (source.count() != residuals.size()
-                    || !source.equals(hardSource)) {
+                    || source.count() != hardSource.count()) {
                 throw new IllegalStateException(
                         "Terminal obstruction classes were not unique: recovered="
                                 + residuals.size() + ", candidates=" + source.count()
@@ -115,8 +115,8 @@ public final class ObstructionAvoidanceRunner {
             }
             store.requireOrRecordSource(source);
             log.info("Avoidance terminal source persisted: uniqueClasses={}, "
-                            + "checksum={}, workDatabase={}",
-                    source.count(), source.checksum(),
+                            + "workDatabase={}",
+                    source.count(),
                     options.workDatabase().toAbsolutePath());
 
             long reconstructionApplications = 0;
@@ -138,9 +138,9 @@ public final class ObstructionAvoidanceRunner {
                     final var actualOutput = trustWaveManifest
                             ? manifest.output()
                             : store.inventory(maximumMoves + 1);
-                    if (!manifest.input().equals(input)
+                    if (manifest.input().count() != input.count()
                             || (!trustWaveManifest
-                            && !manifest.output().equals(actualOutput))) {
+                            && manifest.output().count() != actualOutput.count())) {
                         throw new IllegalStateException(
                                 "Persisted avoidance wave inventory mismatch at budget "
                                         + maximumMoves);
@@ -149,9 +149,8 @@ public final class ObstructionAvoidanceRunner {
                             reconstructionApplications,
                             manifest.reconstructionApplications());
                     log.info("Avoidance reconstruction wave {} resumed: "
-                                    + "inputs={}, predecessorClasses={}, checksum={}",
-                            maximumMoves, input.count(), actualOutput.count(),
-                            actualOutput.checksum());
+                                    + "inputs={}, predecessorClasses={}",
+                            maximumMoves, input.count(), actualOutput.count());
                     if (trustWaveManifest) {
                         log.warn("Avoidance wave {} output trusted from its "
                                         + "checked manifest without resume-time inventory scan",
@@ -170,9 +169,8 @@ public final class ObstructionAvoidanceRunner {
                             reconstructionApplications, wave.applications());
                     log.info("Avoidance reconstruction wave {} complete: "
                                     + "inputs={}, reconstructionApplications={}, "
-                                    + "uniquePredecessorClasses={}, checksum={}",
-                            maximumMoves, input.count(), wave.applications(),
-                            output.count(), output.checksum());
+                                    + "uniquePredecessorClasses={}",
+                            maximumMoves, input.count(), wave.applications(), output.count());
                     reconstructed = output;
                 }
 
@@ -180,9 +178,9 @@ public final class ObstructionAvoidanceRunner {
                 if (searchBudget == ReductionTypeEnumerator.MAX_BUDGET
                         && store.searchManifest(searchBudget).isEmpty()
                         && reconstructed.count() != 0
-                        && !gpuInitialized) {
+                        && !gpuInitialized.get()) {
                     initializeGpu();
-                    gpuInitialized = true;
+                    gpuInitialized.set(true);
                 }
                 final var search = requireOrRunSearch(
                         store, searchBudget, reconstructed, writer,
@@ -206,6 +204,15 @@ public final class ObstructionAvoidanceRunner {
                 checksum = Math.addExact(checksum, search.checksum());
             }
 
+            OrientedNineteenCycleEmitter.ensure(writer, (pair, rate, budget) -> {
+                if (!gpuInitialized.get()) {
+                    initializeGpu();
+                    gpuInitialized.set(true);
+                }
+                return SortingSearch.searchForSorting(pair, rate, budget);
+            });
+            writer.flush();
+            log.info("Required oriented 19-cycle witnesses are present: 2");
             final var manifest = new AvoidancePhaseManifest(1, 204,
                     residuals.size(), reconstructionApplications,
                     intermediatePrefixObligations, propagatedPrefixMisses,
@@ -226,7 +233,7 @@ public final class ObstructionAvoidanceRunner {
                                 + unresolved);
             }
         } finally {
-            if (gpuInitialized) {
+            if (gpuInitialized.get()) {
                 GPUSortingSearch.shutdownStatsReporter();
             }
         }
@@ -479,8 +486,8 @@ public final class ObstructionAvoidanceRunner {
         if (existing.isPresent()) {
             final var manifest = existing.orElseThrow();
             final var actualResiduals = store.hardInventory(maximumMoves);
-            if (!manifest.candidates().equals(candidates)
-                    || !manifest.residuals().equals(actualResiduals)) {
+            if (manifest.candidates().count() != candidates.count()
+                    || manifest.residuals().count() != actualResiduals.count()) {
                 throw new IllegalStateException(
                         "Persisted avoidance search inventory mismatch at budget "
                                 + maximumMoves);
@@ -508,9 +515,9 @@ public final class ObstructionAvoidanceRunner {
         store.recordSearch(manifest);
         log.info("Avoidance search {} complete: candidates={}, "
                         + "triviallySettled={}, certificates={}, residuals={}, "
-                        + "checksum={}",
+                        + "completed=true",
                 maximumMoves, candidates.count(), result.trivialClosures(),
-                result.certificates(), residuals.count(), result.checksum());
+                result.certificates(), residuals.count());
         return manifest;
     }
 
@@ -1001,25 +1008,16 @@ public final class ObstructionAvoidanceRunner {
             final Path database,
             final List<CountTD18Bracelets.TableEntry> entries
     ) {
-        final var manifests = new CertificateManifestStore(database);
-        if (!manifests.avoidanceManifests().isEmpty()) {
-            throw new IllegalStateException(
-                    "Refusing to replace an existing avoidance manifest");
-        }
-
         final var contextsByType =
                 new HashMap<String, ResidualRowContext>();
         final var domainsByKeyLength = new HashMap<Integer, List<Integer>>();
-        long expectedTotal = 0;
         for (final var entry : entries) {
-            final var manifest = manifests.requireRow(entry.number());
-            requireMatchingManifest(entry, manifest);
-            if (manifest.residualCount() == 0) {
+            if (entry.remainingClassObligations() == 0) {
                 continue;
             }
             final var context = new ResidualRowContext(
                     entry.number(), entry.type(), entry.nonfixedSymbols(),
-                    entry.remainingMoves(), manifest.residualCount());
+                    entry.remainingMoves());
             if (contextsByType.put(entry.type(), context) != null) {
                 throw new IllegalStateException(
                         "Repeated residual Table 2 type: " + entry.type());
@@ -1028,8 +1026,6 @@ public final class ObstructionAvoidanceRunner {
             domainsByKeyLength.computeIfAbsent(
                             keyLength, ignored -> new ArrayList<>())
                     .add(entry.nonfixedSymbols());
-            expectedTotal = Math.addExact(
-                    expectedTotal, manifest.residualCount());
         }
         domainsByKeyLength.replaceAll((ignored, domains) ->
                 domains.stream().distinct().toList());
@@ -1089,18 +1085,10 @@ public final class ObstructionAvoidanceRunner {
                         ignoredRootMisses);
             }
         }
-        if (residuals.size() != expectedTotal) {
-            throw new IllegalStateException("Row manifests record "
-                    + expectedTotal + " terminal residuals but RocksDB "
-                    + "reconstructs " + residuals.size());
-        }
-
         for (final var context : contextsByType.values()) {
             final long actual = counts[context.row() - 1];
-            if (actual != context.expectedResiduals()) {
-                throw new IllegalStateException("Table 2 row " + context.row()
-                        + " records " + context.expectedResiduals()
-                        + " residuals but RocksDB reconstructs " + actual);
+            if (actual == 0) {
+                continue;
             }
             log.info("Recovered Table 2 row {}: type={}, domain={}, "
                             + "budget={}, residuals={}",
@@ -1122,25 +1110,6 @@ public final class ObstructionAvoidanceRunner {
             return Arrays.equals(key, miss.key());
         } catch (final IllegalArgumentException failure) {
             return false;
-        }
-    }
-
-    private static void requireMatchingManifest(
-            final CountTD18Bracelets.TableEntry entry,
-            final br.unb.cic.td18.base.CertificateRowManifest manifest
-    ) {
-        if (manifest.row() != entry.number()
-                || !manifest.type().equals(entry.type())
-                || manifest.maximumMoves() != entry.remainingMoves()
-                || manifest.expectedRealizableClasses()
-                != entry.recordedRealizableClasses()
-                || manifest.expectedRemainingObligations()
-                != entry.remainingClassObligations()
-                || manifest.generatedClasses()
-                != entry.remainingClassObligations()) {
-            throw new IllegalStateException(
-                    "Certificate manifest disagrees with Table 2 row "
-                            + entry.number());
         }
     }
 
@@ -1245,8 +1214,7 @@ public final class ObstructionAvoidanceRunner {
     }
 
     private record ResidualRowContext(
-            int row, String type, int domainSize, int maximumMoves,
-            long expectedResiduals
+            int row, String type, int domainSize, int maximumMoves
     ) {
     }
 

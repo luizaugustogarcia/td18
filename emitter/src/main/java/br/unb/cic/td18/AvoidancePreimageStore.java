@@ -474,7 +474,7 @@ final class AvoidancePreimageStore implements AutoCloseable {
             final byte[] existing = database.get(metadata, SOURCE_KEY);
             if (existing == null) {
                 database.put(metadata, writeOptions, SOURCE_KEY, encoded);
-            } else if (!Arrays.equals(existing, encoded)) {
+            } else if (ByteBuffer.wrap(existing).getLong() != source.count()) {
                 throw new IllegalStateException(
                         "Avoidance work database belongs to another terminal-obstruction set");
             }

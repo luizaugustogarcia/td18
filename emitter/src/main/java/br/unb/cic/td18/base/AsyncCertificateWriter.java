@@ -182,6 +182,23 @@ public final class AsyncCertificateWriter implements AutoCloseable {
                 CertificateCodec.valueFor(moves)));
     }
 
+    /** Reuses an already persisted, replayable witness without loading CUDA. */
+    public java.util.Optional<List<Cycle>> find(final CyclicTargetPair pair,
+                                               final int maximumMoves) {
+        throwIfFailed();
+        try {
+            final byte[] value = database.get(witnesses, CertificateCodec.keyFor(pair));
+            if (value == null) {
+                return java.util.Optional.empty();
+            }
+            final var moves = CertificateCodec.decodeValue(value);
+            CertificateValidator.validate(pair, moves, maximumMoves);
+            return java.util.Optional.of(moves);
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot read an existing sorting witness", failure);
+        }
+    }
+
     /** Legacy writer retained only for compatibility tests and old artifacts. */
     public void enqueueIntermediate(
             final CyclicTargetPair canonicalPair,

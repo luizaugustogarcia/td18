@@ -15,7 +15,7 @@
         <td18.certificateDb>${project.basedir}/../certificates</td18.certificateDb>
         <td18.twistedBraceletWorkers>auto</td18.twistedBraceletWorkers>
         <td18.twistedBraceletBatchSize>256</td18.twistedBraceletBatchSize>
-        <td18.certificateStatsPeriodSeconds>60</td18.certificateStatsPeriodSeconds>
+        <td18.certificateStatsPeriodSeconds>0</td18.certificateStatsPeriodSeconds>
     </properties>
 
     <dependencies>
@@ -42,7 +42,7 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
+                <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>

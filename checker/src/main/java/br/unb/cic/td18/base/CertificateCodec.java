@@ -5,7 +5,6 @@ import br.unb.cic.td18.permutation.MulticyclePermutation;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.CRC32C;
 
 /** Compact on-disk encoding for normalized certificate pairs and witnesses. */
 public final class CertificateCodec {
@@ -169,34 +168,6 @@ public final class CertificateCodec {
             bitOffset += TRIPLE_BITS;
         }
         return List.copyOf(moves);
-    }
-
-    /** Deterministic contribution to a row-level order-independent checksum. */
-    public static long checksumContribution(final CyclicTargetPair pair,
-                                            final List<Cycle> moves) {
-        final var checksum = new CRC32C();
-        checksum.update(keyFor(pair));
-        checksum.update(valueFor(moves));
-        return checksum.getValue();
-    }
-
-    /** Deterministic contribution for a generated class independent of its outcome. */
-    public static long classKeyChecksumContribution(
-            final CyclicTargetPair pair
-    ) {
-        final var checksum = new CRC32C();
-        checksum.update(keyFor(pair));
-        return checksum.getValue();
-    }
-
-    /** Domain-separated contribution for an intermediate avoidance class. */
-    public static long intermediateClassKeyChecksumContribution(
-            final CyclicTargetPair pair,
-            final int maximumMoves
-    ) {
-        final var checksum = new CRC32C();
-        checksum.update(intermediateKeyFor(pair, maximumMoves));
-        return checksum.getValue();
     }
 
     private static int writeSymbol(final byte[] encoded, final int bitOffset, final int symbol) {

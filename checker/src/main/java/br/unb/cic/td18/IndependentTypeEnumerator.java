@@ -91,6 +91,76 @@ final class IndependentTypeEnumerator {
         }
     }
 
+    /** Checks the full reachable policy, including branches merged in Table 2. */
+    static int verifyReductionPolicy() {
+        for (var symbols = 0; symbols <= ROOT_SYMBOLS; symbols++) {
+            final int diameter = symbols <= 1 ? 0
+                    : symbols == ROOT_SYMBOLS ? Integer.MAX_VALUE : TD[symbols - 1];
+            if (ReductionTypeEnumerator.knownDiameter(symbols) != diameter) {
+                throw new IllegalStateException("Known diameter mismatch at domain " + symbols);
+            }
+        }
+        final var pending = new ArrayDeque<State>();
+        for (final var partition : partitionsOf(ROOT_SYMBOLS)) {
+            for (final var annotation : annotationsOf(partition)) {
+                pending.add(new State(partition, annotation, 0));
+            }
+        }
+        final var visited = new HashSet<String>();
+        while (!pending.isEmpty()) {
+            final var state = pending.removeFirst();
+            final var key = typeKey(state.lengths(), state.oriented()) + '@' + state.movesUsed();
+            if (!visited.add(key)) {
+                continue;
+            }
+            final boolean open = !closes(state);
+            if (ReductionTypeEnumerator.isReachableOpenState(
+                    state.lengths(), state.oriented(), state.movesUsed()) != open) {
+                throw new IllegalStateException("Reduction reachability mismatch: " + key);
+            }
+            if (!open) {
+                continue;
+            }
+            final var children = childrenOf(state.lengths(), state.oriented());
+            final var checkedChildren = ReductionTypeEnumerator.selectedChildPartitions(
+                    state.lengths(), state.oriented());
+            if (!children.stream().map(Arrays::toString).sorted().toList().equals(
+                    checkedChildren.stream().map(Arrays::toString).sorted().toList())) {
+                throw new IllegalStateException("Reduction child mismatch: " + key);
+            }
+            String kind = "NONE";
+            for (var index = 0; index < state.lengths().length; index++) {
+                final int length = state.lengths()[index];
+                if (length == 3 && state.oriented()[index]) {
+                    kind = "ORIENTED_THREE";
+                    break;
+                }
+                if (length >= 5 && length % 2 == 1 && state.oriented()[index]) {
+                    kind = "ORIENTED_ODD";
+                } else if (length % 2 == 0 && kind.equals("NONE")) {
+                    kind = "EVEN_PAIR";
+                }
+            }
+            if (!ReductionTypeEnumerator.selectedReductionKind(
+                    state.lengths(), state.oriented()).name().equals(kind)) {
+                throw new IllegalStateException("Reduction priority mismatch: " + key);
+            }
+            if (state.movesUsed() == DEPTH_LIMIT) {
+                continue;
+            }
+            for (final var child : children) {
+                final int parentNorm = Arrays.stream(state.lengths()).map(n -> n / 2).sum();
+                if (Arrays.stream(child).map(n -> n / 2).sum() != parentNorm - 1) {
+                    throw new IllegalStateException("Reduction does not lower the 3-norm: " + key);
+                }
+                for (final var annotation : annotationsOf(child)) {
+                    pending.addLast(new State(child, annotation, state.movesUsed() + 1));
+                }
+            }
+        }
+        return visited.size();
+    }
+
     static Inventory enumerate() {
         final var roots = partitionsOf(ROOT_SYMBOLS);
         final var pending = new ArrayDeque<State>();

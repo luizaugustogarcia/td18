@@ -4,7 +4,6 @@ import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 class ResidualObligationTest {
@@ -17,8 +16,6 @@ class ResidualObligationTest {
 
         assertArrayEquals(CertificateCodec.keyFor(
                 pair.canonicalRepresentative()), obligation.key());
-        assertEquals(CertificateCodec.classKeyChecksumContribution(
-                        pair.canonicalRepresentative()),
-                obligation.checksumContribution());
+
     }
 }

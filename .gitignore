@@ -28,6 +28,7 @@ avoidance-work/
 .DS_Store
 Thumbs.db
 *.Zone.Identifier
+*:Zone.Identifier
 
 # LaTeX build products
 *.aux
@@ -36,6 +37,7 @@ Thumbs.db
 *.fdb_latexmk
 *.fls
 *.log
+*.log.*
 *.out
 *.synctex.gz
 *.thm

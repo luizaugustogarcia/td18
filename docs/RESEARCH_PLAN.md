@@ -189,8 +189,11 @@ oriented 19-cycle survivors found by the completed depth-first search. A
 CPU-only checker now independently reconstructs the 204-row inventory with a
 separate work-list implementation, reproduces the 9,304,845-node
 oriented-19-cycle classification, checks the paper-backed `Q = 0` discharge,
-regenerates representatives and CPU prefix closures, replays certificates,
-and checks row and avoidance manifests. No completed large checker run or
+regenerates representatives and CPU prefix closures, and replays certificates.
+The development workflow currently omits checksum comparisons and completion
+manifest enforcement and permits selected row ranges or phases. This is a
+temporary implementation difference from the final artifact requirements
+above; those exit criteria remain pending. No completed large checker run or
 verification report is included. Obstruction provenance is intentionally not
 persisted: the avoidance phase and independent checker regenerate every
 reachable predecessor type and reduction path from Table 2 and the checked

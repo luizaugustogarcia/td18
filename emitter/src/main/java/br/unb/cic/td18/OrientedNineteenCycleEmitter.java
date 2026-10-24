@@ -15,6 +15,11 @@ import br.unb.cic.td18.permutation.MulticyclePermutation;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
+import java.io.IOException;
+import java.util.HexFormat;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -42,8 +47,16 @@ public final class OrientedNineteenCycleEmitter {
     private OrientedNineteenCycleEmitter() {
     }
 
-    public static void main(final String[] args) {
-        initializeGpu();
+    public static void main(final String[] args) throws IOException {
+        Path source = null;
+        for (final var argument : args) {
+            if (argument.startsWith("--witnesses=")) {
+                source = Path.of(argument.substring("--witnesses=".length()));
+            } else {
+                throw new IllegalArgumentException("Expected --witnesses=path or no arguments");
+            }
+        }
+        final Map<String, List<Cycle>> supplied = source == null ? null : readWitnesses(source);
         final var database = Path.of(System.getProperty(
                 "td18.certificateDb", "certificates"));
         final long flushSeconds = Long.parseLong(System.getProperty(
@@ -53,24 +66,65 @@ public final class OrientedNineteenCycleEmitter {
         try (final var writer = new AsyncCertificateWriter(
                 database, flushSeconds)) {
             WitnessSearch.installWriter(writer);
-            result = emit((pair, minimumRate, maximumMoves) ->
-                    SortingSearch.searchForSorting(
-                            pair, minimumRate, maximumMoves));
+            result = ensure(writer, (pair, minimumRate, maximumMoves) -> {
+                if (supplied != null) {
+                    final var moves = supplied.get(HexFormat.of().formatHex(CertificateCodec.keyFor(pair)));
+                    writer.enqueue(pair, moves);
+                    return WitnessSearch.SearchResult.certificate(moves);
+                }
+                initializeGpu();
+                return SortingSearch.searchForSorting(pair, minimumRate, maximumMoves);
+            });
+            writer.flush();
             writer.throwIfFailed();
         } finally {
-            GPUSortingSearch.shutdownStatsReporter();
+            // The CPU import path must not initialize the native search class.
+            if (supplied == null && gpuStarted) {
+                GPUSortingSearch.shutdownStatsReporter();
+            }
         }
 
         log.info("Oriented 19-cycle survivor emission complete: "
-                        + "survivors={}, certificates={}, checksum={}, database={}",
-                result.survivors(), result.certificates(), result.checksum(),
+                        + "survivors={}, certificates={}, database={}",
+                result.survivors(), result.certificates(),
                 database.toAbsolutePath());
+    }
+
+    static EmissionResult ensure(final AsyncCertificateWriter writer, final PairSearch search) {
+        return emit((pair, rate, budget) -> writer.find(pair, budget)
+                .map(WitnessSearch.SearchResult::certificate)
+                .orElseGet(() -> search.search(pair, rate, budget)));
+    }
+
+    static Map<String, List<Cycle>> readWitnesses(final Path path) throws IOException {
+        final var records = new HashMap<String, List<Cycle>>();
+        for (final var line : Files.readAllLines(path)) {
+            if (line.isBlank()) {
+                continue;
+            }
+            final var fields = line.split("\\s+", -1);
+            if (fields.length != 2 || records.putIfAbsent(fields[0],
+                    CertificateCodec.decodeValue(HexFormat.of().parseHex(fields[1]))) != null) {
+                throw new IllegalArgumentException("Expected unique hex instance/witness pairs");
+            }
+        }
+        final var pairs = survivorPairs();
+        if (records.size() != pairs.size()) {
+            throw new IllegalArgumentException("Expected both oriented 19-cycle witnesses");
+        }
+        for (final var pair : pairs) {
+            final var moves = records.get(HexFormat.of().formatHex(CertificateCodec.keyFor(pair)));
+            if (moves == null) {
+                throw new IllegalArgumentException("Missing oriented 19-cycle witness");
+            }
+            CertificateValidator.validate(pair, moves, MAXIMUM_MOVES);
+        }
+        return Map.copyOf(records);
     }
 
     static EmissionResult emit(final PairSearch search) {
         Objects.requireNonNull(search, "search");
         final var pairs = survivorPairs();
-        long checksum = 0;
         var certificates = 0;
 
         for (final var pair : pairs) {
@@ -86,13 +140,10 @@ public final class OrientedNineteenCycleEmitter {
             }
             CertificateValidator.validate(
                     pair, result.moves(), MAXIMUM_MOVES);
-            checksum = Math.addExact(checksum,
-                    CertificateCodec.checksumContribution(
-                            pair, result.moves()));
             certificates++;
         }
 
-        return new EmissionResult(pairs.size(), certificates, checksum);
+        return new EmissionResult(pairs.size(), certificates);
     }
 
     static List<CyclicTargetPair> survivorPairs() {
@@ -125,7 +176,9 @@ public final class OrientedNineteenCycleEmitter {
         return List.copyOf(pairs);
     }
 
-    private static void initializeGpu() {
+    private static boolean gpuStarted;
+
+    static void initializeGpu() {
         final var devices = GpuDeviceLayout.parseDevices(
                 System.getProperty("td18.gpuDevices", "0"));
         final int slots = Integer.parseInt(
@@ -134,6 +187,7 @@ public final class OrientedNineteenCycleEmitter {
                 System.getProperty("td18.gpuBudgetMB", "1024"));
         GPUSortingSearch.init(devices, slots,
                 Math.multiplyExact(budgetMiB, 1024L * 1024L));
+        gpuStarted = true;
     }
 
     @FunctionalInterface
@@ -144,7 +198,7 @@ public final class OrientedNineteenCycleEmitter {
                 int maximumMoves);
     }
 
-    record EmissionResult(int survivors, int certificates, long checksum) {
+    record EmissionResult(int survivors, int certificates) {
         EmissionResult {
             if (survivors != 2 || certificates != survivors) {
                 throw new IllegalArgumentException(

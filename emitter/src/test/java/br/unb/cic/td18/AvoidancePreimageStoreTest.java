@@ -233,6 +233,9 @@ class AvoidancePreimageStoreTest {
 
         try (final var reopened = new AvoidancePreimageStore(directory)) {
             reopened.requireOrRecordSource(source);
+            // Development resumes compare the source count, not saved fingerprints.
+            reopened.requireOrRecordSource(new AvoidancePreimageStore.StateInventory(
+                    source.count(), source.checksum() + 1));
             assertEquals(source, reopened.inventory(8));
             final var wave = reopened.waveManifest(8).orElseThrow();
             assertEquals(17, wave.reconstructionApplications());

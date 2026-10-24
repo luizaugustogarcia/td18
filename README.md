@@ -74,16 +74,19 @@ artifact. It independently reconstructs the type
 inventory with a separate work-list implementation, reproduces the complete
 oriented-19-cycle depth-first classification, verifies the paper-backed
 `Q = 0` partition, regenerates the required representatives, rechecks short
-prefix closures, and replays stored sorting witnesses. It also compares every
-row and avoidance-range manifest with recomputed counts and checksums.
+prefix closures, and replays stored sorting witnesses. During development it
+checks instances directly and permits selected row ranges and phases;
+sidecar integrity validation is deferred.
 
 No complete TD(18) certificate database or completed end-to-end verification
 report is included. In particular, a sorting obstruction remains an
 unresolved obligation and makes an emitter run unsuccessful.
-Structurally complete coverage requires both emitter entry points: the main
-Table 2 pipeline covers all 204 rows and their avoidance ranges, while the
-focused oriented-19 emitter supplies the two exceptional survivor
-certificates. The checker rejects a database missing either component.
+Structurally complete coverage requires all 204 Table 2 rows, the residual
+avoidance branches, and both exceptional oriented 19-cycle certificates.
+Full Table 2 emission and completion of the avoidance runner ensure the two
+exceptional certificates are present. The focused emitter can also populate
+or repair that component independently. The checker rejects missing witness
+obligations in the branches selected for a run.
 
 ## Validate the type inventory
 
@@ -119,6 +122,19 @@ ten-transposition bound, and the raw five-bit/three-symbol encoding used by
 replay-validated sorting certificates. The checker reproduces the DFS
 coverage, excludes its unoriented output, and rejects either missing
 certificate.
+
+Previously found witnesses can be imported on CPU, without a new CUDA search:
+
+~~~bash
+mvn -pl emitter compile exec:exec \
+  -Dexec.mainClass=br.unb.cic.td18.OrientedNineteenCycleEmitter \
+  -Dtd18.args=--witnesses=/path/to/witnesses.txt
+~~~
+
+The text file contains two whitespace-separated hexadecimal fields per line:
+the raw instance key and its encoded sorting witness. The emitter requires
+both configured survivor classes and replays both witnesses before writing.
+The file is a generated local artifact and must remain untracked.
 
 ## Count realizable classes
 
@@ -220,7 +236,7 @@ TD(18) database directory. Opening a compatible two-family database adds the
 intermediate-witness family non-destructively; the emitter still rejects the
 old prefixed single-family format.
 
-To run or resume only the persisted obstruction phase after all row manifests
+To run or resume only the persisted obstruction phase from the current database
 exist, use:
 
 ~~~bash
@@ -273,23 +289,60 @@ supports on canonical restorations after domain, depth, and known-diameter
 tests, before parent-type filtering and class deduplication. Earlier work
 databases and avoidance manifests are rejected. Use a new work directory to
 reconstruct the avoidance phase from the existing Table 2 row artifacts; an
-existing avoidance manifest must be regenerated with the current format.
+existing work database must use the current counting convention. Development
+runs can replace an existing final avoidance sidecar.
 
 ## Check sorting certificates
 
-Run the CPU-only checker against a complete emitted database:
+The checker currently runs development checks: it checks instances and
+sorting arguments without comparing sidecar fingerprints or requiring
+completion manifests. Existing sidecars remain compatible but are not proof
+inputs in this workflow. Final artifact-integrity validation in the research
+plan remains pending.
 
 ~~~bash
-mvn -pl checker -am install -DskipTests
-mvn -pl checker exec:java \
-  -Dtd18.certificateDb="$PWD/certificates" \
-  -Dtd18.twistedBraceletWorkers="$(nproc)" \
-  -Dtd18.twistedBraceletBatchSize=256
+# Check all branches.
+tools/verify-certificate.sh
+
+# Recheck selected Table 2 rows.
+tools/verify-certificate.sh --phase=rows --rows=2-16
+
+# Start at residual reconstruction using only persisted obstruction keys.
+tools/verify-certificate.sh --phase=avoidance --rows=130-134
+
+# Check only the two exceptional oriented 19-cycle certificates.
+tools/verify-certificate.sh --phase=survivors
 ~~~
+
+Periodic progress is written once per minute to `logs/checker-verification.log`:
+
+~~~bash
+tail -n 50 -F logs/checker-verification.log
+~~~
+
+The launcher defaults to 12 workers and a 3 GB heap; adjust
+`TD18_CHECKER_WORKERS` and `TD18_CHECKER_HEAP` as needed. It creates fresh
+scratch sets under `checker/target/verification-run-*`, with no source
+archives, backup copies, or audit files. `checker/target/latest-verification-run`
+identifies the latest invocation; its `checker.pid` identifies the Java
+process, and `exit-code` appears when the process finishes.
+
+The certificate database is the only emitter output consumed. The checker
+opens it read-only, uses CPU search and witness replay, and independently
+reconstructs residual predecessor branches in bounded batches with disk
+class deduplication. It never reads the emitter's `avoidance-work` database.
+Intermediate prefix misses are propagated; each full-domain root must close
+by a CPU prefix or a replayed database witness. Missing witnesses and
+unresolved obligations remain failures. Partial checks do not establish
+coverage of omitted rows or branches, and an avoidance-only run does not
+repeat the original Table 2 enumeration.
 
 The checker reads Table 2 from the source document. It reconstructs the 53
 root partitions, 360 annotated roots, and 204 terminal types without calling
-the emitter's recursive type enumerator. For literal `Q = 0` rows, it
+the emitter's recursive type enumerator. It also checks all reached reduction
+states and selected child partitions against the independent work-list
+enumeration, including branches merged into the same terminal row. For
+literal `Q = 0` rows, it
 distinguishes two reasons for skipping generation. The 102 nonempty
 discharges invoke the TD(16) results proved in
 [*Twisted Bracelets for Sorting by Transpositions: the Transposition Diameter
@@ -301,11 +354,12 @@ successor types with 495 and 1,541 residuals retain `Q = R` and are fully
 generated. Representative lookups use position-preserving RocksDB multi-get
 batches; `td18.twistedBraceletBatchSize` controls the batch size.
 
-The checker rejects a missing or mismatched row manifest, witness, obstruction
-key, avoidance manifest, survivor certificate, count, checksum, or move
-budget. A structural-only run checks the inventory, the paper-backed `Q`
-lemma, and the complete oriented-19 DFS without opening RocksDB or enumerating
-the large class corpus:
+The checker rejects invalid cyclic-target instances, inapplicable moves,
+missing witnesses or obstruction outcomes, and exceeded move budgets. It
+also checks the mathematical inventory and representative counts. It does
+not compare saved fingerprints or enforce sidecar completion records during
+development. A structural-only run checks the inventory, the paper-backed
+`Q` lemma, and the complete oriented-19 DFS without opening RocksDB:
 
 ~~~bash
 mvn -pl checker exec:java \

@@ -9,6 +9,8 @@ import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
 import br.unb.cic.td18.permutation.PermutationGroups;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import java.nio.file.Path;
 
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -26,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ObstructionAvoidanceTest {
-    private static CyclicTargetPair controlResidual() {
+    static CyclicTargetPair controlResidual() {
         final var omega = new MulticyclePermutation(List.of(
                 Cycle.of(0, 11, 13, 12, 2, 4, 9, 5, 7, 3, 14),
                 Cycle.of(1, 10, 8, 15, 6)));
@@ -89,32 +91,50 @@ class ObstructionAvoidanceTest {
     }
 
     @Test
-    void propagatesOnlyIntermediatePrefixMissesToTheRootSearch() {
+    void propagatesOnlyIntermediatePrefixMissesToTheRootSearch(@TempDir final Path directory) {
         final var residual = new ResidualObligation(
                 130, 8, controlResidual());
         final var persistedMisses = new ConcurrentLinkedQueue<>();
 
-        final var result = ObstructionAvoidance.resolve(List.of(residual),
-                (pair, rate, maximumMoves, fullDomain) -> {
-                    assertEquals(maximumMoves == 10, fullDomain);
-                    if (maximumMoves == 9) {
-                        return CheckedSearchResult.residual();
-                    }
-                    assertEquals(10, maximumMoves);
-                    assertEquals(ReductionTypeEnumerator.ROOT_SYMBOLS,
-                            pair.getBeta().size());
-                    return CheckedSearchResult.triviallySettled();
-                }, persistedMisses::add);
+        try (final var progress = new VerificationProgress()) {
+            final var result = DiskObstructionVerifier.resolve(List.of(residual),
+                    (pair, rate, maximumMoves, fullDomain) -> {
+                        assertEquals(maximumMoves == 10, fullDomain);
+                        if (maximumMoves == 9) {
+                            return CheckedSearchResult.residual();
+                        }
+                        assertEquals(10, maximumMoves);
+                        assertEquals(ReductionTypeEnumerator.ROOT_SYMBOLS,
+                                pair.getBeta().size());
+                        return CheckedSearchResult.triviallySettled();
+                    }, persistedMisses::add, directory.resolve("scratch"), progress);
 
-        assertTrue(result.complete());
-        assertEquals(1, result.terminalResiduals());
-        assertEquals(1_728_934, result.reconstructionApplications());
-        assertEquals(627, result.intermediatePrefixObligations());
-        assertEquals(627, result.propagatedPrefixMisses());
-        assertEquals(623_283, result.rootSearchObligations());
-        assertEquals(623_283, result.trivialClosures());
-        assertEquals(0, result.certificates());
-        assertTrue(persistedMisses.isEmpty());
+            assertTrue(result.complete());
+            assertEquals(1, result.terminalResiduals());
+            assertEquals(1_728_934, result.reconstructionApplications());
+            assertEquals(627, result.intermediatePrefixObligations());
+            assertEquals(627, result.propagatedPrefixMisses());
+            assertEquals(623_283, result.rootSearchObligations());
+            assertEquals(623_283, result.trivialClosures());
+            assertEquals(0, result.certificates());
+            assertTrue(persistedMisses.isEmpty());
+        }
+    }
+
+    @Test
+    void diskAndMemoryReconstructionsAgree(@TempDir final Path directory) {
+        final var residuals = List.of(new ResidualObligation(130, 8, controlResidual()));
+        final ObstructionAvoidance.PairSearch search = (pair, rate, budget, fullDomain) ->
+                CheckedSearchResult.triviallySettled();
+        final var expected = ObstructionAvoidance.resolve(residuals, search,
+                miss -> { throw new AssertionError("Unexpected miss"); });
+        try (final var progress = new VerificationProgress()) {
+            assertEquals(expected, DiskObstructionVerifier.resolve(residuals, search,
+                    miss -> { throw new AssertionError("Unexpected miss"); },
+                    directory.resolve("scratch"), progress));
+            assertThrows(IllegalStateException.class, () -> DiskObstructionVerifier.resolve(
+                    residuals, search, miss -> { }, directory.resolve("scratch"), progress));
+        }
     }
 
     @Test

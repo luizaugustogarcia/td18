@@ -12,7 +12,6 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,20 +28,14 @@ class CertificateStoreTest {
                     .getBytes(StandardCharsets.UTF_8);
 
     @Test
-    void readsRawWitnessesAndSidecarManifests(
+    void readsRawWitnessesWithoutSidecarManifests(
             @TempDir final Path directory
     ) throws Exception {
         final var pair = CyclicTargetPair.of(
                 new MulticyclePermutation(Cycle.of(0, 1, 2)),
                 Cycle.of(0, 1, 2)).canonicalRepresentative();
         final var moves = List.of(Cycle.of(0, 1, 2));
-        final var row = new CertificateRowManifest(1, "(3-O)", 1,
-                1, 1, 1, 0, 1, 0,
-                CertificateCodec.checksumContribution(pair, moves), true);
-        final var avoidance = new AvoidancePhaseManifest(1, 204,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, true);
         writeDatabase(directory, pair, moves);
-        writeManifests(directory, row, avoidance);
 
         System.setProperty(
                 "td18.certificateStatsPeriodSeconds", "0");
@@ -56,8 +49,6 @@ class CertificateStoreTest {
             assertEquals(moves,
                     store.findIntermediate(pair, 9).orElseThrow());
             assertTrue(store.findIntermediate(pair, 8).isEmpty());
-            assertEquals(row, store.requireRowManifest(1));
-            assertEquals(List.of(avoidance), store.avoidanceManifests());
             assertFalse(store.findResidual(new ResidualObligation(
                     1, 1, pair)).isPresent());
         } finally {
@@ -109,15 +100,4 @@ class CertificateStoreTest {
         }
     }
 
-    private static void writeManifests(
-            final Path directory,
-            final CertificateRowManifest row,
-            final AvoidancePhaseManifest avoidance
-    ) throws Exception {
-        final var manifests = directory.resolve("proof-manifests");
-        Files.createDirectories(manifests);
-        Files.write(manifests.resolve("row-00001.bin"), row.encoded());
-        Files.write(manifests.resolve("avoidance-00001-00204.bin"),
-                avoidance.encoded());
-    }
 }

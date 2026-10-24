@@ -1,9 +1,7 @@
 package br.unb.cic.td18;
 
-import br.unb.cic.td18.base.AvoidancePhaseManifest;
 import br.unb.cic.td18.base.AvoidanceSearchMiss;
 import br.unb.cic.td18.base.CertificateCodec;
-import br.unb.cic.td18.base.CertificateRowManifest;
 import br.unb.cic.td18.base.CertificateStore;
 import br.unb.cic.td18.base.CheckedSearchResult;
 import br.unb.cic.td18.base.CommonOperations;
@@ -17,16 +15,12 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.zip.CRC32C;
 
 /** CPU-only checker for the versioned TD(18) certificate database. */
 public final class CertificateChecker {
-    static final long EXPECTED_INVENTORY_CRC32C = 2_232_227_918L;
-
     private CertificateChecker() {
     }
 
@@ -39,36 +33,54 @@ public final class CertificateChecker {
         }
 
         final var started = Instant.now();
-        final var entries = CountTD18Bracelets.readTableEntries(
-                Files.readString(options.table(), StandardCharsets.UTF_8));
-        final long inventoryChecksum = verifyInventory(entries);
-        final var paperAudit = PaperDischargeLemma.verify(entries);
-        reportStructuralChecks(inventoryChecksum, paperAudit);
-        final var orientedNineteenSurvivors =
-                verifyOrientedNineteenClassification();
-        if (options.structuralOnly()) {
-            return;
-        }
+        try (final var progress = new VerificationProgress()) {
+            progress.phase("CPU-only structural verification; certificate=" + options.database());
+            final var entries = CountTD18Bracelets.readTableEntries(
+                    Files.readString(options.table(), StandardCharsets.UTF_8));
+            verifyInventory(entries);
+            System.out.printf("reduction policy independently verified: reachedStates=%d%n",
+                    IndependentTypeEnumerator.verifyReductionPolicy());
+            final var paperAudit = PaperDischargeLemma.verify(entries);
+            reportStructuralChecks(paperAudit);
+            progress.phase("CPU-only oriented 19-cycle classification");
+            final var orientedNineteenSurvivors =
+                    verifyOrientedNineteenClassification();
+            if (options.structuralOnly()) {
+                return;
+            }
 
-        final var residuals = new ConcurrentLinkedQueue<ResidualObligation>();
-        try (final var certificates = new CertificateStore(options.database())) {
-            requireOrientedNineteenCertificates(
-                    certificates, orientedNineteenSurvivors);
-            verifyRows(entries, certificates, residuals);
-            verifyAvoidance(certificates, residuals);
-        } finally {
-            DirectTwistedBraceletGenerator.shutdownExecutor();
-        }
+            final var residuals = new ConcurrentLinkedQueue<ResidualObligation>();
+            try (final var certificates = new CertificateStore(options.database())) {
+                final var missingSurvivors = options.checksSurvivors()
+                        ? checkOrientedNineteenCertificates(certificates, orientedNineteenSurvivors)
+                        : List.<String>of();
+                final var selected = entries.stream().filter(entry -> options.includes(entry.number())).toList();
+                if (options.checksRows()) {
+                    verifyRows(selected, certificates, residuals, progress);
+                } else if (options.checksAvoidance()) {
+                    residuals.addAll(loadTerminalResiduals(entries, certificates, options, progress));
+                }
+                if (options.checksAvoidance()) {
+                    verifyAvoidance(certificates, residuals, options.work(), progress);
+                }
+                if (!missingSurvivors.isEmpty()) {
+                    throw new IllegalStateException("Certificate verification failed: missing "
+                            + missingSurvivors.size() + " oriented 19-cycle survivor witnesses: "
+                            + missingSurvivors);
+                }
+            } finally {
+                DirectTwistedBraceletGenerator.shutdownExecutor();
+            }
 
-        System.out.printf(
-                "TD(18) certificate verified: rows=%d, Q=%d, "
-                        + "paper=%s, elapsed=%s%n",
-                entries.size(), paperAudit.totalQ(),
-                PaperDischargeLemma.PAPER,
-                Duration.between(started, Instant.now()));
+            System.out.printf(
+                    "development checks complete: phase=%s rows=%d-%d elapsed=%s; "
+                            + "file-integrity validation deferred%n",
+                    options.phase(), options.firstRow(), options.lastRow(),
+                    Duration.between(started, Instant.now()));
+        }
     }
 
-    static long verifyInventory(
+    static void verifyInventory(
             final List<CountTD18Bracelets.TableEntry> table
     ) {
         final var inventory = IndependentTypeEnumerator.enumerate();
@@ -85,7 +97,6 @@ public final class CertificateChecker {
         }
 
         final var depthCounts = new int[3];
-        final var checksum = new CRC32C();
         for (var index = 0; index < table.size(); index++) {
             final var expected = inventory.entries().get(index);
             final var actual = table.get(index);
@@ -102,42 +113,20 @@ public final class CertificateChecker {
                                 + ", table=" + actual);
             }
             depthCounts[expected.movesUsed()]++;
-            checksum.update(inventoryLine(actual)
-                    .getBytes(StandardCharsets.UTF_8));
         }
         if (depthCounts[0] != 8 || depthCounts[1] != 8
                 || depthCounts[2] != 188) {
             throw new IllegalStateException(
                     "Independent depth distribution is not 8, 8, 188");
         }
-        final long value = checksum.getValue();
-        if (value != EXPECTED_INVENTORY_CRC32C) {
-            throw new IllegalStateException(
-                    "Table 2 inventory checksum changed: expected "
-                            + EXPECTED_INVENTORY_CRC32C + ", found " + value);
-        }
-        return value;
-    }
-
-    private static String inventoryLine(
-            final CountTD18Bracelets.TableEntry entry
-    ) {
-        return entry.number() + "|" + entry.type() + "|"
-                + entry.nonfixedSymbols() + "|" + entry.fixedSymbols() + "|"
-                + entry.movesUsed() + "|" + entry.remainingMoves() + "|"
-                + entry.threeNorm() + "|"
-                + entry.recordedRealizableClasses() + "|"
-                + entry.remainingClassObligations() + "\n";
     }
 
     private static void reportStructuralChecks(
-            final long inventoryChecksum,
             final PaperDischargeLemma.Audit audit
     ) {
         System.out.printf(
                 "inventory verified: rows=204, roots=53/360, "
-                        + "depths=8/8/188, crc32c=%d%n",
-                inventoryChecksum);
+                        + "depths=8/8/188%n");
         System.out.printf(
                 "Q lemma verified from %s: oriented-3=%d, "
                 + "TD(16)-successor=%d (%d settled, %d retained), "
@@ -178,25 +167,34 @@ public final class CertificateChecker {
         return survivors;
     }
 
-    private static void requireOrientedNineteenCertificates(
+    static List<String> checkOrientedNineteenCertificates(
             final CertificateStore certificates,
             final List<CyclicTargetPair> survivors
     ) {
+        final var missing = new ArrayList<String>();
         for (final var survivor : survivors) {
-            certificates.require(survivor, 10);
+            if (certificates.find(survivor, 10).isEmpty()) {
+                final var key = java.util.HexFormat.of().formatHex(CertificateCodec.keyFor(survivor));
+                missing.add(key);
+                System.err.printf("VERIFICATION FAILURE: missing oriented 19-cycle witness: "
+                        + "key=%s maximumMoves=10 pair=%s%n", key, survivor);
+            }
         }
-        System.out.println(
-                "oriented 19-cycle survivor certificates verified: 2");
+        System.out.printf("oriented 19-cycle survivor certificates: verified=%d missing=%d%n",
+                survivors.size() - missing.size(), missing.size());
+        return List.copyOf(missing);
     }
 
-    private static void verifyRows(
+    static void verifyRows(
             final List<CountTD18Bracelets.TableEntry> entries,
             final CertificateStore certificates,
-            final ConcurrentLinkedQueue<ResidualObligation> residuals
+            final ConcurrentLinkedQueue<ResidualObligation> residuals,
+            final VerificationProgress progress
     ) {
         long verifiedR = 0;
         long verifiedQ = 0;
         for (final var entry : entries) {
+            progress.phase("row " + entry.number() + "/204 Burnside count: " + entry.type());
             final long counted = DirectTwistedBraceletGenerator
                     .countRepresentativesByBurnside(
                             entry.partition(), entry.orientedByPart());
@@ -208,23 +206,7 @@ public final class CertificateChecker {
             }
             verifiedR = Math.addExact(verifiedR, counted);
 
-            final var result = verifyRow(entry, certificates, residuals);
-            final var expectedManifest = new CertificateRowManifest(
-                    entry.number(), entry.type(), entry.remainingMoves(),
-                    entry.recordedRealizableClasses(),
-                    entry.remainingClassObligations(), result.generated(),
-                    result.trivialClosures(), result.certificates(),
-                    result.residuals(), result.checksum(),
-                    result.residuals() == 0);
-            final var actualManifest = certificates.requireRowManifest(
-                    entry.number());
-            if (!actualManifest.equals(expectedManifest)) {
-                throw new IllegalStateException(
-                        "Certificate manifest mismatch in Table 2 row "
-                                + entry.number() + "; expected="
-                                + expectedManifest + ", actual="
-                                + actualManifest);
-            }
+            final var result = verifyRow(entry, certificates, residuals, progress);
             verifiedQ = Math.addExact(verifiedQ, result.generated());
             System.out.printf(
                     "row %d verified: R=%d Q=%d trivial=%d "
@@ -233,8 +215,8 @@ public final class CertificateChecker {
                     result.trivialClosures(), result.certificates(),
                     result.residuals());
         }
-        if (verifiedR != 33_544_626_415L
-                || verifiedQ != PaperDischargeLemma.EXPECTED_TOTAL_Q) {
+        if (entries.size() == 204 && (verifiedR != 33_544_626_415L
+                || verifiedQ != PaperDischargeLemma.EXPECTED_TOTAL_Q)) {
             throw new IllegalStateException(
                     "Table totals disagree: R=" + verifiedR
                             + ", Q=" + verifiedQ);
@@ -244,7 +226,8 @@ public final class CertificateChecker {
     private static RowResult verifyRow(
             final CountTD18Bracelets.TableEntry entry,
             final CertificateStore certificates,
-            final ConcurrentLinkedQueue<ResidualObligation> residualSink
+            final ConcurrentLinkedQueue<ResidualObligation> residualSink,
+            final VerificationProgress progress
     ) {
         if (entry.remainingClassObligations() == 0) {
             return RowResult.EMPTY;
@@ -254,16 +237,22 @@ public final class CertificateChecker {
         final var trivial = new LongAdder();
         final var certified = new LongAdder();
         final var residual = new LongAdder();
-        final var checksum = new LongAdder();
+        final long rowStarted = System.nanoTime();
+        progress.phase(() -> String.format(java.util.Locale.ROOT,
+                "row %d/204 %s checked=%d/%d trivial=%d witnesses=%d residuals=%d rate=%.1f/s",
+                entry.number(), entry.type(), trivial.sum() + certified.sum() + residual.sum(),
+                entry.remainingClassObligations(), trivial.sum(), certified.sum(), residual.sum(),
+                (trivial.sum() + certified.sum() + residual.sum())
+                        / Math.max(1e-9, (System.nanoTime() - rowStarted) / 1e9)));
         DirectTwistedBraceletGenerator
                 .generateRepresentativeBatchesConcurrently(
                         entry.partition(), entry.orientedByPart(), () -> { },
                         pairs -> verifyBatch(entry, pairs, certificates,
                                 residualSink, generated, trivial, certified,
-                                residual, checksum));
+                                residual));
 
         final var result = new RowResult(generated.sum(), trivial.sum(),
-                certified.sum(), residual.sum(), checksum.sum());
+                certified.sum(), residual.sum());
         if (result.generated() != entry.remainingClassObligations()) {
             throw new IllegalStateException(
                     "Table 2 row " + entry.number() + " records Q="
@@ -282,8 +271,7 @@ public final class CertificateChecker {
             final LongAdder generated,
             final LongAdder trivial,
             final LongAdder certified,
-            final LongAdder residual,
-            final LongAdder checksum
+            final LongAdder residual
     ) {
         generated.add(pairs.length);
         final var databasePairs = new ArrayList<CyclicTargetPair>(pairs.length);
@@ -304,8 +292,6 @@ public final class CertificateChecker {
             final var moves = witnesses.get(index);
             if (moves.isPresent()) {
                 certified.increment();
-                checksum.add(CertificateCodec.checksumContribution(
-                        pair, moves.orElseThrow()));
                 continue;
             }
 
@@ -319,7 +305,6 @@ public final class CertificateChecker {
                                     + pair.extendedToricClassKey()));
             residualSink.add(storedResidual);
             residual.increment();
-            checksum.add(storedResidual.checksumContribution());
         }
     }
 
@@ -437,74 +422,93 @@ public final class CertificateChecker {
         return result;
     }
 
+    static List<ResidualObligation> loadTerminalResiduals(
+            final List<CountTD18Bracelets.TableEntry> entries,
+            final CertificateStore certificates,
+            final Options options,
+            final VerificationProgress progress
+    ) {
+        final var contexts = new java.util.HashMap<String, CountTD18Bracelets.TableEntry>();
+        final var domains = new java.util.TreeSet<Integer>();
+        for (final var entry : entries) {
+            if (entry.remainingClassObligations() > 0) {
+                contexts.put(entry.type(), entry);
+                domains.add(entry.nonfixedSymbols());
+            }
+        }
+        final var result = new ArrayList<ResidualObligation>();
+        final var scanned = new LongAdder();
+        final var selected = new LongAdder();
+        progress.phase(() -> "loading residual obstructions: scanned=" + scanned.sum()
+                + " selected=" + selected.sum());
+        certificates.forEachObstruction(key -> {
+            CyclicTargetPair rootMiss = null;
+            ResidualObligation recovered = null;
+            for (final int domain : domains) {
+                if (key.length != (5 * domain + 7) / 8) {
+                    continue;
+                }
+                final CyclicTargetPair pair;
+                try {
+                    pair = CertificateCodec.pairForKey(key, domain);
+                } catch (final IllegalArgumentException | IllegalStateException invalidDomain) {
+                    continue;
+                }
+                final var entry = contexts.get(ObstructionAvoidance.annotatedTypeOf(pair));
+                if (entry != null && entry.nonfixedSymbols() == domain) {
+                    if (recovered != null) {
+                        throw new IllegalStateException("Ambiguous residual context");
+                    }
+                    recovered = new ResidualObligation(entry.number(), entry.remainingMoves(), pair);
+                    ObstructionAvoidance.validateTerminalResidual(recovered);
+                } else if (domain == 19) {
+                    rootMiss = pair;
+                }
+            }
+            if (recovered == null && rootMiss == null) {
+                throw new IllegalStateException("Obstruction has no valid Table 2 or root context: "
+                        + java.util.HexFormat.of().formatHex(key));
+            }
+            if (recovered != null && options.includes(recovered.row())) {
+                result.add(recovered);
+                selected.increment();
+            }
+            scanned.increment();
+        });
+        System.out.printf("residual obstructions loaded: scanned=%d selected=%d rows=%d-%d; "
+                        + "row generation was not performed in this run%n",
+                scanned.sum(), result.size(), options.firstRow(), options.lastRow());
+        return List.copyOf(result);
+    }
+
     private static void verifyAvoidance(
             final CertificateStore certificates,
-            final ConcurrentLinkedQueue<ResidualObligation> residuals
+            final ConcurrentLinkedQueue<ResidualObligation> residuals,
+            final Path work,
+            final VerificationProgress progress
     ) {
-        final var manifests = new ArrayList<>(
-                certificates.avoidanceManifests());
-        manifests.sort(Comparator.comparingInt(
-                AvoidancePhaseManifest::firstRow));
-        var expectedFirstRow = 1;
-        for (final var manifest : manifests) {
-            if (manifest.firstRow() != expectedFirstRow) {
-                throw new IllegalStateException(
-                        "Avoidance manifest ranges overlap or leave a gap at row "
-                                + expectedFirstRow);
-            }
-            expectedFirstRow = manifest.lastRow() + 1;
-        }
-        if (manifests.isEmpty() || expectedFirstRow != 205) {
-            throw new IllegalStateException(
-                    "Avoidance manifests do not cover Table 2 rows 1-204");
-        }
-
-        for (final var manifest : manifests) {
-            final List<ResidualObligation> rangeResiduals = residuals.stream()
-                    .filter(item -> item.row() >= manifest.firstRow()
-                            && item.row() <= manifest.lastRow())
-                    .toList();
-            final var checked = ObstructionAvoidance.resolve(
-                    rangeResiduals,
-                    (pair, rate, maximumMoves, fullDomain) -> {
-                        if (cpuClosure(pair, maximumMoves)) {
-                                return CheckedSearchResult
-                                    .triviallySettled();
-                        }
-                        if (!fullDomain) {
-                            return CheckedSearchResult.residual();
-                        }
-                        final var moves = certificates.find(
-                                pair, maximumMoves);
-                        return moves.isPresent()
-                                ? CheckedSearchResult.certificate(
-                                moves.orElseThrow())
-                                : CheckedSearchResult.residual();
-                    },
-                    miss -> requireAvoidanceMiss(certificates, miss));
-
-            final var expected = new AvoidancePhaseManifest(
-                    manifest.firstRow(), manifest.lastRow(),
-                    checked.terminalResiduals(),
-                    checked.reconstructionApplications(),
-                    checked.intermediatePrefixObligations(),
-                    checked.propagatedPrefixMisses(),
-                    checked.rootSearchObligations(),
-                    checked.trivialClosures(), checked.certificates(),
-                    checked.unresolved(), checked.checksum(),
-                    checked.complete());
-            if (!manifest.equals(expected)) {
-                throw new IllegalStateException(
-                        "Avoidance manifest mismatch for rows "
-                                + manifest.firstRow() + '-' + manifest.lastRow()
-                                + "; expected=" + expected + ", actual="
-                                + manifest);
-            }
-            if (!checked.complete()) {
-                throw new IllegalStateException(
-                        "Unresolved avoidance obligations remain for rows "
-                                + manifest.firstRow() + '-' + manifest.lastRow());
-            }
+        final var checked = DiskObstructionVerifier.resolve(
+                List.copyOf(residuals),
+                (pair, rate, maximumMoves, fullDomain) -> {
+                    if (cpuClosure(pair, maximumMoves)) {
+                        return CheckedSearchResult.triviallySettled();
+                    }
+                    if (!fullDomain) {
+                        return CheckedSearchResult.residual();
+                    }
+                    final var moves = certificates.find(pair, maximumMoves);
+                    return moves.isPresent()
+                            ? CheckedSearchResult.certificate(moves.orElseThrow())
+                            : CheckedSearchResult.residual();
+                }, miss -> requireAvoidanceMiss(certificates, miss),
+                work.resolve("avoidance"), progress);
+        System.out.printf("avoidance checked: terminalResiduals=%d intermediate=%d "
+                        + "propagatedMisses=%d roots=%d witnesses=%d unresolved=%d%n",
+                checked.terminalResiduals(), checked.intermediatePrefixObligations(),
+                checked.propagatedPrefixMisses(), checked.rootSearchObligations(),
+                checked.certificates(), checked.unresolved());
+        if (!checked.complete()) {
+            throw new IllegalStateException("Unresolved avoidance obligations: " + checked.unresolved());
         }
     }
 
@@ -521,14 +525,14 @@ public final class CertificateChecker {
 
     private static void printUsage() {
         System.out.println("CertificateChecker [--table=path] "
-                + "[--database=path] [--structural-only]");
+                + "[--database=path] [--work=path] [--rows=first-last] "
+                + "[--phase=all|rows|avoidance|survivors] [--structural-only]");
     }
 
     private record RowResult(long generated, long trivialClosures,
-                             long certificates, long residuals,
-                             long checksum) {
+                             long certificates, long residuals) {
         private static final RowResult EMPTY =
-                new RowResult(0, 0, 0, 0, 0);
+                new RowResult(0, 0, 0, 0);
 
         private RowResult {
             if (generated < 0 || trivialClosures < 0 || certificates < 0
@@ -541,14 +545,19 @@ public final class CertificateChecker {
         }
     }
 
-    private record Options(Path table, Path database,
-                           boolean structuralOnly, boolean help) {
-        private static Options parse(final String[] arguments,
-                                     final Path root) {
+    record Options(Path table, Path database, Path work, int firstRow, int lastRow,
+                   String phase, boolean structuralOnly, boolean help) {
+        static Options parse(final String[] arguments,
+                                     final Path root) throws IOException {
             var table = root.resolve("docs/td18-reduction-count.tex");
             var database = Path.of(System.getProperty(
                     "td18.certificateDb",
                     root.resolve("certificates").toString()));
+            var work = root.resolve("checker/target/verification-work-"
+                    + ProcessHandle.current().pid() + "-" + System.currentTimeMillis());
+            var firstRow = 1;
+            var lastRow = 204;
+            var phase = "all";
             var structuralOnly = false;
             var help = false;
             for (final var argument : arguments) {
@@ -556,9 +565,20 @@ public final class CertificateChecker {
                     help = true;
                 } else if (argument.equals("--structural-only")) {
                     structuralOnly = true;
+                } else if (argument.startsWith("--rows=")) {
+                    final var bounds = argument.substring("--rows=".length()).split("-", -1);
+                    if (bounds.length != 2) {
+                        throw new IllegalArgumentException("Expected --rows=first-last");
+                    }
+                    firstRow = Integer.parseInt(bounds[0]);
+                    lastRow = Integer.parseInt(bounds[1]);
+                } else if (argument.startsWith("--phase=")) {
+                    phase = argument.substring("--phase=".length());
                 } else if (argument.startsWith("--table=")) {
                     table = Path.of(argument.substring(
                             "--table=".length())).toAbsolutePath();
+                } else if (argument.startsWith("--work=")) {
+                    work = Path.of(argument.substring("--work=".length())).toAbsolutePath();
                 } else if (argument.startsWith("--database=")) {
                     database = Path.of(argument.substring(
                             "--database=".length())).toAbsolutePath();
@@ -567,8 +587,42 @@ public final class CertificateChecker {
                             "Unknown argument: " + argument);
                 }
             }
+            if (firstRow < 1 || lastRow < firstRow || lastRow > 204
+                    || !List.of("all", "rows", "avoidance", "survivors").contains(phase)) {
+                throw new IllegalArgumentException("Invalid row range or checker phase");
+            }
+            work = work.toAbsolutePath().normalize();
+            if (!structuralOnly && !help) {
+                final var databaseReal = database.toRealPath();
+                Files.createDirectories(work.getParent());
+                final var workReal = work.getParent().toRealPath().resolve(work.getFileName());
+                if (workReal.startsWith(databaseReal) || databaseReal.startsWith(workReal)
+                        || Files.exists(work)) {
+                    throw new IllegalArgumentException(
+                            "Checker work must be a fresh directory outside the certificate: " + work);
+                }
+                Files.createDirectory(work);
+            }
             return new Options(table.toAbsolutePath(),
-                    database.toAbsolutePath(), structuralOnly, help);
+                    database.toAbsolutePath(), work, firstRow, lastRow,
+                    phase, structuralOnly, help);
         }
+
+        boolean includes(final int row) {
+            return row >= firstRow && row <= lastRow;
+        }
+
+        boolean checksSurvivors() {
+            return phase.equals("all") || phase.equals("survivors");
+        }
+
+        boolean checksRows() {
+            return phase.equals("all") || phase.equals("rows");
+        }
+
+        boolean checksAvoidance() {
+            return phase.equals("all") || phase.equals("avoidance");
+        }
+
     }
 }

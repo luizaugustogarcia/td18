@@ -52,7 +52,6 @@ public final class ObstructionAvoidance {
             long trivialClosures,
             long certificates,
             long unresolved,
-            long checksum,
             CyclicTargetPair firstUnresolved
     ) {
         public AvoidanceResult {
@@ -92,7 +91,7 @@ public final class ObstructionAvoidance {
                             ExtendedToricClassKey classKey) {
     }
 
-    private record SearchState(int maximumMoves, CyclicTargetPair pair) {
+    record SearchState(int maximumMoves, CyclicTargetPair pair) {
     }
 
     record RestoredState(CyclicTargetPair pair, int[] fixedPoints) {
@@ -139,7 +138,6 @@ public final class ObstructionAvoidance {
         final var intermediateTrivial = new LongAdder();
         final var intermediatePrefixObligations = new LongAdder();
         final var propagatedPrefixMisses = new LongAdder();
-        final var checksum = new LongAdder();
         for (var maximumMoves = ReductionTypeEnumerator.MAX_BUDGET - 2;
              maximumMoves < ReductionTypeEnumerator.MAX_BUDGET;
              maximumMoves++) {
@@ -177,7 +175,6 @@ public final class ObstructionAvoidance {
             intermediatePrefixObligations.add(orderedCandidates.size());
             intermediateTrivial.add(result.trivialClosures());
             propagatedPrefixMisses.add(result.residuals());
-            checksum.add(result.checksum());
             propagated.values().forEach(state -> addState(
                     alreadyHard, state.maximumMoves(), state.pair()));
             log.info("Avoidance intermediate prefix screen {}: candidates={}, "
@@ -195,7 +192,6 @@ public final class ObstructionAvoidance {
         final var unresolved = new ConcurrentHashMap<StateKey, SearchState>();
         final var rootResult = searchStates(
                 orderedRoots, search, missSink, unresolved, true);
-        checksum.add(rootResult.checksum());
         log.info("Avoidance root search: rootClasses={}, triviallySettled={}, "
                         + "certificates={}, unresolved={}",
                 orderedRoots.size(), rootResult.trivialClosures(),
@@ -209,7 +205,7 @@ public final class ObstructionAvoidance {
                 propagatedPrefixMisses.sum(), orderedRoots.size(),
                 intermediateTrivial.sum() + rootResult.trivialClosures(),
                 rootResult.certificates(),
-                orderedUnresolved.size(), checksum.sum(),
+                orderedUnresolved.size(),
                 orderedUnresolved.isEmpty()
                 ? null : orderedUnresolved.getFirst());
     }
@@ -248,7 +244,7 @@ public final class ObstructionAvoidance {
         return new ReconstructionBatch(applications, ordered);
     }
 
-    private static void validateTerminalResidual(
+    static void validateTerminalResidual(
             final ResidualObligation residual
     ) {
         final int movesUsed = ReductionTypeEnumerator.MAX_BUDGET
@@ -324,6 +320,14 @@ public final class ObstructionAvoidance {
             final SearchState successor,
             final ConcurrentHashMap<StateKey, SearchState> parents
     ) {
+        return reconstructParentsInto(successor, state -> addState(
+                parents, state.maximumMoves(), state.pair()));
+    }
+
+    static long reconstructParentsInto(
+            final SearchState successor,
+            final Consumer<SearchState> parents
+    ) {
         final int parentMovesUsed = ReductionTypeEnumerator.MAX_BUDGET
                 - successor.maximumMoves() - 1;
         if (parentMovesUsed < 0) {
@@ -364,7 +368,7 @@ public final class ObstructionAvoidance {
     private static void reconstructOddSplit(
             final SearchState successor,
             final RestoredState restored,
-            final ConcurrentHashMap<StateKey, SearchState> parents,
+            final Consumer<SearchState> parents,
             final LongAdder applications
     ) {
         final int fixedPoint = restored.fixedPoints()[0];
@@ -391,7 +395,7 @@ public final class ObstructionAvoidance {
     private static void reconstructEvenPair(
             final SearchState successor,
             final RestoredState restored,
-            final ConcurrentHashMap<StateKey, SearchState> parents,
+            final Consumer<SearchState> parents,
             final LongAdder applications
     ) {
         final int fixedPoint = restored.fixedPoints()[0];
@@ -416,7 +420,7 @@ public final class ObstructionAvoidance {
     private static void reconstructOddShrink(
             final SearchState successor,
             final RestoredState restored,
-            final ConcurrentHashMap<StateKey, SearchState> parents,
+            final Consumer<SearchState> parents,
             final LongAdder applications
     ) {
         final int firstFixed = restored.fixedPoints()[0];
@@ -439,7 +443,7 @@ public final class ObstructionAvoidance {
     private static void reconstructOrientedThree(
             final SearchState successor,
             final RestoredState restored,
-            final ConcurrentHashMap<StateKey, SearchState> parents,
+            final Consumer<SearchState> parents,
             final LongAdder applications
     ) {
         applications.increment();
@@ -455,7 +459,7 @@ public final class ObstructionAvoidance {
             final RestoredState restored,
             final Cycle reconstructionMove,
             final ReductionTypeEnumerator.ReductionKind expectedKind,
-            final ConcurrentHashMap<StateKey, SearchState> parents
+            final Consumer<SearchState> parents
     ) {
         final var omega = PermutationGroups.computeProduct(
                 restored.pair().getOmega(), reconstructionMove.getInverse());
@@ -484,7 +488,7 @@ public final class ObstructionAvoidance {
         if (!matchesChild) {
             return;
         }
-        addState(parents, successor.maximumMoves() + 1, parent);
+        parents.accept(new SearchState(successor.maximumMoves() + 1, parent));
     }
 
     private static void requireForwardReplay(
@@ -585,6 +589,10 @@ public final class ObstructionAvoidance {
                 : Cycle.of(first, third, second);
     }
 
+    static String annotatedTypeOf(final CyclicTargetPair pair) {
+        return formatType(annotatedType(pair));
+    }
+
     private static AnnotatedType annotatedType(final CyclicTargetPair pair) {
         final var cycles = pair.getOmega().stream()
                 .filter(cycle -> cycle.size() > 1)
@@ -638,8 +646,7 @@ public final class ObstructionAvoidance {
 
     private record SearchBatchResult(long trivialClosures,
                                      long certificates,
-                                     long residuals,
-                                     long checksum) {
+                                     long residuals) {
     }
 
     private static SearchBatchResult searchStates(
@@ -652,7 +659,6 @@ public final class ObstructionAvoidance {
         final var trivial = new LongAdder();
         final var certificates = new LongAdder();
         final var residuals = new LongAdder();
-        final var checksum = new LongAdder();
         final var cursor = new AtomicInteger();
         final var stop = new AtomicBoolean();
         final int workers = Math.min(states.size(),
@@ -688,12 +694,6 @@ public final class ObstructionAvoidance {
                             final var result = search.search(
                                     state.pair(), minimumRate,
                                     state.maximumMoves(), requireFullDomain);
-                            checksum.add(requireFullDomain
-                                    ? CertificateCodec
-                                    .classKeyChecksumContribution(state.pair())
-                                    : CertificateCodec
-                                    .intermediateClassKeyChecksumContribution(
-                                    state.pair(), state.maximumMoves()));
                             switch (result.disposition()) {
                                 case TRIVIALLY_SETTLED -> trivial.increment();
                                 case CERTIFICATE -> {
@@ -734,7 +734,7 @@ public final class ObstructionAvoidance {
             }
         }
         return new SearchBatchResult(trivial.sum(), certificates.sum(),
-                residuals.sum(), checksum.sum());
+                residuals.sum());
     }
 
     private static int compareCertificateKeys(

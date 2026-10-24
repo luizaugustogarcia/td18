@@ -145,8 +145,11 @@ five-bit key with an empty value. It does not duplicate the row, type, budget,
 or reduction path: Table~\ref{tab:complete} and the checked recursion
 reconstruct that context while regenerating the instance. Versioned row and
 range completion manifests are sidecar artifacts rather than database keys.
-The independent checker reconstructs the final phase and compares its counts
-and checksum with those manifests; a complete run remains pending.
+The development checker reconstructs the final phase and verifies sorting
+obligations directly. It currently omits checksum comparisons and completion
+manifest enforcement to allow repeated runs from selected rows or phases.
+The final artifact-integrity validation required by the research plan and a
+complete checker run remain pending.
 
 \section{Reduction policy and recursion}
 
