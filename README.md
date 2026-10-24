@@ -300,32 +300,36 @@ completion manifests. Existing sidecars remain compatible but are not proof
 inputs in this workflow. Final artifact-integrity validation in the research
 plan remains pending.
 
+Run the checker directly from the repository root:
+
 ~~~bash
-# Check all branches.
-tools/verify-certificate.sh
-
-# Recheck selected Table 2 rows.
-tools/verify-certificate.sh --phase=rows --rows=2-16
-
-# Start at residual reconstruction using only persisted obstruction keys.
-tools/verify-certificate.sh --phase=avoidance --rows=130-134
-
-# Check only the two exceptional oriented 19-cycle certificates.
-tools/verify-certificate.sh --phase=survivors
+MAVEN_OPTS="-Xmx3g -Dtd18.checkerWorkers=12" \
+mvn -pl checker compile exec:java \
+  -Dtd18.twistedBraceletWorkers=12 \
+  -Dtd18.certificateDb="$PWD/certificates"
 ~~~
 
-Periodic progress is written once per minute to `logs/checker-verification.log`:
+Use `-Dexec.args` to choose a starting point:
+
+- `-Dexec.args="--rows=52-204"` checks all branches associated with those
+  rows, restarting row 52 from the beginning.
+- `-Dexec.args="--phase=rows --rows=2-16"` checks only those Table 2 rows.
+- `-Dexec.args="--phase=avoidance --rows=130-134"` starts from persisted
+  residual obstruction keys for those rows.
+- `-Dexec.args="--phase=survivors"` checks only the two exceptional
+  oriented 19-cycle certificates.
+
+Periodic progress is printed once per minute. To save and follow the console
+output, append `2>&1 | tee -a logs/checker-verification.log` to the command
+and run this in another terminal:
 
 ~~~bash
 tail -n 50 -F logs/checker-verification.log
 ~~~
 
-The launcher defaults to 12 workers and a 3 GB heap; adjust
-`TD18_CHECKER_WORKERS` and `TD18_CHECKER_HEAP` as needed. It creates fresh
-scratch sets under `checker/target/verification-run-*`, with no source
-archives, backup copies, or audit files. `checker/target/latest-verification-run`
-identifies the latest invocation; its `checker.pid` identifies the Java
-process, and `exit-code` appears when the process finishes.
+Each avoidance run creates fresh scratch sets under
+`checker/target/verification-work-*`. No launcher, source archives, backup
+copies, or audit files are required.
 
 The certificate database is the only emitter output consumed. The checker
 opens it read-only, uses CPU search and witness replay, and independently
