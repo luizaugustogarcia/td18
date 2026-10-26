@@ -86,7 +86,11 @@ public final class WitnessEmitter {
             if (requiresSearch) {
                 WitnessSearch.installWriter(writer);
             }
-            if (options.firstRow() == 1 && options.lastRow() == 204) {
+            if (options.firstRow() == 1 && options.lastRow() == Table2.EXPECTED_ENTRIES) {
+                ExceptionalNineCycleEmitter.ensure(writer,
+                        WitnessSearch::searchCompleteWitness);
+                ExceptionalFifteenCycleEmitter.ensure(writer,
+                        WitnessSearch::searchCompleteWitness);
                 OrientedNineteenCycleEmitter.ensure(writer, (pair, rate, budget) ->
                         SortingSearch.searchForSorting(pair, rate, budget));
                 writer.flush();

@@ -134,19 +134,31 @@ It does not generate or decode encoding words, run a sorting search, or
 read certificates. Some constrained permutations and selected unoriented
 supports are still enumerated; this is not a closed formula for every term.
 
-Every one of the 204 Table 2 entries is counted with Burnside's identity,
+Every one of the 292 Table 2 entries is counted with Burnside's identity,
 including entirely unoriented types. Each run and completed log entry
 records `method=burnside`.
+Totally unoriented types have no structural reduction children at any
+depth. If a known diameter does not close such a state, its whole type
+remains a direct obligation and receives the same realizability count.
 
-The resulting `R` column totals 33,544,626,415 realizable extended-toric
+The resulting `R` column totals 692,894,074,401 realizable extended-toric
 classes. Burnside counting does not itself discharge a sorting obligation.
 Table 2 therefore records a separate `Q` column: after reuse of the checked
-TD(16) successor results, 29,064,174,153 class obligations are emitted. This
-uses `Q=0` for 102 fully discharged rows and `Q=R` for the other 102 rows. In
+TD(16) successor results, 688,413,622,139 class obligations are emitted. This
+uses `Q=0` for 102 fully discharged rows and `Q=R` for the 2 partially covered
+and 188 uncovered rows. Thirty-five of those latter rows have `R=0`, giving
+137 literal zero-`Q` rows. The table contains 46 empty types altogether,
+including 11 of the settled rows. In
 particular, starred rows 130 and 134 are emitted in full and in ordinary table
 order; their bounded-search obstructions join the common final obstruction-avoidance
 phase, which reconstructs and independently sorts their reachable predecessor
 classes on the full S18 root domain.
+
+The exceptional 15-cycle interleavings are a separate restricted branch,
+outside these Table 2 totals: 360 candidate bracelets give 90 valid root
+classes, and 27 give 7 valid intermediate classes. Independent replay closes
+79 roots and all 7 intermediate classes by CPU prefixes and known diameters.
+The remaining 11 root classes require complete ten-transposition witnesses.
 
 Tests compare the two methods on every annotated partition through nine
 symbols, including empty types and both even-domain reflection classes.

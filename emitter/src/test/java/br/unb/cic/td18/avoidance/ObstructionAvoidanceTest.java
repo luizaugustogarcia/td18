@@ -9,6 +9,7 @@ import br.unb.cic.td18.reduction.ReductionTypeEnumerator;
 import br.unb.cic.td18.search.CommonOperations;
 import br.unb.cic.td18.search.WitnessSearch;
 
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +21,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -45,12 +47,12 @@ class ObstructionAvoidanceTest {
                 controlResidual(), 8);
 
         assertEquals(2_176, batch.applications());
-        assertEquals(627, batch.parents().size());
+        assertEquals(1_759, batch.parents().size());
         final var digest = MessageDigest.getInstance("SHA-256");
         batch.parents().stream().map(CertificateCodec::keyFor)
                 .sorted(Arrays::compareUnsigned).forEach(digest::update);
-        // Recorded with the original exhaustive insertion implementation.
-        assertEquals("be7cecc20d7136833867f95a048c7c31c6b4334d1eda0d8e04229c17deae67d2",
+        // Compared with the independent sequential-insertion reconstruction.
+        assertEquals("9fc9908c1a5e106ed7eb135ef7a339bb14dcf157e7141db3e3112b15e2b5456b",
                 HexFormat.of().formatHex(digest.digest()));
         assertTrue(batch.parents().stream().allMatch(pair ->
                 pair.getBeta().size() == 18));
@@ -81,41 +83,45 @@ class ObstructionAvoidanceTest {
         assertTrue(result.complete());
         assertEquals(1, result.terminalResiduals());
         assertEquals(2_176, result.reconstructionApplications());
-        assertEquals(627, result.intermediatePrefixObligations());
+        assertEquals(1_759, result.intermediatePrefixObligations());
         assertEquals(0, result.propagatedPrefixMisses());
         assertEquals(0, result.rootSearchObligations());
-        assertEquals(627, result.trivialClosures());
+        assertEquals(1_759, result.trivialClosures());
         assertEquals(0, result.certificates());
         assertTrue(persistedMisses.isEmpty());
     }
 
     @Test
-    void propagatesOnlyIntermediatePrefixMissesToTheRootSearch() {
-        final var residual = new ResidualObligation(
-                130, 8, controlResidual());
+    void propagatesOnlyIntermediatePrefixMissesToTheRootSearch(@TempDir final Path directory) {
         final var persistedMisses = new ConcurrentLinkedQueue<>();
-
-        final var result = ObstructionAvoidance.resolve(List.of(residual),
-                (pair, rate, maximumMoves, fullDomain) -> {
-                    assertEquals(maximumMoves == 10, fullDomain);
-                    if (maximumMoves == 9) {
+        try (final var store = new AvoidancePreimageStore(directory.resolve("scratch"))) {
+            store.putPairs(8, List.of(controlResidual()));
+            store.putHardPairs(8, List.of(controlResidual()));
+            final var first = ObstructionAvoidanceRunner.reconstructWave(store, 8, 1);
+            assertEquals(2_176, first.applications());
+            assertEquals(1_759, store.inventory(9).count());
+            final var screened = ObstructionAvoidanceRunner.searchWave(store, 9, 1_759,
+                    false, persistedMisses::add, (pair, rate, moves, fullDomain) -> {
+                        assertFalse(fullDomain);
+                        assertEquals(9, moves);
                         return WitnessSearch.SearchResult.residual();
-                    }
-                    assertEquals(10, maximumMoves);
-                    assertEquals(ReductionTypeEnumerator.ROOT_SYMBOLS,
-                            pair.getBeta().size());
-                    return WitnessSearch.SearchResult.triviallySettled();
-                }, persistedMisses::add);
-
-        assertTrue(result.complete());
-        assertEquals(1, result.terminalResiduals());
-        assertEquals(1_728_934, result.reconstructionApplications());
-        assertEquals(627, result.intermediatePrefixObligations());
-        assertEquals(627, result.propagatedPrefixMisses());
-        assertEquals(623_283, result.rootSearchObligations());
-        assertEquals(623_283, result.trivialClosures());
-        assertEquals(0, result.certificates());
-        assertTrue(persistedMisses.isEmpty());
+                    });
+            assertEquals(1_759, screened.residuals());
+            final var second = ObstructionAvoidanceRunner.reconstructWave(store, 9, 1_759);
+            assertEquals(4_844_286, second.applications());
+            assertEquals(1_901_013, store.inventory(10).count());
+            final var roots = ObstructionAvoidanceRunner.searchWave(store, 10, 1_901_013,
+                    true, persistedMisses::add, (pair, rate, moves, fullDomain) -> {
+                        assertTrue(fullDomain);
+                        assertEquals(10, moves);
+                        assertEquals(ReductionTypeEnumerator.ROOT_SYMBOLS, pair.getBeta().size());
+                        return WitnessSearch.SearchResult.triviallySettled();
+                    });
+            assertEquals(1_901_013, roots.trivialClosures());
+            assertEquals(0, roots.certificates());
+            assertEquals(0, roots.residuals());
+            assertTrue(persistedMisses.isEmpty());
+        }
     }
 
     @Test

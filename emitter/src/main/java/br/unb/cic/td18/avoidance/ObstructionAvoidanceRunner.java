@@ -6,6 +6,8 @@ import br.unb.cic.td18.certificate.AsyncCertificateWriter;
 import br.unb.cic.td18.certificate.AvoidancePhaseManifest;
 import br.unb.cic.td18.certificate.CertificateCodec;
 import br.unb.cic.td18.emission.OrientedNineteenCycleEmitter;
+import br.unb.cic.td18.emission.ExceptionalNineCycleEmitter;
+import br.unb.cic.td18.emission.ExceptionalFifteenCycleEmitter;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.reduction.ReductionTypeEnumerator;
 import br.unb.cic.td18.runtime.ProjectPaths;
@@ -200,6 +202,20 @@ public final class ObstructionAvoidanceRunner {
                 checksum = Math.addExact(checksum, search.checksum());
             }
 
+            ExceptionalNineCycleEmitter.ensure(writer, (pair, rate, budget) -> {
+                if (!gpuInitialized.get()) {
+                    initializeGpu();
+                    gpuInitialized.set(true);
+                }
+                return WitnessSearch.searchCompleteWitness(pair, rate, budget);
+            });
+            ExceptionalFifteenCycleEmitter.ensure(writer, (pair, rate, budget) -> {
+                if (!gpuInitialized.get()) {
+                    initializeGpu();
+                    gpuInitialized.set(true);
+                }
+                return WitnessSearch.searchCompleteWitness(pair, rate, budget);
+            });
             OrientedNineteenCycleEmitter.ensure(writer, (pair, rate, budget) -> {
                 if (!gpuInitialized.get()) {
                     initializeGpu();
@@ -209,7 +225,7 @@ public final class ObstructionAvoidanceRunner {
             });
             writer.flush();
             log.info("Required oriented 19-cycle witnesses are present: 2");
-            final var manifest = new AvoidancePhaseManifest(1, 204,
+            final var manifest = new AvoidancePhaseManifest(1, Table2.EXPECTED_ENTRIES,
                     residuals.size(), reconstructionApplications,
                     intermediatePrefixObligations, propagatedPrefixMisses,
                     rootSearchObligations, trivialClosures, certificates,

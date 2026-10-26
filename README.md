@@ -2,13 +2,33 @@
 
 This repository implements the conditional two-reduction route specified in
 [docs/td18-reduction-count.tex](docs/td18-reduction-count.tex). It retains the
-complete inventory of 204 annotated types and generates, searches, and checks
+complete inventory of 292 annotated types and generates, searches, and checks
 their remaining cyclic-target class obligations.
+At every recursion depth, a totally unoriented type receives no structural
+reduction: a known diameter closes it when possible, and otherwise it becomes
+a direct obligation.
 
 **TD(18) = 10 is not proved here.** Every exit criterion in
 [the research plan](docs/RESEARCH_PLAN.md) still needs its checked artifact.
-The development checker currently verifies selected obligations without
-enforcing sidecar integrity/completion records.
+The checker regenerates obligations and validates their witnesses or closure
+arguments directly from the certificate database. Checksums and sidecar files
+are not proof inputs. The exceptional oriented 9-cycle branch emits and checks
+its 19-symbol extensions; its complete computational run remains pending.
+The exceptional oriented 15-cycle branch separately covers 90 root classes
+within ten transpositions and 7 intermediate classes within nine. Its
+classification, generation counts, and 86 CPU prefix closures are checked.
+Complete witnesses remain pending for 11 root classes; all seven intermediate
+classes close by a regenerated prefix and a known smaller diameter.
+
+The verification workflow is **emitter → certificate database → checker**.
+The checker must independently regenerate every required obligation, reject
+missing or unresolved obligations, and validate every witness or justified
+closure against its move budget.
+
+**Instruction for maintainers and agents:** Do not reintroduce mandatory
+checksum validation, sidecar-manifest requirements, or
+"file-integrity validation deferred" warnings. Verification must establish
+completeness and correctness through regeneration and witness/closure checks.
 
 ## Start here
 

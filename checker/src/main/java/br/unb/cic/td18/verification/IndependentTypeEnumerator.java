@@ -123,29 +123,27 @@ final class IndependentTypeEnumerator {
             if (!open) {
                 continue;
             }
-            final var children = childrenOf(state.lengths(), state.oriented());
+            final var children = childrenOf(state.lengths(), state.oriented(), state.movesUsed());
             final var checkedChildren = ReductionTypeEnumerator.selectedChildPartitions(
-                    state.lengths(), state.oriented());
+                    state.lengths(), state.oriented(), state.movesUsed());
             if (!children.stream().map(Arrays::toString).sorted().toList().equals(
                     checkedChildren.stream().map(Arrays::toString).sorted().toList())) {
                 throw new IllegalStateException("Reduction child mismatch: " + key);
             }
-            String kind = "NONE";
-            for (var index = 0; index < state.lengths().length; index++) {
-                final int length = state.lengths()[index];
-                if (length == 3 && state.oriented()[index]) {
-                    kind = "ORIENTED_THREE";
-                    break;
-                }
-                if (length >= 5 && length % 2 == 1 && state.oriented()[index]) {
-                    kind = "ORIENTED_ODD";
-                } else if (length % 2 == 0 && kind.equals("NONE")) {
-                    kind = "EVEN_PAIR";
-                }
+            if (ReductionTypeEnumerator.mayHaveNoAvailableReduction(
+                    state.lengths(), state.oriented(), state.movesUsed())
+                    != canStopWithoutMove(state.lengths(), state.oriented(), state.movesUsed())) {
+                throw new IllegalStateException("Availability retention mismatch: " + key);
             }
-            if (!ReductionTypeEnumerator.selectedReductionKind(
-                    state.lengths(), state.oriented()).name().equals(kind)) {
-                throw new IllegalStateException("Reduction priority mismatch: " + key);
+            for (final var option : ReductionTypeEnumerator.reductionOptions(
+                    state.lengths(), state.oriented(), state.movesUsed())) {
+                final int parentEven = (int) Arrays.stream(state.lengths()).filter(n -> n % 2 == 0).count();
+                final int childEven = (int) Arrays.stream(option.childLengths()).filter(n -> n % 2 == 0).count();
+                final String kind = containsOrientedThree(state.lengths(), state.oriented())
+                        ? "ORIENTED_THREE" : parentEven - childEven == 2 ? "EVEN_PAIR" : "ORIENTED_ODD";
+                if (!option.kind().name().equals(kind)) {
+                    throw new IllegalStateException("Conditional reduction kind mismatch: " + key);
+                }
             }
             if (state.movesUsed() == DEPTH_LIMIT) {
                 continue;
@@ -185,13 +183,16 @@ final class IndependentTypeEnumerator {
                 continue;
             }
 
-            final var children = childrenOf(state.lengths(), state.oriented());
-            if (state.movesUsed() == DEPTH_LIMIT || children.isEmpty()) {
+            final var children = childrenOf(state.lengths(), state.oriented(), state.movesUsed());
+            if (state.movesUsed() == DEPTH_LIMIT
+                    || canStopWithoutMove(state.lengths(), state.oriented(), state.movesUsed())) {
                 final var entry = new Entry(state.lengths(), state.oriented(),
                         state.movesUsed());
                 terminalByType.merge(typeKey(entry.lengths(), entry.oriented()),
                         entry, (first, second) -> first.movesUsed() >= second.movesUsed()
                                 ? first : second);
+            }
+            if (state.movesUsed() == DEPTH_LIMIT) {
                 continue;
             }
 
@@ -272,34 +273,36 @@ final class IndependentTypeEnumerator {
     }
 
     private static List<int[]> childrenOf(final int[] lengths,
-                                          final boolean[] oriented) {
+                                          final boolean[] oriented,
+                                          final int movesUsed) {
+        if (entirelyUnoriented(oriented)) {
+            return List.of();
+        }
         for (var index = 0; index < lengths.length; index++) {
             if (lengths[index] == 3 && oriented[index]) {
                 return List.of(remove(lengths, index));
             }
         }
 
-        var selectedLength = Integer.MAX_VALUE;
-        var selectedIndex = -1;
-        for (var index = 0; index < lengths.length; index++) {
-            if (oriented[index] && lengths[index] >= 5
-                    && lengths[index] % 2 == 1
-                    && lengths[index] < selectedLength) {
-                selectedLength = lengths[index];
-                selectedIndex = index;
+        final var result = new ArrayList<int[]>();
+        final var processed = new java.util.TreeSet<Integer>();
+        for (var index = lengths.length - 1; index >= 0; index--) {
+            final int selectedLength = lengths[index];
+            if (!oriented[index] || selectedLength < 5 || selectedLength % 2 == 0
+                    || !processed.add(selectedLength)) {
+                continue;
             }
-        }
-        if (selectedIndex >= 0) {
-            final var others = remove(lengths, selectedIndex);
-            final var result = new ArrayList<int[]>();
+            final var others = remove(lengths, index);
             result.add(sortedWith(others, selectedLength - 2));
             for (var first = 3; 2 * first <= selectedLength - 1; first += 2) {
                 final int second = selectedLength - 1 - first;
-                if (second >= 3 && second % 2 == 1) {
-                    result.add(sortedWith(others, first, second));
-                }
+                result.add(sortedWith(others, first, second));
             }
-            return List.copyOf(result);
+            // Continue to another cycle only when the shared route's
+            // no-qualifying-move alternative does not close this branch.
+            if (complementaryCaseCloses(lengths, selectedLength, movesUsed)) {
+                return List.copyOf(result);
+            }
         }
 
         var firstEven = -1;
@@ -322,9 +325,87 @@ final class IndependentTypeEnumerator {
                     survivors[target++] = lengths[source];
                 }
             }
-            return List.of(sortedWith(survivors, joined));
+            result.add(sortedWith(survivors, joined));
         }
-        return List.of();
+        return List.copyOf(result);
+    }
+
+    private static boolean containsOrientedThree(final int[] lengths, final boolean[] oriented) {
+        for (var index = 0; index < lengths.length; index++) {
+            if (lengths[index] == 3 && oriented[index]) return true;
+        }
+        return false;
+    }
+
+    private static boolean canStopWithoutMove(final int[] lengths,
+                                               final boolean[] oriented,
+                                               final int movesUsed) {
+        if (entirelyUnoriented(oriented)) {
+            return true;
+        }
+        if (containsOrientedThree(lengths, oriented)
+                || Arrays.stream(lengths).filter(n -> n % 2 == 0).count() >= 2) {
+            return false;
+        }
+        for (var index = 0; index < lengths.length; index++) {
+            if (oriented[index]
+                    && complementaryCaseCloses(lengths, lengths[index], movesUsed)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean entirelyUnoriented(final boolean[] oriented) {
+        for (final boolean value : oriented) {
+            if (value) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Independently checks the complementary branch of the shared
+     * odd-length-cycle route. Its local classification covers exactly lengths
+     * 5, 7, 9, 11, 13, and 17. The separately classified exceptional 15-cycle
+     * uses restricted companion certificates on domains 19 and 18.
+     * The exceptional nine-cycle and the nineteen-cycle classification use
+     * separate full-root certificate obligations, available only at depth zero.
+     * This routing check does not certify their witnesses.
+     */
+    private static boolean complementaryCaseCloses(final int[] lengths,
+                                                   final int selectedLength,
+                                                   final int movesUsed) {
+        final int symbols = Arrays.stream(lengths).sum();
+        if (selectedLength == 19) {
+            return symbols == ROOT_SYMBOLS && movesUsed == 0;
+        }
+        if (selectedLength == 15) {
+            return (symbols == 19 && movesUsed == 0)
+                    || (symbols == 18 && movesUsed == 1);
+        }
+        if (selectedLength != 5 && selectedLength != 7 && selectedLength != 9
+                && selectedLength != 11 && selectedLength != 13 && selectedLength != 17) {
+            return false;
+        }
+        if (selectedLength == 9 && movesUsed != 0) {
+            return false;
+        }
+        final int remainingSymbols = symbols - selectedLength;
+        final int remainingDiameter = remainingSymbols <= 1 ? 0 : TD[remainingSymbols - 1];
+        return movesUsed + (selectedLength + 1) / 2 + remainingDiameter <= MAXIMUM_MOVES;
+    }
+
+    private static boolean appendedEarlyObligation(final Entry entry) {
+        if (entry.movesUsed() >= DEPTH_LIMIT) return false;
+        if (entirelyUnoriented(entry.oriented())
+                && Arrays.stream(entry.lengths()).anyMatch(length -> length % 2 == 0)) {
+            return true;
+        }
+        for (var index = 0; index < entry.lengths().length; index++) {
+            if (entry.oriented()[index] && entry.lengths()[index] >= 5
+                    && entry.lengths()[index] % 2 == 1) return true;
+        }
+        return false;
     }
 
     private static int[] remove(final int[] values, final int removed) {
@@ -363,7 +444,8 @@ final class IndependentTypeEnumerator {
     }
 
     private static Comparator<Entry> tableOrder() {
-        return Comparator.comparingInt(Entry::movesUsed)
+        return Comparator.comparing(IndependentTypeEnumerator::appendedEarlyObligation)
+                .thenComparingInt(Entry::movesUsed)
                 .thenComparingInt(Entry::threeNorm)
                 .thenComparing(Comparator.comparingInt(
                         Entry::nonfixedSymbols).reversed())

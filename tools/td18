@@ -9,14 +9,16 @@ CPU checks:
   test              Run both modules' CPU tests (CUDA smoke tests stay opt-in)
   test-emitter      Run emitter CPU tests
   test-checker      Run checker CPU tests
-  inventory         Validate 53 partitions, 360 roots, and all 204 Table 2 types
-  structure         Independently check inventory, Q mapping, and 19-cycle DFS
+  inventory         Validate 53 partitions, 360 roots, and all 225 Table 2 types
+  structure         Check inventory, Q mapping, 19/15-cycle DFS, and exceptional companion types
 
 Computation:
   count             Recount Table 2 R values on CPU; writes a local count log
   emit              Generate Table 2 classes and discharge/search them (CUDA)
   avoidance         Resume obstruction reconstruction and root searches (CUDA)
   survivors         Search the two exceptional oriented 19-cycle classes (CUDA)
+  exceptional-nine  Emit fixed exceptional 9-cycle extensions to 19 symbols (CUDA)
+  exceptional-fifteen  Emit restricted 15-cycle companion obligations (CUDA)
   import-survivors   Import and replay existing survivor witnesses on CPU
   verify            Run the CPU development checker against certificates
 
@@ -32,7 +34,7 @@ Examples:
   tools/td18 --dry-run emit
 
 Defaults preserve the existing Maven commands and artifact paths.
-Verification currently omits sidecar integrity/completion enforcement.
+The checker regenerates obligations and checks the certificate DB directly.
 See docs/WORKFLOW.md and docs/RESEARCH_PLAN.md for the proof obligations.
 USAGE
 }
@@ -64,6 +66,12 @@ case "$command" in
                        -Dexec.mainClass=br.unb.cic.td18.ObstructionAvoidanceRunner) ;;
     survivors)    args=(-pl emitter -Pgpu compile exec:exec
                        -Dexec.mainClass=br.unb.cic.td18.OrientedNineteenCycleEmitter) ;;
+    exceptional-nine)
+                  args=(-pl emitter -Pgpu compile exec:exec
+                       -Dexec.mainClass=br.unb.cic.td18.ExceptionalNineCycleEmitter) ;;
+    exceptional-fifteen)
+                  args=(-pl emitter -Pgpu compile exec:exec
+                       -Dexec.mainClass=br.unb.cic.td18.ExceptionalFifteenCycleEmitter) ;;
     import-survivors)
                   has_witnesses=false
                   for option in "$@"; do

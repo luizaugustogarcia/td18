@@ -20,8 +20,8 @@ public record AvoidancePhaseManifest(
         boolean complete
 ) {
     private static final int RECORD_TYPE = 4;
-    // Version 4 counts supports only for canonical restorations of open sizes.
-    private static final int FORMAT_VERSION = 4;
+    // Version 6 records the policy that stops every totally unoriented type.
+    private static final int FORMAT_VERSION = 6;
     private static final int KEY_BYTES = 6;
     private static final int VALUE_BYTES = 9 * Long.BYTES + 1;
 

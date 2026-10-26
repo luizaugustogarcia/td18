@@ -6,43 +6,57 @@
 <style>
 :root{color-scheme:light;--ink:#233547;--muted:#596b7b;--line:#dce3e8;--paper:#f6f8fa;--blue:#3573ac;--green:#25846a;--orange:#c27824;--purple:#8663aa}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 system-ui,sans-serif}header{padding:30px 36px 20px;background:white;border-bottom:1px solid var(--line)}h1{font-size:29px;letter-spacing:-.7px;margin:0 0 7px}h2{font-size:21px;margin:0 0 4px}p{margin:5px 0 12px}.intro{max-width:1080px;color:var(--muted)}a{color:var(--blue)}button,input,select{font:inherit}button,select,input{border:1px solid #c5d0d9;border-radius:6px;padding:7px 10px;background:white;color:var(--ink)}button{cursor:pointer}button:hover{background:#edf3f7}button:disabled{opacity:.4;cursor:default}button:focus-visible,a:focus-visible{outline:3px solid #a1cbea;outline-offset:2px}.summary{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}.summary span{padding:8px 16px;background:var(--paper);border-radius:6px}.summary strong{font-size:20px;margin-right:6px}.layout{display:grid;grid-template-columns:310px minmax(0,1fr);max-width:1800px;margin:auto}aside{padding:20px 14px 20px 22px;border-right:1px solid var(--line)}aside label{font-weight:600}#search{width:100%;margin:7px 0}#row-list{height:calc(100vh - 380px);min-height:360px;overflow:auto}#row-list button{display:block;text-align:left;width:100%;margin:0 0 5px;padding:9px 11px;border-color:transparent;background:transparent}#row-list button[aria-current=true]{border-color:#96b3c9;background:#e8f1f8}#row-list button:hover{background:#eaf0f4}.row-label{display:block;font-size:12px;color:var(--muted)}.row-type{display:block;font-size:13px;font-family:ui-monospace,monospace}.count{font-size:12px;color:var(--muted)}main{padding:24px;min-width:0}.row-heading{display:flex;align-items:start;justify-content:space-between;gap:14px}.nav{display:flex;gap:6px}#type{font-family:ui-monospace,monospace;font-size:16px;overflow-wrap:anywhere}#metadata{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}#metadata span{background:white;border:1px solid var(--line);border-radius:6px;padding:5px 10px}.controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:15px 0 10px}#root-filter{max-width:440px}.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin:12px 0}.legend span:before{content:"";display:inline-block;width:19px;height:3px;vertical-align:middle;background:var(--swatch);margin-right:6px}.graph-scroll{max-height:650px;min-height:260px;overflow:auto;background:white;border:1px solid var(--line);border-radius:8px}#graph svg{display:block}#graph-summary{font-size:13px;color:var(--muted)}.note{font-size:13px;color:var(--muted);max-width:1100px}.status{color:var(--green);font-weight:600}details{margin-top:18px;border:1px solid var(--line);border-radius:8px;background:white;padding:12px 16px}summary{cursor:pointer;font-weight:600}.paths-wrap{max-height:460px;overflow:auto;margin-top:12px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}td code{font-size:12px;overflow-wrap:anywhere}footer{padding:20px 36px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);overflow-wrap:anywhere}#error{padding:24px;color:#a12c2c;font-weight:600}#empty{font-size:13px}#overview{width:100%;max-width:850px;height:auto;margin-top:16px}.breakdown{font-size:13px;color:var(--muted)}
+.directions{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 12px}.directions button[aria-pressed=true]{background:#e8f1f8;border-color:#96b3c9;font-weight:600}#breadcrumbs{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;margin-bottom:12px}#breadcrumbs:empty{display:none}#graph a:hover rect,#graph a:focus-visible rect{stroke:#3573ac;stroke-width:3}#graph a{cursor:pointer}#row-link{display:inline-block;margin:0 0 12px}.legend span[data-conditional]:before{height:0;border-top:3px dashed var(--swatch);background:none}[hidden]{display:none!important}
+.forward-levels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.forward-levels details{min-width:0}.level-wrap{max-height:360px;overflow:auto;margin-top:12px}.level-wrap td div+div{margin-top:8px}.level-wrap tr[aria-current=true]{background:#e8f1f8}.level-links{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.level-wrap .note{margin:8px 0}
+@media(max-width:1100px){.forward-levels{grid-template-columns:1fr}}
 @media(max-width:850px){header{padding:22px}.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line);padding:14px 22px}#row-list{height:160px;min-height:0}main{padding:20px}h1{font-size:24px}#root-filter{max-width:100%}}
 @media print{aside,.controls,.nav,footer{display:none}.layout{display:block}header,main{padding:12px}header .intro,header .summary,#overview{display:none}.graph-scroll{max-height:none;border:0;overflow:visible}#graph svg{max-width:100%;height:auto}details{break-before:page}.paths-wrap{max-height:none;overflow:visible}}
 </style>
 <header>
   <h1>Table 2 · Annotated type provenance</h1>
-  <p class="intro">Trace any of the 204 annotated types back to its fixed-point-free roots on 19 symbols. The 3-norm sums the integer part of half each cycle length. Each arrow spends one transposition and lowers this norm by one. After every move, all cycle orientations are enumerated afresh.</p>
+  <p class="intro">Explore the children of any fixed-point-free annotated root on 19 symbols, or trace a Table 2 row back to its roots. The 3-norm sums the integer part of half each cycle length. Each arrow spends one transposition and lowers this norm by one. After every move, all cycle orientations are enumerated afresh.</p>
   <p class="note">Let N be the contracted symbol count, f = 19 − N the contracted fixed-symbol count, and s the moves spent. Define b = 10 − s and let κ be the 3-norm. R counts realizable extended-toric classes; Q counts the remaining class obligations after TD(16) reuse.</p>
-  <div class="summary"><span><strong>53</strong>root partitions</span><span><strong>360</strong>annotated roots</span><span><strong>204</strong>Table 2 rows</span><span><strong>8 / 8 / 188</strong>rows at depths 0 / 1 / 2</span></div>
-  <svg id="overview" viewBox="0 0 850 90" role="img" aria-label="Inventory summary: 360 roots, with 8 terminal rows at depth zero; 8 terminal rows at depth one; 188 terminal rows at depth two.">
+  <p class="note">Totally unoriented types stop before every reduction, including the even-pair fallback. At any depth, a type with only U annotations is a direct obligation unless its known diameter already fits the budget. Such types have no children.</p>
+  <div class="summary"><span><strong>53</strong>root partitions</span><span><strong>360</strong>annotated roots</span><span><strong>292</strong>Table 2 rows</span><span><strong>59 / 45 / 188</strong>rows at depths 0 / 1 / 2</span></div>
+  <svg id="overview" viewBox="0 0 850 90" role="img" aria-label="Inventory summary: 360 roots, with 59 obligation rows at depth zero; 45 at depth one; 188 at depth two.">
     <defs><marker id="summary-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#8496a6"/></marker></defs>
     <g fill="white" stroke="#c5d0d9"><rect x="1" y="1" width="237" height="74" rx="8"/><rect x="305" y="1" width="237" height="74" rx="8"/><rect x="609" y="1" width="237" height="74" rx="8"/></g>
     <g fill="none" stroke="#8496a6" stroke-width="2" marker-end="url(#summary-arrow)"><path d="M242 38H297"/><path d="M546 38H601"/></g>
-    <g fill="#233547" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14"><text x="119" y="26">Depth 0 · budget 10</text><text x="423" y="26">Depth 1 · budget 9</text><text x="727" y="26">Depth 2 · budget 8</text><text x="119" y="52">8 terminal types</text><text x="423" y="52">8 terminal types</text><text x="727" y="52">188 terminal types</text></g>
+    <g fill="#233547" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14"><text x="119" y="26">Depth 0 · budget 10</text><text x="423" y="26">Depth 1 · budget 9</text><text x="727" y="26">Depth 2 · budget 8</text><text x="119" y="52">59 retained types</text><text x="423" y="52">45 retained types</text><text x="727" y="52">188 retained types</text></g>
   </svg>
   <p class="breakdown" id="state-counts"></p>
+  <div class="directions" role="group" aria-label="Navigation direction"><button id="forward" aria-pressed="false">Top-level types → children</button><button id="backward" aria-pressed="true">Table 2 rows ← roots</button></div>
 </header>
 <p id="error" hidden></p>
 <div class="layout" id="app" hidden>
   <aside>
-    <label for="search">Find a Table 2 row</label>
+    <label for="search" id="search-label">Find a Table 2 row</label>
     <input id="search" type="search" placeholder="Row 130, 11O, 3U…" autocomplete="off">
     <p class="count" id="match-count"></p>
     <nav id="row-list" aria-label="Table 2 rows"></nav>
-    <p id="empty" hidden>No matching rows.</p>
+    <p id="empty" hidden>No matching types.</p>
     <p class="note">O = oriented; U = unoriented. Equal-length cycles have U before O. Algebraic 2-cycles always carry U.</p>
   </aside>
   <main>
+    <nav id="breadcrumbs" aria-label="Selected reduction path"></nav>
     <div class="row-heading"><div><h2 id="row-title"></h2><div id="type"></div></div><div class="nav"><button id="previous" aria-label="Previous row">←</button><button id="next" aria-label="Next row">→</button></div></div>
     <div id="metadata"></div>
     <p class="note" id="disposition"></p>
-    <div class="controls"><label for="root-filter">Origin:</label><select id="root-filter"></select><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit">Fit width</button><button id="export">Save graph as SVG</button></div>
-    <div class="legend"><span style="--swatch:var(--blue)">Clear oriented 3-cycle · +3 fixed</span><span style="--swatch:var(--green)">Odd-length shortening · +2 fixed</span><span style="--swatch:var(--orange)">Odd-length split · +1 fixed</span><span style="--swatch:var(--purple)">Even-length pair · +1 fixed</span></div>
+    <a id="row-link" hidden>View this obligation in Table 2</a>
+    <div class="controls"><label for="root-filter" id="root-filter-label">Origin:</label><select id="root-filter"></select><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit">Fit width</button><button id="export">Save graph as SVG</button></div>
+    <div class="legend"><span style="--swatch:var(--blue)">Clear oriented 3-cycle · +3 fixed</span><span data-conditional style="--swatch:var(--green)">Odd-length-cycle reduction: qualifying 2-move · +2 fixed</span><span data-conditional style="--swatch:var(--orange)">Odd-length-cycle reduction: qualifying 2-move · +1 fixed</span><span style="--swatch:var(--purple)">Even-pair reduction · +1 fixed</span></div>
+    <p class="note">A qualifying 2-move on an oriented odd-length cycle is shown by a dashed arrow. The established alternatives are a support-clearing sequence or a separate certificate obligation for classified exceptions. For length 15, every instance without a qualifying move contains the unique exceptional local cycle; only its companion interleavings are generated separately. A clearing sequence closes its branch when its move count plus the known diameter fits the remaining budget. Otherwise the routing tries another cycle or an even-pair reduction; if none covers the remaining case, the type is retained.</p>
+    <div id="direct-closures" class="note"></div>
     <p id="graph-summary" aria-live="polite"></p>
+    <div id="level-links" class="level-links" role="group" aria-label="Root children by depth" hidden></div>
     <div class="graph-scroll"><div id="graph"></div></div>
-    <p class="note">The graph retains every incoming branch for this row. Labels below a parent give its displayed reductions; hover over an arrow for its exact move and contracted fixed-point gain. Select an origin to isolate its paths.</p>
-    <details id="paths-details"><summary id="paths-title"></summary><div class="paths-wrap"><table><thead><tr><th>Root annotated type</th><th>First reduction</th><th>Intermediate annotated type</th><th>Second reduction</th></tr></thead><tbody id="paths"></tbody></table></div></details>
-    <p class="note">This graph describes the finite type recursion under the local reduction hypothesis. Fresh annotations include types with R = 0. An arrow does not assert that every child class has an instance-level predecessor of every displayed parent type. Exceptional oriented 19-cycle classes receive separate certificate closures and have no type-level children of their own. Exhaustive class generation, sorting certificates, and the final TD(18) verification remain pending.</p>
+    <p class="note" id="navigation-note"></p>
+    <section id="forward-levels" class="forward-levels" aria-label="All depth 1 and depth 2 children of the selected root" hidden>
+      <details id="level-1" open><summary id="level-1-title">Depth 1 children</summary><div id="level-1-content" class="level-wrap"></div></details>
+      <details id="level-2" open><summary id="level-2-title">Depth 2 children</summary><div id="level-2-content" class="level-wrap"></div></details>
+    </section>
+    <details id="paths-details"><summary id="paths-title"></summary><div class="paths-wrap"><table><thead><tr><th>Starting annotated type</th><th>First displayed reduction</th><th>Child type</th><th>Second displayed reduction</th><th>Final type</th><th>Outcome</th></tr></thead><tbody id="paths"></tbody></table></div></details>
+    <p class="note">This graph describes the finite type recursion and its separate certificate obligations. Fresh annotations include types with R = 0. Support-clearing sequences close separate branches and are not counted as one-transposition arrows. An arrow does not assert that every child class has an instance-level predecessor of every displayed parent type. Exceptional oriented 9-cycle root interleavings, 15-cycle interleavings, and oriented 19-cycle classes receive separate certificate branches. Their sorting certificates and the final TD(18) verification remain pending.</p>
   </main>
 </div>
 <footer>Source: <a href="td18-reduction-count.tex">td18-reduction-count.tex</a> · <a href="RESEARCH_PLAN.md">Research plan</a>. R and Q are the recorded Table 2 counts; this visualization does not recount classes. <span id="integrity"></span></footer>
@@ -52,9 +66,14 @@
 const NS = 'http://www.w3.org/2000/svg';
 const colors = {CLEAR_THREE:'#3573ac',ODD_TWO_FIXED:'#25846a',ODD_SPLIT:'#c27824',EVEN_PAIR:'#8663aa'};
 const $ = id => document.getElementById(id);
-let graph, nodes, rows, incoming, outgoing, selected, rootChoice = '', zoom = 1;
+let graph, nodes, roots, rows, incoming, outgoing, selected, forwardRoot, closures;
+let direction = 'backward', rootChoice = '', lastRow = 130, zoom = 1;
 const fmt = value => Number(value).toLocaleString('en-US');
 const typeLabel = node => '(' + node.type.replaceAll(',', ', ') + ')';
+const isTotallyUnoriented = node => !node.type.includes('O');
+const typeOrder = (a,b) => a.type.localeCompare(b.type,'en',{numeric:true});
+const rootHash = (root, state = root) => '#root='+encodeURIComponent(root.key)+(state.key === root.key ? '' : '&state='+encodeURIComponent(state.key));
+const isOddReduction = edge => edge.kind === 'ODD_TWO_FIXED' || edge.kind === 'ODD_SPLIT';
 function el(tag, attrs = {}, text = '') {
   const element = document.createElementNS(NS, tag);
   for (const [name, value] of Object.entries(attrs)) element.setAttribute(name, value);
@@ -62,26 +81,41 @@ function el(tag, attrs = {}, text = '') {
   return element;
 }
 function validate(data) {
-  if (data.format !== 'td18-type-provenance' || data.version !== 1 || data.complete !== true) throw Error('Unsupported or incomplete provenance artifact.');
+  if (data.format !== 'td18-type-provenance' || data.version !== 5 || data.complete !== true) throw Error('Unsupported or incomplete provenance artifact.');
   const value = JSON.parse(data.payload);
-  if (value.rootPartitions !== 53 || value.annotatedRoots !== 360 || value.rowCount !== 204 || value.nodes.length !== value.nodeCount || value.edges.length !== value.edgeCount) throw Error('Missing inventory data.');
+  if (value.rootPartitions !== 53 || value.annotatedRoots !== 360 || value.rowCount !== 292 || value.nodes.length !== value.nodeCount || value.edges.length !== value.edgeCount) throw Error('Missing inventory data.');
   const byKey = new Map();
   for (const n of value.nodes) {
-    if (byKey.has(n.key) || n.key !== n.type + '@' + n.depth || ![0,1,2].includes(n.depth) || n.kappa >= 10 - n.depth || !['closed','terminal','open'].includes(n.status)) throw Error('Malformed or repeated state.');
+    if (byKey.has(n.key) || n.key !== n.type + '@' + n.depth || ![0,1,2].includes(n.depth) || n.kappa >= 10 - n.depth || !['closed','retained','open'].includes(n.status)) throw Error('Malformed or repeated state.');
     if (n.status === 'closed' ? n.D === null || n.depth + n.D > 10 : n.D !== null && n.depth + n.D <= 10) throw Error('Inconsistent diameter closure.');
+    if ((n.status === 'retained') !== (n.row > 0) || (n.depth === 2 && n.status === 'open') || (!n.row && (n.R !== null || n.Q !== null))) throw Error('Inconsistent obligation state.');
     byKey.set(n.key, n);
   }
-  const terminal = value.nodes.filter(n => n.status === 'terminal').sort((a,b) => a.row-b.row);
-  if (terminal.length !== 204 || terminal.some((n,i) => n.row !== i+1 || n.R === null || n.Q === null)) throw Error('Missing Table 2 row.');
-  if ([0,1,2].map(d => terminal.filter(n => n.depth === d).length).join(',') !== '8,8,188' || value.nodes.filter(n => n.depth === 0).length !== 360) throw Error('Incomplete depth inventory.');
+  const terminal = value.nodes.filter(n => n.row > 0).sort((a,b) => a.row-b.row);
+  if (terminal.length !== 292 || terminal.some((n,i) => n.row !== i+1 || n.R === null || n.Q === null)) throw Error('Missing Table 2 row.');
+  if ([0,1,2].map(d => terminal.filter(n => n.depth === d).length).join(',') !== '59,45,188' || value.nodes.filter(n => n.depth === 0).length !== 360) throw Error('Incomplete depth inventory.');
   const edgeKeys = new Set(), reached = new Set(value.nodes.filter(n => n.depth === 0).map(n => n.key));
   for (const edge of value.edges) {
     const a = byKey.get(edge.source), b = byKey.get(edge.target), key = edge.source + '->' + edge.target;
-    if (!a || !b || a.status !== 'open' || b.depth !== a.depth + 1 || b.kappa !== a.kappa - 1 || a.N - b.N !== edge.fixed || !colors[edge.kind] || edgeKeys.has(key)) throw Error('Malformed or repeated reduction.');
+    if (a && isTotallyUnoriented(a)) throw Error('Totally unoriented types cannot have reduction children.');
+    if (!a || !b || a.status === 'closed' || a.depth >= 2 || b.depth !== a.depth + 1 || b.kappa !== a.kappa - 1 || a.N - b.N !== edge.fixed || !colors[edge.kind] || edgeKeys.has(key)) throw Error('Malformed or repeated reduction.');
     edgeKeys.add(key);
   }
   for (const depth of [1,2]) for (const edge of value.edges) if (byKey.get(edge.target).depth === depth && reached.has(edge.source)) reached.add(edge.target);
   if (reached.size !== byKey.size || value.nodes.some(n => n.status === 'open' && !value.edges.some(e => e.source === n.key))) throw Error('Missing reachable branch.');
+  if (!Array.isArray(value.closures)) throw Error('Missing clearing alternatives.');
+  const closureKeys = new Set();
+  for (const c of value.closures) {
+    const parent = byKey.get(c.source), key = c.source+'@'+c.kind;
+    if (!parent || parent.depth >= 2 || parent.row || parent.status === 'closed' || c.moves < 1 || c.total !== parent.depth+c.moves+c.D || c.total > 10 || closureKeys.has(key)) throw Error('Invalid clearing alternative.');
+    if (c.kind === 'SUPPORT_CLEARING') {
+      if (![5,7,9,11,13,17].includes(c.cycleLength) || c.moves !== (c.cycleLength+1)/2 || c.N !== parent.N-c.cycleLength) throw Error('Unsupported support-clearing alternative.');
+    } else if (c.kind === 'EXCEPTIONAL_FIFTEEN') {
+      if (!['15O,2U,2U@0','15O,3U@1'].includes(parent.key) || c.cycleLength !== 15 || c.moves !== 10-parent.depth || c.N !== 0 || c.D !== 0) throw Error('Invalid exceptional-fifteen obligation.');
+    } else if (!['EXCEPTIONAL_NINE','EXCEPTIONAL_NINETEEN'].includes(c.kind) || parent.depth !== 0 || c.moves !== 10 || c.N !== 0) throw Error('Unsupported certificate alternative.');
+    closureKeys.add(key);
+  }
+  for (const key of ['15O,2U,2U@0','15O,3U@1']) if (!closureKeys.has(key+'@EXCEPTIONAL_FIFTEEN')) throw Error('Missing exceptional-fifteen obligation.');
   return value;
 }
 async function start() {
@@ -92,25 +126,25 @@ async function start() {
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data.payload));
       const checksum = Array.from(new Uint8Array(digest), v => v.toString(16).padStart(2,'0')).join('');
       if (checksum !== data.payloadSha256) throw Error('Provenance checksum mismatch.');
-      $('integrity').textContent = 'Format v1 · payload SHA-256 checked: ' + checksum + ' · source SHA-256: ' + data.sourceSha256;
+      $('integrity').textContent = 'Format v5 · payload SHA-256 checked: ' + checksum + ' · source SHA-256: ' + data.sourceSha256;
     } else {
-      $('integrity').textContent = 'Format v1 · structure checked; SHA-256 unavailable in this browser · payload SHA-256: ' + data.payloadSha256 + ' · source SHA-256: ' + data.sourceSha256;
+      $('integrity').textContent = 'Format v5 · structure checked; SHA-256 unavailable in this browser · payload SHA-256: ' + data.payloadSha256 + ' · source SHA-256: ' + data.sourceSha256;
     }
     nodes = new Map(graph.nodes.map(n => [n.key,n]));
+    roots = graph.nodes.filter(n => n.depth === 0).sort(typeOrder);
     rows = graph.nodes.filter(n => n.row).sort((a,b) => a.row-b.row);
+    closures = new Map(graph.nodes.map(n => [n.key,graph.closures.filter(c => c.source === n.key)]));
     incoming = new Map(graph.nodes.map(n => [n.key,[]]));
     outgoing = new Map(graph.nodes.map(n => [n.key,[]]));
     for (const edge of graph.edges) { incoming.get(edge.target).push(edge); outgoing.get(edge.source).push(edge); }
     $('state-counts').textContent = 'Complete recursion: ' + fmt(graph.nodeCount) + ' distinct (type, depth) states and ' + fmt(graph.edgeCount) + ' arrows, including ' + fmt(graph.nodes.filter(n => n.status === 'closed').length) + ' states closed by known diameters before Table 2.';
     $('app').hidden = false;
-    const chooseFromHash = () => {
-      const match = location.hash.match(/^#row=(\d+)$/);
-      choose(match ? Number(match[1]) : 130);
-    };
     addEventListener('hashchange', chooseFromHash);
     $('search').addEventListener('input', renderList);
-    $('previous').onclick = () => navigate(selected.row - 1);
-    $('next').onclick = () => navigate(selected.row + 1);
+    $('forward').onclick = () => { location.hash = rootHash(forwardRoot || roots[0]); };
+    $('backward').onclick = () => navigate(lastRow);
+    $('previous').onclick = () => navigateRelative(-1);
+    $('next').onclick = () => navigateRelative(1);
     $('root-filter').onchange = () => { rootChoice = $('root-filter').value; draw(); };
     $('zoom-out').onclick = () => { zoom = Math.max(.4, zoom-.15); scale(); };
     $('zoom-in').onclick = () => { zoom = Math.min(2, zoom+.15); scale(); };
@@ -120,19 +154,78 @@ async function start() {
   } catch (error) { $('error').hidden = false; $('error').textContent = 'Cannot show provenance: ' + error.message; $('app').hidden = true; }
 }
 function navigate(number) { location.hash = 'row=' + number; }
+function navigateRelative(offset) {
+  if (direction === 'backward') navigate(selected.row + offset);
+  else {
+    const root = roots[roots.indexOf(forwardRoot)+offset];
+    if (root) location.hash = rootHash(root);
+  }
+}
+function descendants(key, result = new Set()) {
+  if (result.has(key)) return result;
+  result.add(key);
+  for (const edge of outgoing.get(key)) descendants(edge.target,result);
+  return result;
+}
+function chooseFromHash() {
+  const params = new URLSearchParams(location.hash.slice(1));
+  const root = nodes.get(params.get('root'));
+  if (root && root.depth === 0) {
+    forwardRoot = root;
+    const state = nodes.get(params.get('state'));
+    choose(state && descendants(root.key).has(state.key) ? state : root, 'forward');
+  } else {
+    const number = Number(params.get('row'));
+    choose(rows[number-1] || rows[129], 'backward');
+  }
+}
+function nodeHash(node) {
+  if (direction === 'forward') return rootHash(forwardRoot, node);
+  if (node.row) return '#row='+node.row;
+  const root = node.depth === 0 ? node : roots.find(n => ancestors(node.key).has(n.key) && (!rootChoice || n.key === rootChoice));
+  return rootHash(root, node);
+}
+function diameterLabel(node) { return node.depth+' + TD('+(node.N-1)+') = '+(node.depth+node.D); }
+function closureLabel(c) {
+  const spent = nodes.get(c.source).depth;
+  if (c.kind === 'SUPPORT_CLEARING') return 'Support-clearing sequence on '+c.cycleLength+'O: '+(spent ? spent+' + ' : '')+c.moves+' + TD('+(c.N-1)+') = '+c.total+' ≤ 10'+(c.cycleLength === 9 ? ' (nonexceptional local cycle)' : '');
+  if (c.kind === 'EXCEPTIONAL_FIFTEEN') return spent ? 'Exceptional oriented 15-cycle: all 7 interleaving classes close by checked prefixes · 1 + 3 + TD(11) = 10' : 'Exceptional oriented 15-cycle: 90 interleaving classes · 79 checked prefix closures · 11 root certificates pending';
+  return 'Exceptional oriented '+c.cycleLength+'-cycle: ten-transposition certificate branch (verification pending)';
+}
+function renderClosures(node) {
+  const container = $('direct-closures'); container.replaceChildren();
+  container.hidden = !closures.get(node.key).length;
+  for (const c of closures.get(node.key)) {
+    const p = document.createElement('p'), strong = document.createElement('strong');
+    strong.textContent = closureLabel(c); p.append(strong);
+    if (c.kind === 'SUPPORT_CLEARING') p.append(document.createTextNode('. Clear the '+c.cycleLength+' symbols in '+c.moves+' transpositions; the remaining instance lies in S_'+(c.N-1)+'.'));
+    if (c.kind === 'EXCEPTIONAL_FIFTEEN') p.append(document.createTextNode('. The checked local classification leaves only γ = β₁₅⁸ without a qualifying 2-move. Its local target β₁₅⁹ has three cycles, so no support-clearing sequence exists. The restricted generator interleaves this fixed pattern with the companions. '+(node.depth ? 'Each of the 7 valid classes has a three-transposition prefix fixing six symbols; the remaining instance lies in S_11. These prefixes may use companion symbols.' : 'Of the 90 valid classes, 74 have three-transposition prefixes fixing six symbols, and 5 have two-transposition prefixes fixing four: 3 + TD(12) = 10 or 2 + TD(14) = 10. The other 11 require complete witnesses within ten moves.')+' The whole annotated type is excluded from Table 2.'));
+    const link = document.createElement('a'); link.href = c.kind === 'SUPPORT_CLEARING' ? '../../td/docs/paper/main.tex' : 'td18-reduction-count.tex';
+    link.textContent = c.kind === 'SUPPORT_CLEARING' ? 'Odd-length-cycle reduction in the source' : c.kind === 'EXCEPTIONAL_FIFTEEN' ? 'Classification and interleaving proof route' : 'Separate certificate obligation';
+    p.append(document.createTextNode(' '),link); container.append(p);
+  }
+}
+function outcome(node) {
+  if (node.status === 'closed') return 'Known diameter closure: '+diameterLabel(node)+' ≤ 10';
+  if (isTotallyUnoriented(node)) return 'Totally unoriented · direct obligation · row '+node.row+' · no reductions';
+  if (node.row) return (node.depth === 0 ? 'Top-level obligation' : 'Table 2 obligation')+' · row '+node.row+(node.depth < 2 && outgoing.get(node.key).length ? ' · retained if qualifying tests fail; conditional children also shown' : '');
+  if (closures.get(node.key).length) return (closures.get(node.key).some(c => c.kind === 'EXCEPTIONAL_FIFTEEN') ? node.depth ? 'Exceptional interleavings close by checked prefixes; ' : 'Separate exceptional interleaving route; ' : closures.get(node.key).every(c => c.kind !== 'SUPPORT_CLEARING') ? 'Separate exceptional certificate obligation; ' : 'Clearing alternative closes; ')+outgoing.get(node.key).length+' qualifying child types';
+  return 'Open: '+outgoing.get(node.key).length+' child types';
+}
 function renderList() {
   const query = $('search').value.toLowerCase().replace(/row|[#()\s-]/g,'');
-  const matches = rows.filter(n => /^\d+$/.test(query) ? String(n.row) === query : n.type.toLowerCase().includes(query));
+  const items = direction === 'forward' ? roots : rows;
+  const matches = items.filter(n => !query || (/^\d+$/.test(query) ? String(direction === 'forward' ? roots.indexOf(n)+1 : n.row) === query : (','+n.type.toLowerCase()+',').includes(','+query+',')));
   $('row-list').replaceChildren();
   for (const n of matches) {
     const button = document.createElement('button');
-    button.setAttribute('aria-current', String(selected && n.row === selected.row));
+    button.setAttribute('aria-current', String(direction === 'forward' ? n === forwardRoot : n === selected));
     const label = document.createElement('span'); label.className = 'row-label';
-    label.textContent = 'Row ' + n.row + (n.row === 130 || n.row === 134 ? ' *' : '') + ' · depth ' + n.depth + (n.R === '0' ? ' · empty' : n.Q === '0' ? ' · TD(16) reuse' : ' · Q = R');
+    label.textContent = direction === 'forward' ? 'Root '+(roots.indexOf(n)+1)+' · '+(n.row ? 'obligation · row '+n.row+' · '+outgoing.get(n.key).length+' conditional child types' : outgoing.get(n.key).length+' child types') : 'Row ' + n.row + (n.row === 130 || n.row === 134 ? ' *' : '') + ' · depth ' + n.depth + (n.R === '0' ? ' · empty' : n.Q === '0' ? ' · TD(16) reuse' : ' · Q = R');
     const type = document.createElement('span'); type.className = 'row-type'; type.textContent = typeLabel(n);
-    button.append(label,type); button.onclick = () => navigate(n.row); $('row-list').append(button);
+    button.append(label,type); button.onclick = () => { if (direction === 'forward') location.hash = rootHash(n); else navigate(n.row); }; $('row-list').append(button);
   }
-  $('match-count').textContent = matches.length + ' of 204 rows'; $('empty').hidden = matches.length !== 0;
+  $('match-count').textContent = matches.length+' of '+items.length+(direction === 'forward' ? ' annotated roots' : ' rows'); $('empty').hidden = matches.length !== 0;
 }
 function ancestors(key, result = new Set()) {
   if (result.has(key)) return result;
@@ -140,24 +233,79 @@ function ancestors(key, result = new Set()) {
   for (const edge of incoming.get(key)) ancestors(edge.source,result);
   return result;
 }
-function choose(number) {
-  selected = rows[number - 1] || rows[129]; rootChoice = ''; zoom = 1;
-  $('row-title').textContent = 'Row ' + selected.row + (selected.row === 130 || selected.row === 134 ? ' *' : '');
+function choose(node, nextDirection) {
+  if (direction !== nextDirection) $('search').value = '';
+  direction = nextDirection; selected = node; rootChoice = ''; zoom = 1;
+  const forward = direction === 'forward';
+  if (!forward) lastRow = selected.row;
+  $('forward').setAttribute('aria-pressed', String(forward));
+  $('backward').setAttribute('aria-pressed', String(!forward));
+  $('search-label').textContent = forward ? 'Find a top-level annotated type' : 'Find a Table 2 row';
+  $('search').placeholder = forward ? '5O, 19O, (12U, 5O, 2U)…' : 'Row 130, 11O, 3U…';
+  $('row-list').setAttribute('aria-label', forward ? 'Top-level annotated types' : 'Table 2 rows');
+  $('row-title').textContent = forward ? selected.depth === 0 ? 'Top-level annotated type · root '+(roots.indexOf(selected)+1) : 'Child annotated type · depth '+selected.depth : 'Row ' + selected.row + (selected.row === 130 || selected.row === 134 ? ' *' : '');
   $('type').textContent = typeLabel(selected);
   $('metadata').replaceChildren();
-  for (const text of ['N = '+selected.N, 'f = '+(19-selected.N), 's = '+selected.depth, 'b = '+(10-selected.depth), 'κ = '+selected.kappa, 'R = '+fmt(selected.R), 'Q = '+fmt(selected.Q)]) {
+  const metadata = ['N = '+selected.N, 'f = '+(19-selected.N), 's = '+selected.depth, 'b = '+(10-selected.depth), 'κ = '+selected.kappa];
+  if (selected.R !== null) metadata.push('R = '+fmt(selected.R), 'Q = '+fmt(selected.Q));
+  for (const text of metadata) {
     const span = document.createElement('span'); span.textContent = text; $('metadata').append(span);
   }
-  $('disposition').textContent = selected.R === '0' ? 'Recorded R = 0: this empty type remains in the complete inventory.' : selected.Q === '0' ? 'Recorded Q = 0: ' + (selected.type.includes('3O') ? 'clearing an oriented 3-cycle and applying the known diameter discharges this row through TD(16) reuse.' : 'the checked TD(16) successor search discharges this row.') : (selected.row === 130 || selected.row === 134) ? 'Starred row: the TD(16) search retained '+(selected.row === 130 ? '495' : '1,541')+' obstructions. The full row retains Q = R.' : 'Q = R: every recorded realizable class remains a class generation and sorting obligation.';
+  const rowDisposition = selected.R === '0' ? 'Recorded R = 0: this empty type remains in the complete inventory.' : selected.Q === '0' ? 'Recorded Q = 0: ' + (selected.type.includes('3O') ? 'clearing an oriented 3-cycle and applying the known diameter discharges this row through TD(16) reuse.' : 'the checked TD(16) successor search discharges this row.') : (selected.row === 130 || selected.row === 134) ? 'Starred row: the TD(16) search retained '+(selected.row === 130 ? '495' : '1,541')+' obstructions. The full row retains Q = R.' : 'Q = R: every recorded realizable class remains a class generation and sorting obligation.';
+  $('disposition').textContent = !forward ? rowDisposition : selected.status === 'closed' ? outcome(selected)+'. No further reductions are expanded from this type.' : selected.status === 'retained' ? (selected.depth === 2 ? 'The two-reduction limit is reached. ' : 'The remaining case has no qualifying 2-move, no established clearing alternative within budget, and no even-pair fallback. '+(outgoing.get(selected.key).length ? 'Its qualifying 2-move branches are also expanded. ' : ''))+outcome(selected)+'. '+rowDisposition : 'This type has '+outgoing.get(selected.key).length+' direct children. The root graph shows all reachable children through depth 2 under the documented selection policy.';
+  renderClosures(selected);
+  if (forward && closures.get(selected.key).length) $('disposition').textContent = 'The case without a qualifying move follows the clearing or exceptional certificate route shown below. Qualifying 2-moves continue to the child types in the graph. This type is not a Table 2 obligation.';
+  const retentionReason = {
+    '13O,5O@1':'Clearing 13O gives 1 + 7 + TD(4) = 11; clearing 5O gives 1 + 3 + TD(12) = 11. Neither bound fits ten total moves, so this type retains its remaining obligation and conditional qualifying children.',
+    '11O,7O@1':'Clearing 11O gives 1 + 6 + TD(6) = 11; clearing 7O gives 1 + 4 + TD(10) = 11. Neither bound fits ten total moves, so this type retains its remaining obligation and conditional qualifying children.'
+  }[selected.key];
+  if (retentionReason) $('disposition').textContent += ' '+retentionReason;
+  if (isTotallyUnoriented(selected) && selected.row) $('disposition').textContent = 'Every cycle is unoriented. The routing stops before any reduction, including an even-pair reduction, so this type is a direct obligation with no children. '+rowDisposition;
+  $('row-link').hidden = !forward || !selected.row;
+  $('row-link').href = '#row='+selected.row;
+  $('row-link').textContent = 'View Table 2 row '+selected.row+' and its incoming paths';
+  $('root-filter').hidden = forward; $('root-filter-label').hidden = forward;
   const rootNodes = Array.from(ancestors(selected.key)).map(k => nodes.get(k)).filter(n => n.depth === 0);
   $('root-filter').replaceChildren(new Option('All ' + rootNodes.length + ' annotated roots',''));
-  rootNodes.sort((a,b) => a.type.localeCompare(b.type, 'en', {numeric:true}));
+  rootNodes.sort(typeOrder);
   for (const n of rootNodes) $('root-filter').add(new Option(typeLabel(n), n.key));
-  $('previous').disabled = selected.row === 1; $('next').disabled = selected.row === 204;
+  $('breadcrumbs').replaceChildren();
+  if (forward) {
+    const path = [];
+    function findPath(key) {
+      if (key === selected.key) return true;
+      for (const edge of outgoing.get(key)) { path.push(edge); if (findPath(edge.target)) return true; path.pop(); }
+      return false;
+    }
+    findPath(forwardRoot.key);
+    for (const n of [forwardRoot,...path.map(e => nodes.get(e.target))]) {
+      if ($('breadcrumbs').childElementCount) { const span = document.createElement('span'); span.textContent = '→'; $('breadcrumbs').append(span); }
+      const link = document.createElement('a'); link.href = rootHash(forwardRoot,n); link.textContent = typeLabel(n);
+      if (n === selected) link.setAttribute('aria-current','page');
+      $('breadcrumbs').append(link);
+    }
+  }
+  $('previous').disabled = forward ? forwardRoot === roots[0] : selected.row === 1;
+  $('next').disabled = forward ? forwardRoot === roots.at(-1) : selected.row === graph.rowCount;
+  $('previous').setAttribute('aria-label', forward ? 'Previous top-level type' : 'Previous row');
+  $('next').setAttribute('aria-label', forward ? 'Next top-level type' : 'Next row');
+  $('navigation-note').textContent = forward ? 'The full root graph keeps depths 0, 1, and 2 visible wherever those states exist. Click a child to inspect its state while keeping the other branches visible. The lists below show every depth-1 and depth-2 child with its parents and reductions; closed branches stop at their known diameter bound. Support-clearing alternatives are shown on the source type with their full move costs.' : 'The graph retains every incoming branch for this row. Click a root or intermediate type to explore forwards. Select an origin to isolate its paths; hover over an arrow for its reduction and contracted fixed-point gain.';
   renderList(); draw(); fitWidth();
+  $('graph').parentElement.scrollTop = 0; $('graph').parentElement.scrollLeft = 0;
 }
 function shownPaths() {
   const result = [];
+  if (direction === 'forward') {
+    function walk(key, path) {
+      const children = outgoing.get(key);
+      if (nodes.get(key).row || !children.length) result.push(path);
+      for (const closure of closures.get(key)) result.push(Object.assign(path.slice(),{closure}));
+      if (!children.length) return;
+      for (const edge of children) walk(edge.target,[...path,edge]);
+    }
+    walk(forwardRoot.key,[]);
+    return result;
+  }
   function walk(key, path) {
     if (nodes.get(key).depth === 0) { if (!rootChoice || key === rootChoice) result.push(path); return; }
     for (const edge of incoming.get(key)) walk(edge.source,[edge,...path]);
@@ -174,18 +322,69 @@ function wrap(text, limit = 43) {
   if (line) lines.push(line);
   return lines;
 }
+function nodeLabels(node, edges) {
+  if (node.status === 'closed') return ['Closed: '+diameterLabel(node)+' ≤ 10'];
+  const labels = Array.from(new Set(edges.filter(e => e.source === node.key).map(e => e.label.replace('Qualifying 2-move: ','2-move: ').replace('Even-pair reduction: ','Even pair: ')+' [+'+e.fixed+' fixed]')));
+  for (const c of closures.get(node.key)) labels.unshift(c.kind === 'SUPPORT_CLEARING' ? 'Support-clearing: '+c.moves+' + TD('+(c.N-1)+') = '+c.total : c.kind === 'EXCEPTIONAL_FIFTEEN' ? node.depth ? 'Exceptional 15-cycle: 7 checked prefix closures' : 'Exceptional 15-cycle: 79 closed, 11 pending' : 'Exceptional '+c.cycleLength+'-cycle: certificate branch');
+  if (node.row) labels.unshift(isTotallyUnoriented(node) ? 'Totally unoriented: direct obligation; no reductions' : node.depth === 2 ? 'Retained: two-reduction limit reached' : outgoing.get(node.key).length ? 'Retained: remaining case lacks a closing route' : 'Retained: no available reduction');
+  return labels;
+}
+function renderForwardLevels(columns, edges) {
+  const forward = direction === 'forward';
+  $('forward-levels').hidden = !forward; $('level-links').hidden = !forward;
+  $('level-links').replaceChildren();
+  if (!forward) return;
+  for (const depth of [1,2]) {
+    const children = columns[depth], container = $('level-'+depth+'-content');
+    const title = 'Depth '+depth+' · '+children.length+' child types';
+    $('level-'+depth+'-title').textContent = title;
+    const button = document.createElement('button'); button.textContent = title;
+    button.onclick = () => { const section = $('level-'+depth); section.open = true; section.scrollIntoView({block:'start',behavior:'smooth'}); };
+    $('level-links').append(button);
+    container.replaceChildren();
+    if (!children.length) {
+      const note = document.createElement('p'); note.className = 'note';
+      note.textContent = depth === 1 ? 'No depth-1 children: the root has no selected reduction in this inventory.' : !columns[1].length ? 'No depth-2 children: the root has no selected reduction in this inventory.' : columns[1].every(n => n.status === 'closed') ? 'No depth-2 children: every depth-1 state closes by a known diameter.' : 'No depth-2 children: the depth-1 branches close or are retained before a second reduction.';
+      container.append(note); continue;
+    }
+    const table = document.createElement('table'), head = document.createElement('thead'), header = document.createElement('tr'), body = document.createElement('tbody');
+    for (const text of ['Annotated type','Parent and reduction','Outcome']) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = text; header.append(th); }
+    head.append(header); table.append(head,body);
+    for (const child of children) {
+      const tr = document.createElement('tr'); tr.dataset.key = child.key; tr.setAttribute('aria-current',String(child === selected));
+      const typeCell = document.createElement('td'), parents = document.createElement('td'), result = document.createElement('td');
+      const link = document.createElement('a'), code = document.createElement('code'); link.href = rootHash(forwardRoot,child); code.textContent = typeLabel(child); link.append(code); typeCell.append(link);
+      for (const edge of edges.filter(e => e.target === child.key)) {
+        const parent = document.createElement('div'), parentLink = document.createElement('a'), label = document.createElement('span');
+        parentLink.href = rootHash(forwardRoot,nodes.get(edge.source)); parentLink.textContent = typeLabel(nodes.get(edge.source));
+        label.textContent = ' · '+edge.label+'; contract '+edge.fixed+' fixed'+(isOddReduction(edge) ? ' (qualifying transposition)' : '');
+        parent.append(parentLink,label); parents.append(parent);
+      }
+      if (child.row) { const rowLink = document.createElement('a'); rowLink.href = '#row='+child.row; rowLink.textContent = outcome(child); result.append(rowLink); }
+      else result.textContent = outcome(child);
+      tr.append(typeCell,parents,result); body.append(tr);
+    }
+    container.append(table);
+  }
+}
 function draw() {
-  const paths = shownPaths(), keys = new Set([selected.key]), edgeSet = new Set();
+  const forward = direction === 'forward', startNode = forward ? forwardRoot : selected;
+  const paths = shownPaths(), keys = new Set([startNode.key]), edgeSet = new Set();
   for (const path of paths) for (const edge of path) { keys.add(edge.source); keys.add(edge.target); edgeSet.add(edge); }
-  const columns = [0,1,2].map(d => Array.from(keys).map(k => nodes.get(k)).filter(n => n.depth === d).sort((a,b) => a.type.localeCompare(b.type,'en',{numeric:true})));
-  const width = selected.depth === 0 ? 470 : selected.depth === 1 ? 920 : 1370;
-  const height = Math.max(330, 205 + Math.max(...columns.map(c => c.length))*148), positions = new Map();
-  const svg = el('svg',{xmlns:NS,width,height,viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'All displayed type-level paths to Table 2 row '+selected.row});
-  svg.append(el('title',{},'Table 2 row '+selected.row+' · '+typeLabel(selected)));
-  svg.append(el('desc',{},'O = oriented, U = unoriented. Every arrow spends one transposition and lowers the 3-norm by one. All orientations are enumerated afresh. This is type-level provenance under the local reduction hypothesis.'));
+  const visibleNodes = Array.from(keys).map(k => nodes.get(k)), edges = Array.from(edgeSet);
+  const columns = [0,1,2].map(d => visibleNodes.filter(n => n.depth === d).sort(typeOrder));
+  const minDepth = Math.min(...visibleNodes.map(n => n.depth)), maxDepth = Math.max(...visibleNodes.map(n => n.depth));
+  const width = 470+(maxDepth-minDepth)*450;
+  const cardHeight = Math.max(128,96+14*Math.max(...visibleNodes.map(n => nodeLabels(n,edges).length)));
+  const step = cardHeight+20, height = Math.max(330,205+Math.max(...columns.map(c => c.length))*step), positions = new Map();
+  const closed = visibleNodes.filter(n => n.status === 'closed').length, terminal = visibleNodes.filter(n => n.row).length;
+  const heading = forward ? 'Forward reductions · root '+(roots.indexOf(forwardRoot)+1)+' · through depth '+maxDepth : 'Table 2 · row '+selected.row+' · provenance';
+  const svg = el('svg',{xmlns:NS,width,height,viewBox:'0 0 '+width+' '+height,role:'group','aria-label':heading});
+  svg.append(el('title',{},heading+' · '+typeLabel(startNode)));
+  svg.append(el('desc',{},'O = oriented, U = unoriented. Every arrow spends one transposition and lowers the 3-norm by one. Dashed odd-length arrows require a qualifying transposition. All orientations are enumerated afresh. Click types to navigate. This is type-level provenance under the local reduction hypothesis.'));
   svg.append(el('rect',{width,height,fill:'#ffffff'}));
-  svg.append(el('text',{x:24,y:27,fill:'#233547','font-family':'system-ui,sans-serif','font-size':18,'font-weight':600},'Table 2 · row '+selected.row+' · provenance'));
-  svg.append(el('text',{x:24,y:51,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':12},columns[0].length+' annotated roots · '+paths.length+' ordered paths · one transposition per arrow'));
+  svg.append(el('text',{x:24,y:27,fill:'#233547','font-family':'system-ui,sans-serif','font-size':18,'font-weight':600},heading));
+  svg.append(el('text',{x:24,y:51,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':12},forward ? visibleNodes.length+' types · '+closed+' diameter closures · '+terminal+' Table 2 rows' : columns[0].length+' annotated roots · '+paths.length+' ordered paths · one transposition per arrow'));
   svg.append(el('text',{x:24,y:72,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':11},'O = oriented; U = unoriented. All annotations are enumerated afresh.'));
   svg.append(el('text',{x:24,y:height-33,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':11},'Type recursion under the local reduction hypothesis.'));
   svg.append(el('text',{x:24,y:height-18,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':11},'Class generation and sorting verification remain pending.'));
@@ -197,36 +396,44 @@ function draw() {
   svg.append(defs);
   columns.forEach((column,d) => {
     if (!column.length) return;
-    const x = 24+d*450;
+    const x = 24+(d-minDepth)*450;
     svg.append(el('text',{x,y:108,fill:'#233547','font-family':'system-ui,sans-serif','font-size':16,'font-weight':600},'Depth '+d+' · budget '+(10-d)));
-    svg.append(el('text',{x,y:130,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':12},d === 0 ? column.length+' annotated root'+(column.length === 1 ? '' : 's') : d === selected.depth ? 'Table 2 row '+selected.row : column.length+' intermediate types'));
-    column.forEach((n,i) => positions.set(n.key,{x,y:151+i*148}));
+    svg.append(el('text',{x,y:130,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':12},d === 0 ? column.length+' annotated root'+(column.length === 1 ? '' : 's') : !forward && d === selected.depth ? 'Table 2 row '+selected.row : column.length+' child types'));
+    column.forEach((n,i) => positions.set(n.key,{x,y:151+i*step}));
   });
   for (const edge of edgeSet) {
     const a = positions.get(edge.source), b = positions.get(edge.target), x = a.x+350, y = a.y+48, endY = b.y+48;
     const path = el('path',{d:'M'+x+' '+y+' C'+(x+48)+' '+y+' '+(b.x-48)+' '+endY+' '+(b.x-4)+' '+endY,fill:'none',stroke:colors[edge.kind],'stroke-width':1.5,opacity:.68,'marker-end':'url(#arrow-'+edge.kind+')'});
-    path.append(el('title',{},edge.label+' · contract '+edge.fixed+' fixed symbol'+(edge.fixed === 1 ? '' : 's')+' · 1 transposition · κ −1'));
+    if (isOddReduction(edge)) path.setAttribute('stroke-dasharray','5 3');
+    path.append(el('title',{},edge.label+' · contract '+edge.fixed+' fixed symbol'+(edge.fixed === 1 ? '' : 's')+' · 1 transposition · κ −1'+(isOddReduction(edge) ? ' · requires a qualifying transposition on this cycle' : '')));
     svg.append(path);
   }
   for (const key of keys) {
-    const n = nodes.get(key), p = positions.get(key), group = el('g');
-    group.append(el('rect',{x:p.x,y:p.y,width:350,height:128,rx:7,fill:n.row ? '#fff1de' : n.depth === 0 ? '#eff5f1' : '#eef4fa',stroke:n.row ? '#cda062' : '#b5c5d3'}));
-    group.append(el('title',{},typeLabel(n)+' · N='+n.N+' · s='+n.depth+' · b='+(10-n.depth)+' · κ='+n.kappa));
+    const n = nodes.get(key), p = positions.get(key), group = el('a',{href:nodeHash(n),tabindex:0,'data-key':n.key,'aria-label':typeLabel(n)+' · '+outcome(n)});
+    group.append(el('rect',{x:p.x,y:p.y,width:350,height:cardHeight,rx:7,fill:n.status === 'closed' ? '#eff7f3' : n.row ? '#fff1de' : n.depth === 0 ? '#eff5f1' : '#eef4fa',stroke:n === selected ? '#3573ac' : n.status === 'closed' ? '#83b49f' : n.row ? '#cda062' : '#b5c5d3','stroke-width':n === selected ? 2 : 1}));
+    group.append(el('title',{},typeLabel(n)+' · N='+n.N+' · s='+n.depth+' · b='+(10-n.depth)+' · κ='+n.kappa+' · '+outcome(n)));
     wrap(typeLabel(n)).forEach((line,i) => group.append(el('text',{x:p.x+11,y:p.y+22+i*17,fill:'#233547','font-family':'ui-monospace,monospace','font-size':12.5,'font-weight':600},line)));
     group.append(el('text',{x:p.x+11,y:p.y+65,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':12},'N = '+n.N+'   f = '+(19-n.N)+'   κ = '+n.kappa+(n.row ? '   row '+n.row : '')));
-    const labels = Array.from(new Set(Array.from(edgeSet).filter(e => e.source === key).map(e => e.label+' [+'+e.fixed+' fixed]')));
-    (labels.length ? labels : [n.depth < 2 ? 'Retained: no selected reduction available' : 'Retained: two-reduction limit reached']).forEach((label,i) => group.append(el('text',{x:p.x+11,y:p.y+87+i*14,fill:'#415d75','font-family':'system-ui,sans-serif','font-size':11},label)));
+    nodeLabels(n,edges).forEach((label,i) => group.append(el('text',{x:p.x+11,y:p.y+87+i*14,fill:n.status === 'closed' ? '#25846a' : '#415d75','font-family':'system-ui,sans-serif','font-size':11},label)));
     svg.append(group);
   }
   $('graph').replaceChildren(svg); scale();
-  const roots = columns[0].length, intermediate = columns[1].filter(n => !n.row).length;
-  $('graph-summary').textContent = roots+' root'+(roots === 1 ? '' : 's')+' · '+intermediate+' intermediate type'+(intermediate === 1 ? '' : 's')+' · '+paths.length+' ordered path'+(paths.length === 1 ? '' : 's')+' · '+edgeSet.size+' arrows';
+  const rootCount = columns[0].length, intermediate = columns[1].filter(n => !n.row).length;
+  $('graph-summary').textContent = forward ? columns[1].length+' depth-1 children · '+columns[2].length+' depth-2 children · '+closed+' diameter closures · '+terminal+' Table 2 rows · '+paths.length+' ordered paths · '+edgeSet.size+' arrows' : rootCount+' root'+(rootCount === 1 ? '' : 's')+' · '+intermediate+' intermediate type'+(intermediate === 1 ? '' : 's')+' · '+paths.length+' ordered path'+(paths.length === 1 ? '' : 's')+' · '+edgeSet.size+' arrows';
+  renderForwardLevels(columns,edges);
   $('paths-title').textContent = 'All '+paths.length+' ordered reduction paths';
   $('paths').replaceChildren();
   for (const path of paths) {
     const tr = document.createElement('tr');
-    const values = [typeLabel(nodes.get(path.length ? path[0].source : selected.key)), path[0] ? path[0].label+'; contract '+path[0].fixed+' fixed' : 'No reductions', path.length > 1 ? typeLabel(nodes.get(path[0].target)) : '—', path[1] ? path[1].label+'; contract '+path[1].fixed+' fixed' : '—'];
-    values.forEach((value,i) => { const td = document.createElement('td'), content = document.createElement(i % 2 === 0 ? 'code' : 'span'); content.textContent = value; td.append(content); tr.append(td); });
+    const end = nodes.get(path.length ? path.at(-1).target : startNode.key);
+    const values = [nodes.get(path.length ? path[0].source : startNode.key), path[0] ? path[0].label+'; contract '+path[0].fixed+' fixed' : path.closure ? closureLabel(path.closure) : isTotallyUnoriented(startNode) ? 'No reduction: totally unoriented type' : 'No available closing route', path[0] ? nodes.get(path[0].target) : null, path[1] ? path[1].label+'; contract '+path[1].fixed+' fixed' : '—', end, path.closure ? closureLabel(path.closure) : outcome(end)];
+    values.forEach((value,i) => {
+      const td = document.createElement('td');
+      if (value && typeof value === 'object') { const link = document.createElement('a'); link.href = nodeHash(value); const code = document.createElement('code'); code.textContent = typeLabel(value); link.append(code); td.append(link); }
+      else if (i === 5 && end.row) { const link = document.createElement('a'); link.href = '#row='+end.row; link.textContent = value; td.append(link); }
+      else td.textContent = value || '—';
+      tr.append(td);
+    });
     $('paths').append(tr);
   }
 }
@@ -241,7 +448,7 @@ function fitWidth() {
 function exportSvg() {
   const svg = $('graph').firstElementChild.cloneNode(true); svg.removeAttribute('style');
   const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));
-  const link = document.createElement('a'); link.href = url; link.download = 'table2-row-'+selected.row+'-provenance.svg'; link.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
+  const link = document.createElement('a'); link.href = url; link.download = direction === 'forward' ? 'table2-root-'+(roots.indexOf(forwardRoot)+1)+'-depth-'+selected.depth+'-children.svg' : 'table2-row-'+selected.row+'-provenance.svg'; link.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
 }
 start();
 </script>

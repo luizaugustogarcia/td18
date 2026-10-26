@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 /** Reads Table 2 from the TD(18) source document. */
 public final class Table2 {
     private static final String TABLE_LABEL = "\\label{tab:complete}";
-    public static final int EXPECTED_ENTRIES = 204;
+    public static final int EXPECTED_ENTRIES = 292;
     private static final Pattern TABLE_ROW = Pattern.compile(
             "^\\s*(\\d+)\\s*&\\s*\\\\ctype\\{(.*)}"
                     + "\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)\\s*&\\s*(\\d+)"

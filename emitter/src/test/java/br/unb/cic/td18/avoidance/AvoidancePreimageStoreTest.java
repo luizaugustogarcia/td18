@@ -170,7 +170,7 @@ class AvoidancePreimageStoreTest {
     }
 
     @Test
-    void rejectsWorkDatabasesWithInsertionHistoryApplicationCounts()
+    void rejectsWorkDatabasesAllowingTotallyUnorientedReductionParents()
             throws Exception {
         final var directory = temporaryDirectory.resolve("legacy-work");
         RocksDB.loadLibrary();
@@ -189,7 +189,7 @@ class AvoidancePreimageStoreTest {
                 try {
                     database.put(handles.getFirst(),
                             "format-version".getBytes(StandardCharsets.UTF_8),
-                            ByteBuffer.allocate(Integer.BYTES).putInt(1).array());
+                            ByteBuffer.allocate(Integer.BYTES).putInt(3).array());
                 } finally {
                     handles.forEach(ColumnFamilyHandle::close);
                 }

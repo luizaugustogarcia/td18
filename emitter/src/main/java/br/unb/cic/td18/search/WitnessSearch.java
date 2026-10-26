@@ -29,7 +29,23 @@ public final class WitnessSearch {
     public static SearchResult search(final CyclicTargetPair pair,
                                       final float minimumRate,
                                       final int maximumMoves) {
-        return searchWithGpu(pair, minimumRate, maximumMoves);
+        return searchWithGpu(pair, minimumRate, maximumMoves, true);
+    }
+
+    /** Searches for a complete witness, without substituting a diameter closure. */
+    public static SearchResult searchCompleteWitness(final CyclicTargetPair pair,
+                                                     final float minimumRate,
+                                                     final int maximumMoves) {
+        return searchWithGpu(pair, minimumRate, maximumMoves, false);
+    }
+
+    /** Regenerates and replays a CPU prefix closure within the remaining budget. */
+    public static boolean closesByCpuPrefix(final CyclicTargetPair pair, final int maximumMoves) {
+        Objects.requireNonNull(pair, "pair");
+        if (maximumMoves < 1 || maximumMoves > ReductionTypeEnumerator.MAX_BUDGET) {
+            throw new IllegalArgumentException("CPU closure budget must lie between 1 and 10");
+        }
+        return closesByCpuPrefix(input(pair), maximumMoves);
     }
 
     /** Screens an avoidance intermediate without dispatching a CUDA search. */
@@ -52,18 +68,29 @@ public final class WitnessSearch {
     private static SearchResult searchWithGpu(
             final CyclicTargetPair pair,
             final float minimumRate,
-            final int maximumMoves
+            final int maximumMoves,
+            final boolean allowCpuClosure
     ) {
         final var omega = pair.getOmega();
         final var input = input(pair);
 
         // This prefix is a proof closure, not a complete sorting witness. If
         // its contracted remainder closes by a known diameter, stop here.
-        if (closesByCpuPrefix(input, maximumMoves)) {
+        if (allowCpuClosure && closesByCpuPrefix(input, maximumMoves)) {
             return SearchResult.triviallySettled();
         }
 
-        // CUDA is reached only when no qualifying CPU prefix exists.
+        // Reuse complete root witnesses before repeating a native search. Smaller budgets may
+        // need a new witness even when a longer full-domain witness exists.
+        final var writer = certificateWriter;
+        if (maximumMoves == ReductionTypeEnumerator.MAX_BUDGET && writer != null) {
+            final var existing = writer.find(pair, maximumMoves);
+            if (existing.isPresent()) {
+                return SearchResult.certificate(existing.orElseThrow());
+            }
+        }
+
+        // CUDA is reached when a complete witness is still required.
         final var moves = GPUSortingSearch.getInstance().search(
                         input.beta(), new OneLinePermutation(input.omega()),
                         omega.getNumberOfEvenCycles(),
@@ -78,7 +105,6 @@ public final class WitnessSearch {
         // Only a complete, independently replayed GPU witness crosses the
         // certificate persistence boundary.
         CertificateValidator.validate(pair, moves, maximumMoves);
-        final var writer = certificateWriter;
         if (writer == null) {
             throw new IllegalStateException(
                     "Native witness succeeded without a proof-scoped certificate writer");

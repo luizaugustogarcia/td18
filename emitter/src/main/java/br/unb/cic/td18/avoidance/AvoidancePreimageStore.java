@@ -43,7 +43,8 @@ import org.slf4j.LoggerFactory;
 final class AvoidancePreimageStore implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AvoidancePreimageStore.class);
     // Version 2 uses canonical restorations and early diameter filtering.
-    private static final int FORMAT_VERSION = 2;
+    // Version 4 excludes every totally unoriented parent from the reduction policy.
+    private static final int FORMAT_VERSION = 4;
     private static final int SCREENING_POLICY_VERSION = 2;
     private static final byte[] PREIMAGES_COLUMN_FAMILY =
             "avoidance-preimages".getBytes(StandardCharsets.UTF_8);

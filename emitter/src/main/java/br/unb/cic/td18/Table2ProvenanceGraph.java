@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -40,10 +41,15 @@ public final class Table2ProvenanceGraph {
         }
     }
 
-    record Graph(List<Node> nodes, List<Edge> edges, int rootPartitions, int annotatedRoots) {
+    record Closure(String source, String kind, int cycleLength, int moves, int symbols,
+                   int diameter, int total, String reference) {
+    }
+
+    record Graph(List<Node> nodes, List<Edge> edges, List<Closure> closures, int rootPartitions, int annotatedRoots) {
         Graph {
             nodes = List.copyOf(nodes);
             edges = List.copyOf(edges);
+            closures = List.copyOf(closures);
         }
     }
 
@@ -51,8 +57,8 @@ public final class Table2ProvenanceGraph {
     static Graph build(final String latex) {
         final var rows = Table2.parse(latex);
         final var inventory = ReductionTypeEnumerator.enumerate();
-        if (rows.size() != 204 || inventory.size() != rows.size()) {
-            throw new IllegalArgumentException("Expected the complete 204-row Table 2 inventory");
+        if (rows.size() != Table2.EXPECTED_ENTRIES || inventory.size() != rows.size()) {
+            throw new IllegalArgumentException("Expected the complete availability-aware Table 2 inventory");
         }
         final var byState = new TreeMap<String, TableEntry>();
         for (var index = 0; index < rows.size(); index++) {
@@ -86,7 +92,8 @@ public final class Table2ProvenanceGraph {
         final var expanded = new HashSet<String>();
         final var nodes = new TreeMap<String, Node>();
         final var edges = new TreeMap<String, Edge>();
-        final var terminalDepths = new TreeMap<Integer, Integer>();
+        final var obligationDepths = new TreeMap<Integer, Integer>();
+        final var closures = new ArrayList<Closure>();
         while (!pending.isEmpty()) {
             final var state = pending.removeFirst();
             final var key = stateKey(state);
@@ -96,41 +103,64 @@ public final class Table2ProvenanceGraph {
             final int diameter = ReductionTypeEnumerator.knownDiameter(state.nonfixedSymbols());
             final boolean closed = diameter != Integer.MAX_VALUE
                     && state.movesUsed() + diameter <= 10;
-            final var children = closed || state.movesUsed() == DEPTH_LIMIT ? List.<int[]>of()
-                    : ReductionTypeEnumerator.selectedChildPartitions(state.lengths(), state.oriented());
-            final boolean terminal = !closed && children.isEmpty();
+            final var options = closed || state.movesUsed() == DEPTH_LIMIT
+                    ? List.<ReductionTypeEnumerator.ReductionOption>of()
+                    : ReductionTypeEnumerator.reductionOptions(state.lengths(), state.oriented(), state.movesUsed());
+            final boolean retained = !closed && (state.movesUsed() == DEPTH_LIMIT
+                    || ReductionTypeEnumerator.mayHaveNoAvailableReduction(state.lengths(), state.oriented(), state.movesUsed()));
             final var row = byState.get(key);
-            if (terminal != (row != null)) {
-                throw new IllegalStateException("Terminal/Table 2 mismatch: " + key);
+            if (retained != (row != null)) {
+                throw new IllegalStateException("Retention/Table 2 mismatch: " + key);
             }
             if (state.threeNorm() >= state.budget()) {
                 throw new IllegalStateException("Invalid reachable budget: " + key);
             }
             nodes.put(key, new Node(key, state.typeKey(), state.movesUsed(), state.nonfixedSymbols(),
-                    state.threeNorm(), diameter, closed ? "closed" : terminal ? "terminal" : "open",
+                    state.threeNorm(), diameter, closed ? "closed" : retained ? "retained" : "open",
                     row == null ? 0 : row.number(), row == null ? null : row.recordedRealizableClasses(),
                     row == null ? null : row.remainingClassObligations()));
-            if (terminal) {
-                terminalDepths.merge(state.movesUsed(), 1, Integer::sum);
+            if (retained) {
+                obligationDepths.merge(state.movesUsed(), 1, Integer::sum);
             }
-            for (final var partition : children) {
-                for (final var annotation : AnnotatedPartitions.of(partition)) {
+            if (!closed && state.movesUsed() < DEPTH_LIMIT) {
+                final int k = ReductionTypeEnumerator.closingOddCycleLength(
+                        state.lengths(), state.oriented(), state.movesUsed());
+                if (k > 0 && k != 15 && k != 19) {
+                    final int moves = (k + 1) / 2;
+                    final int remaining = state.nonfixedSymbols() - k;
+                    final int bound = ReductionTypeEnumerator.knownDiameter(remaining);
+                    closures.add(new Closure(key, "SUPPORT_CLEARING", k, moves, remaining,
+                            bound, state.movesUsed() + moves + bound,
+                            "../td/docs/paper/main.tex#prop:td16-odd-cycle-reduction"));
+                }
+                if (k == 9 || k == 19) {
+                    closures.add(new Closure(key, k == 9 ? "EXCEPTIONAL_NINE" : "EXCEPTIONAL_NINETEEN",
+                            k, 10, 0, 0, 10, "td18-reduction-count.tex"));
+                }
+                if (k == 15) {
+                    closures.add(new Closure(key, "EXCEPTIONAL_FIFTEEN", k,
+                            state.budget(), 0, 0, 10,
+                            "td18-reduction-count.tex#sec:exceptional-fifteen"));
+                }
+            }
+            for (final var option : options) {
+                for (final var annotation : AnnotatedPartitions.of(option.childLengths())) {
                     final var child = new ReductionTypeEnumerator.Obligation(
                             annotation.partition(), annotation.oriented(), state.movesUsed() + 1);
                     if (child.threeNorm() != state.threeNorm() - 1) {
                         throw new IllegalStateException("Invalid reduction norm at " + key);
                     }
-                    final var edge = edgeFor(state, child);
+                    final var edge = edgeFor(state, child, option);
                     edges.put(edge.key(), edge);
                     pending.addLast(child);
                 }
             }
         }
-        if (!terminalDepths.equals(Map.of(0, 8, 1, 8, 2, 188))
+        if (!obligationDepths.equals(ReductionTypeEnumerator.EXPECTED_DEPTH_COUNTS)
                 || !nodes.keySet().containsAll(byState.keySet())) {
-            throw new IllegalStateException("Incomplete terminal provenance");
+            throw new IllegalStateException("Incomplete obligation provenance");
         }
-        return new Graph(List.copyOf(nodes.values()), List.copyOf(edges.values()), roots.size(), rootCount);
+        return new Graph(List.copyOf(nodes.values()), List.copyOf(edges.values()), closures, roots.size(), rootCount);
     }
 
     private static String stateKey(final ReductionTypeEnumerator.Obligation state) {
@@ -138,26 +168,21 @@ public final class Table2ProvenanceGraph {
     }
 
     private static Edge edgeFor(final ReductionTypeEnumerator.Obligation parent,
-                                final ReductionTypeEnumerator.Obligation child) {
+                                final ReductionTypeEnumerator.Obligation child,
+                                final ReductionTypeEnumerator.ReductionOption option) {
         final int fixed = parent.nonfixedSymbols() - child.nonfixedSymbols();
         final String kind;
         final String label;
-        switch (ReductionTypeEnumerator.selectedReductionKind(parent.lengths(), parent.oriented())) {
+        switch (option.kind()) {
             case ORIENTED_THREE -> {
                 kind = "CLEAR_THREE";
-                label = "Clear 3O";
+                label = "Oriented 3-cycle: clear 3O";
             }
             case ORIENTED_ODD -> {
-                var selected = Integer.MAX_VALUE;
-                for (var index = 0; index < parent.lengths().length; index++) {
-                    final int length = parent.lengths()[index];
-                    if (parent.oriented()[index] && length >= 5 && length % 2 == 1) {
-                        selected = Math.min(selected, length);
-                    }
-                }
+                final int selected = option.cycleLength();
                 if (fixed == 2) {
                     kind = "ODD_TWO_FIXED";
-                    label = selected + "O → " + (selected - 2);
+                    label = "Qualifying 2-move: " + selected + "O → " + (selected - 2);
                 } else {
                     kind = "ODD_SPLIT";
                     // Remove the unchanged companion lengths as a multiset.
@@ -173,15 +198,15 @@ public final class Table2ProvenanceGraph {
                     }
                     kindCheck(added.size() == 2 && fixed == 1);
                     added.sort(Integer::compareTo);
-                    label = selected + "O → " + added.get(0) + " + " + added.get(1);
+                    label = "Qualifying 2-move: " + selected + "O → " + added.get(0) + " + " + added.get(1);
                 }
             }
             case EVEN_PAIR -> {
                 kind = "EVEN_PAIR";
                 final int[] even = Arrays.stream(parent.lengths()).filter(length -> length % 2 == 0).toArray();
-                label = even[0] + " + " + even[1] + " → " + (even[0] + even[1] - 1);
+                label = "Even-pair reduction: " + even[0] + " + " + even[1] + " → " + (even[0] + even[1] - 1);
             }
-            default -> throw new IllegalStateException("Edge without a selected reduction");
+            default -> throw new IllegalStateException("Edge without a reduction option");
         }
         kindCheck(fixed == (kind.equals("CLEAR_THREE") ? 3 : kind.equals("ODD_TWO_FIXED") ? 2 : 1));
         return new Edge(stateKey(parent), stateKey(child), kind, label, fixed);
@@ -206,9 +231,14 @@ public final class Table2ProvenanceGraph {
                 + ",\"target\":" + quote(edge.target()) + ",\"kind\":" + quote(edge.kind())
                 + ",\"label\":" + quote(edge.label()) + ",\"fixed\":" + edge.fixed() + "}")
                 .collect(Collectors.joining(",\n"));
+        final var closures = graph.closures().stream().map(c -> "{\"source\":" + quote(c.source())
+                + ",\"kind\":" + quote(c.kind()) + ",\"cycleLength\":" + c.cycleLength()
+                + ",\"moves\":" + c.moves() + ",\"N\":" + c.symbols() + ",\"D\":" + c.diameter()
+                + ",\"total\":" + c.total() + ",\"reference\":" + quote(c.reference()) + "}")
+                .collect(Collectors.joining(",\n"));
         return "{\"rootPartitions\":" + graph.rootPartitions() + ",\"annotatedRoots\":" + graph.annotatedRoots()
                 + ",\"nodeCount\":" + graph.nodes().size() + ",\"edgeCount\":" + graph.edges().size()
-                + ",\"rowCount\":204,\"nodes\":[\n" + nodes + "],\"edges\":[\n" + edges + "]}";
+                + ",\"rowCount\":" + Table2.EXPECTED_ENTRIES + ",\"nodes\":[\n" + nodes + "],\"edges\":[\n" + edges + "],\"closures\":[\n" + closures + "]}";
     }
 
     private static String quote(final String value) {
@@ -239,11 +269,11 @@ public final class Table2ProvenanceGraph {
             throw new IllegalArgumentException("Expected exactly one visualization data marker");
         }
         final var data = "<script id=\"provenance-data\" type=\"application/json\">"
-                + "{\"format\":\"td18-type-provenance\",\"version\":1,\"complete\":true,"
+                + "{\"format\":\"td18-type-provenance\",\"version\":5,\"complete\":true,"
                 + "\"sourceSha256\":" + quote(sha256(source)) + ",\"payloadSha256\":" + quote(sha256(payload))
                 + ",\"payload\":" + quote(payload) + "}</script>";
         Files.writeString(root.resolve("docs/table2-provenance.html"), template.replace(DATA_MARKER, data), StandardCharsets.UTF_8);
-        System.out.println("Table 2 provenance: 53 partitions, 360 roots, 204 rows, " + graph.nodes().size()
+        System.out.println("Table 2 provenance: 53 partitions, 360 roots, " + Table2.EXPECTED_ENTRIES + " rows, " + graph.nodes().size()
                 + " reached states, " + graph.edges().size() + " edges; SHA-256 " + sha256(payload));
     }
 }

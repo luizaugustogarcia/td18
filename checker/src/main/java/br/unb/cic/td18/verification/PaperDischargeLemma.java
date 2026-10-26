@@ -14,7 +14,7 @@ import java.util.Set;
  * preceding Table {@code tab:td16-avoidance} states that the same 52 searches
  * generated 4,511,223,147 classes and left residuals only in the two types
  * listed below. Thus the other 50 searched types, together with the 52 direct
- * oriented-3 types, are paper-backed {@code Q = 0} discharges. Fourteen more
+ * oriented-3 types, are paper-backed {@code Q = 0} discharges. A further 35
  * rows have {@code R = Q = 0}; the checker skips those only after the Burnside
  * count has independently confirmed that the type is empty. This lemma does
  * not turn either residual type into a partial TD(18) row: both starred rows
@@ -30,7 +30,7 @@ final class PaperDischargeLemma {
     static final long PAPER_SUCCESSOR_CLASSES = 4_511_223_147L;
     static final long PAPER_SORTED_SUCCESSOR_CLASSES = 4_511_221_111L;
     static final long PAPER_RESIDUAL_SUCCESSOR_CLASSES = 2_036L;
-    static final long EXPECTED_TOTAL_Q = 29_064_174_153L;
+    static final long EXPECTED_TOTAL_Q = 688_413_622_139L;
 
     private static final Set<String> RESIDUAL_TYPES = Set.of(
             "(11-O,5-O)",
@@ -105,8 +105,8 @@ final class PaperDischargeLemma {
 
         if (orientedThreeRows != 52 || successorSearchRows != 52
                 || paperSettledSuccessorRows != 50
-                || retainedResidualRows != 2 || emptyUncoveredRows != 14
-                || zeroObligationRows != 116
+                || retainedResidualRows != 2 || emptyUncoveredRows != 35
+                || zeroObligationRows != 137
                 || successorClasses != PAPER_SUCCESSOR_CLASSES
                 || PAPER_SUCCESSOR_CLASSES
                 - PAPER_SORTED_SUCCESSOR_CLASSES

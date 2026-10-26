@@ -28,7 +28,7 @@ package layout as the implementation they exercise.
 | search | CPU prefix checks and search outcomes; emitted bounded searches. |
 | certificate | Raw encoding, witness replay, database access, and emitter manifests. |
 | avoidance | Residual obligations and inverse reconstruction; emitter work persistence and orchestration. |
-| emission | Table 2 and exceptional oriented 19-cycle emission. |
+| emission | Table 2, exceptional oriented 9- and 15-cycle interleavings, and oriented 19-cycle emission. |
 | verification | Checker inventory, Q audit, DFS classification, disk verification, and progress. |
 | runtime | Repository path discovery. |
 
@@ -45,8 +45,33 @@ organization.
 
 ## Independence is specific
 
-The checker has its own work-list type enumeration and oriented 19-cycle DFS.
-Its avoidance reconstruction uses sequential insertions and its own scratch
+The checker has its own work-list type enumeration and oriented 15- and
+19-cycle classifications.
+The inventory includes qualifying 2-move branches and separately accounts for
+cited support-clearing alternatives within the global budget. Both
+enumerations first apply known-diameter closure, then retain any totally
+unoriented open type without structural outgoing edges. The even-pair
+fallback requires an oriented cycle somewhere in the type, including when
+both selected even-length cycles are unoriented. Among types with an
+oriented cycle, the enumerations retain an early type when the remaining no-qualifying-move
+case lacks a closing alternative or an available fallback. The provenance graph's
+version 5 format distinguishes these closures from transposition edges and
+allows retained early states to have outgoing qualifying branches.
+The exceptional-nine restriction uses the copied direct-generation primitive
+with a prescribed rank progression. Tests compare it with independent small
+interleavings and the established TD(16) extension counts; this is not a second
+independently designed large-domain generator.
+For length 15, the checker independently visits all 169,355 DFS nodes and
+identifies the unique oriented survivor, the local candidate
+`gamma = beta_15^8`. Its three-cycle local target prevents support clearing.
+Direct generation fixes its rank progression and varies the companion
+interleavings: 360 candidate bracelets yield 90 valid root classes, and
+27 candidate bracelets yield 7 valid intermediate classes. CPU prefix
+search and independent replay close 79 root classes within budget 10 and
+all 7 intermediate classes within budget 9. The 11 remaining root classes
+require complete ten-transposition witnesses. The dedicated branch does
+not generate every class of the ambient annotated types.
+The checker's avoidance reconstruction uses sequential insertions and its own scratch
 sets, rather than trusting the emitter’s reconstruction work database.
 
 Some framework code is copied into both modules: permutation operations,
@@ -75,17 +100,30 @@ operation from verifying an older artifact.
 CPU prefixes are not persisted as sorting certificates. Their fixed-point
 gain, contracted domain, known diameter, and budget are regenerated and checked.
 The emitter’s versioned sidecar row manifests use format 3, avoidance manifests
-use format 4, and the avoidance work database uses format 2. They record
+use format 6, and the avoidance work database uses format 4. They record
 deterministic keys, counts, checksums, and completion state. Canonical-restoration
 inverse-support counts precede parent-type filtering and class deduplication.
-Unsupported work/manifest formats are rejected where those artifacts are read.
+Earlier avoidance formats can contain parent branches excluded by the
+current stop for totally unoriented types and are rejected where those
+artifacts are read.
 
-The current development checker does not enforce sidecar completion records or
-compare saved fingerprints. The sidecars’ existence alone therefore does not
-establish final artifact integrity. This gap is recorded in
-[the research plan](RESEARCH_PLAN.md) and [the source document](td18-reduction-count.tex).
-Do not turn a successful partial run or a witness for one class into a complete
-TD(18) claim.
+The exceptional-nine branch regenerates the class stream and replays every
+full database witness within ten transpositions, rejecting missing witnesses
+and exceeded budgets. Full emission and
+avoidance ensure all 18 root annotations; the default checker includes this
+branch. Focused emission/checking can select one type explicitly.
+The exceptional-fifteen branch likewise regenerates both restricted families
+and enforces each family's move budget. Its independent local classification
+and checked generation counts establish the scope of that branch. Every
+run regenerates and independently replays the 86 CPU prefix closures;
+prefixes are not stored as complete certificates. Only the 11 root prefix
+misses require database witnesses, whose complete checks remain pending.
+
+The certificate database is the only emitter output consumed by the checker.
+Existing Table 2 and avoidance sidecars are diagnostic metadata. Proof
+verification uses exhaustive regeneration, witness replay, and checked closure
+arguments without requiring sidecar files or checksums. A successful partial
+run or a witness for one class does not establish the complete TD(18) claim.
 
 Generated databases, scratch sets, certificates, checkpoints, and logs remain
 untracked. The source document, explanatory documentation, and provenance graph

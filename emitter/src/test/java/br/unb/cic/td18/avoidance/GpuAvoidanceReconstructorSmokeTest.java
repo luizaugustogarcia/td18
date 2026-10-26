@@ -25,7 +25,7 @@ class GpuAvoidanceReconstructorSmokeTest {
         final var gpuIntermediate = reconstructor.reconstruct(
                 List.of(residual), 8);
         assertEquals(2_176, gpuIntermediate.applications());
-        assertEquals(627, gpuIntermediate.uniqueKeys());
+        assertEquals(1_759, gpuIntermediate.uniqueKeys());
         assertEquals(cpuIntermediate.applications(),
                 gpuIntermediate.applications());
         assertArrayEquals(cpuIntermediate.keyRecords(),
@@ -38,8 +38,8 @@ class GpuAvoidanceReconstructorSmokeTest {
                 intermediateParents, 9);
         final var gpuRoot = reconstructor.reconstruct(
                 intermediateParents, 9);
-        assertEquals(1_726_758, gpuRoot.applications());
-        assertEquals(623_283, gpuRoot.uniqueKeys());
+        assertEquals(4_844_286, gpuRoot.applications());
+        assertEquals(1_901_013, gpuRoot.uniqueKeys());
         assertEquals(cpuRoot.applications(), gpuRoot.applications());
         assertArrayEquals(cpuRoot.keyRecords(), gpuRoot.keyRecords());
     }

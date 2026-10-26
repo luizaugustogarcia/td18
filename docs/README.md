@@ -6,14 +6,14 @@ configuration, and database behavior.
 
 | Document | Responsibility |
 | --- | --- |
-| [td18-reduction-count.tex](td18-reduction-count.tex) | Source of truth for the conditional two-reduction route and all 204 Table 2 obligations. |
+| [td18-reduction-count.tex](td18-reduction-count.tex) | Source of truth for the conditional two-reduction route and all 292 Table 2 obligations. |
 | [RESEARCH_PLAN.md](RESEARCH_PLAN.md) | Required checked artifacts and exit criteria for stages 0–5. |
 | [WORKFLOW.md](WORKFLOW.md) | Stage order, runnable tools, outputs, and the limits of each check. |
 | [OPERATIONS.md](OPERATIONS.md) | Detailed commands, tuning, import, resume, and partial verification. |
 | [KNOWLEDGE.md](KNOWLEDGE.md) | Mathematical vocabulary, source references, and implementation entry points. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Package responsibilities, checker independence, and persistence boundaries. |
 | [td18-burnside-counting.md](td18-burnside-counting.md) | Derivation and small-domain validation of the exact R counter. |
-| [table2-provenance.html](table2-provenance.html) | Interactive documentation of every selected type-level reduction path. |
+| [table2-provenance.html](table2-provenance.html) | Version 5 view of every selected type-level reduction path, exceptional CPU prefix closures, and remaining certificate obligations. |
 
 The PDF and provenance graph are views of the route, not proof certificates.
 The HTML template is maintained separately; regenerate the graph with

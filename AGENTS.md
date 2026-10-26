@@ -51,16 +51,30 @@
 - Prove or cite every nontrivial claim.
 - State assumptions and distinguish proved bounds from experimental evidence,
   estimates, and conditional results.
-- Keep Table 2 as the complete 204-type obligation inventory unless the
+- Keep Table 2 as the complete 292-type obligation inventory unless the
   two-reduction argument itself is changed and independently rechecked.
+  The argument includes the cited support-clearing alternatives when their
+  global budget fits. It preserves rows 1–204 and appends 88 early obligations
+  (51 roots and 37 one-move states), independently checked by the work-list
+  enumerator. The exceptional oriented 15-cycle is handled through its
+  restricted companion interleavings, separately from the whole-type inventory.
+  Regenerate its 86 checked CPU prefix closures; the remaining 11 root
+  classes require complete ten-transposition witnesses.
 - Use direct prose and consistent terminology.
+- At every recursion depth, a totally unoriented annotated type receives no
+  structural reduction. Apply a known-diameter closure when it fits; otherwise
+  retain the type as a direct obligation. The even-pair fallback requires at
+  least one oriented cycle somewhere in the type, although the two selected
+  even-length cycles may both be unoriented.
 
 ## Computational proof discipline
 
 - Keep exhaustive generation, sorting, and verification boundaries explicit.
 - A sorting witness proves an upper bound only for the represented class.
 - Every persisted set or certificate needs a versioned format, deterministic
-  keys, counts, checksums, and verification that rejects missing data.
+  keys, counts, and verification that rejects missing data. Proof verification
+  regenerates all obligations and checks witnesses directly from the certificate
+  database; checksums and sidecar manifests are not required proof inputs.
 - Validate small domains before large runs.
 - Generated databases, checkpoints, logs, and certificates must remain
   untracked.

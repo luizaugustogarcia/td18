@@ -24,12 +24,12 @@ class Table2Test {
         final var document = directory.resolve("table.tex");
         final var latex = table();
         Files.writeString(document, latex);
-        assertEquals(204, Table2.read(document).size());
+        assertEquals(292, Table2.read(document).size());
 
         final var incomplete = latex.lines()
-                .filter(line -> !line.stripLeading().startsWith("204 &"))
+                .filter(line -> !line.stripLeading().startsWith("292 &"))
                 .collect(java.util.stream.Collectors.joining("\n"));
-        assertEquals(203, Table2.parse(incomplete).size());
+        assertEquals(291, Table2.parse(incomplete).size());
         Files.writeString(document, incomplete);
         assertThrows(IllegalArgumentException.class, () -> Table2.read(document));
     }
@@ -43,7 +43,7 @@ class Table2Test {
         final var withoutQ = first.substring(0, first.lastIndexOf('&'));
         final var withoutCounts = withoutQ.substring(0, withoutQ.lastIndexOf('&')) + " \\\\";
         final var draft = latex.replace(first, withoutCounts);
-        assertEquals(204, Table2.parse(draft).size());
+        assertEquals(292, Table2.parse(draft).size());
         assertNull(Table2.parse(draft).getFirst().recordedRealizableClasses());
         assertNull(Table2.parse(draft).getFirst().remainingClassObligations());
         final var document = directory.resolve("draft.tex");
@@ -80,14 +80,14 @@ class Table2Test {
     }
 
     @Test
-    void readsAll204EntriesInLatexTableOrder() throws IOException {
+    void readsAll292EntriesInLatexTableOrder() throws IOException {
         final var latex = table();
         final var entries = Table2.parse(latex);
-        assertEquals(204, entries.size());
+        assertEquals(292, entries.size());
         assertEquals("(7-U,3-U,3-U,3-U,3-U)", entries.getFirst().type());
-        assertEquals("(4-O,3-O,3-O,2-U,2-U,2-U)", entries.getLast().type());
-        assertEquals(8, entries.stream().filter(entry -> entry.movesUsed() == 0).count());
-        assertEquals(8, entries.stream().filter(entry -> entry.movesUsed() == 1).count());
+        assertEquals("(4-O,3-O,3-O,2-U,2-U,2-U)", entries.get(203).type());
+        assertEquals(59, entries.stream().filter(entry -> entry.movesUsed() == 0).count());
+        assertEquals(45, entries.stream().filter(entry -> entry.movesUsed() == 1).count());
         assertEquals(188, entries.stream().filter(entry -> entry.movesUsed() == 2).count());
         assertEquals(0, entries.stream().filter(entry -> entry.movesUsed() == 3).count());
         for (final int row : new int[]{130, 134}) {
@@ -125,10 +125,10 @@ class Table2Test {
                             obligation, entry.recordedRealizableClasses()),
                     entry.remainingClassObligations());
         }
-        assertEquals(33_544_626_415L, entries.stream()
+        assertEquals(692_894_074_401L, entries.stream()
                 .mapToLong(TableEntry::recordedRealizableClasses)
                 .sum());
-        assertEquals(29_064_174_153L, entries.stream()
+        assertEquals(688_413_622_139L, entries.stream()
                 .mapToLong(TableEntry::remainingClassObligations)
                 .sum());
 

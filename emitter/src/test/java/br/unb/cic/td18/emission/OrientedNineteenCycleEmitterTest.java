@@ -34,6 +34,34 @@ class OrientedNineteenCycleEmitterTest {
             }));
 
     @Test
+    void laterRootSearchesReuseWitnessBytesWithoutCuda(@TempDir final Path directory) throws Exception {
+        final var pairs = OrientedNineteenCycleEmitter.survivorPairs();
+        try (final var writer = new AsyncCertificateWriter(directory.resolve("database"), 60)) {
+            for (var index = 0; index < pairs.size(); index++) {
+                writer.enqueue(pairs.get(index), WITNESSES.get(index));
+            }
+            writer.flush();
+            // Restore the process-wide dispatcher state after exercising the
+            // proof-scoped writer, without loading the native search singleton.
+            final var field = WitnessSearch.class.getDeclaredField("certificateWriter");
+            field.setAccessible(true);
+            final var previous = field.get(null);
+            field.set(null, writer);
+            try {
+                for (var index = 0; index < pairs.size(); index++) {
+                    WitnessSearch.search(pairs.get(index), 1.8f, 10);
+                    final var complete = WitnessSearch.searchCompleteWitness(pairs.get(index), 1.8f, 10);
+                    assertEquals(WitnessSearch.Disposition.CERTIFICATE, complete.disposition());
+                    assertEquals(WITNESSES.get(index), complete.moves());
+                    assertEquals(WITNESSES.get(index), writer.find(pairs.get(index), 10).orElseThrow());
+                }
+            } finally {
+                field.set(null, previous);
+            }
+        }
+    }
+
+    @Test
     void importsAndReusesBothKnownWitnessesWithoutCuda(@TempDir final Path directory) throws Exception {
         final var pairs = OrientedNineteenCycleEmitter.survivorPairs();
         final var lines = new java.util.ArrayList<String>();

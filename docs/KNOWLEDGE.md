@@ -64,6 +64,37 @@ statement is Theorem thm:twisted-generation-correctness. Exhaustive generation
 must agree with the required Q count independently of sorting outcomes.
 Counting alone gives no sorting witness.
 
+## The exceptional oriented 9-cycle extensions
+
+Let beta0 = (0 1 ... 8) and gamma = (0 5 1 6 2 7 3 8 4) = beta0^5.
+The local target gamma * beta0 = beta0^6 has three cycles. Thus this is an
+unchecked candidate orbit that can become realizable when interleaved with
+companions. The TD(16) local classification identifies it as the unique
+exception to its qualifying transposition or (5,4)-sequence route; that
+repository's extension certificates cover only 17 symbols.
+
+The TD(18) branch fixes the local order of gamma on its nine-symbol support
+and interleaves all companions on the other ten symbols. Even permutation
+parity leaves six companion partitions; their full orientation multisets
+give 18 root types. The generator prescribes gamma's ranks in induced beta
+order as 0,2,4,6,8,1,3,5,7, using zero-based ranks along gamma. Twisted
+reflection reverses that subsequence and inverts ranks, preserving the same
+progression after choosing the rank origin. Ordinary reversal alone does
+not express that action.
+
+The existing direct orbit comparisons therefore apply to this invariant
+family, and target validation still rejects noncyclic candidates. Independent
+small interleaving tests compare candidate-orbit deduplication using
+TwistedBraceletKey and valid class sets using ExtendedToricClassKey; tests
+also reproduce the four checked TD(16) realizable counts. This avoids requiring
+intermediate companion deletions to preserve realizability.
+
+Every represented 19-symbol class requires a complete sorting witness within
+ten transpositions. The checker regenerates every required class and validates
+its witness directly from the certificate database. Fixed-point roots use
+the established contraction bound. Full emission and verification of all 18
+types remain pending; see [the operations guide](OPERATIONS.md#emit-and-check-exceptional-9-cycle-extensions).
+
 ## The TD(18) obligations
 
 A qualifying 2-move is one transposition that increases the number of
@@ -116,15 +147,106 @@ transpositions, and the odd-length-cycle counts. The emitter also has
 with ten-move witnesses. These witnesses prove an upper bound of ten for the
 two represented classes. They do not complete the other TD(18) obligations.
 
-### Two-reduction states and terminal obligations
+### Two-reduction states and retained obligations
 
 Let a state be (T, s), where T is the contracted annotated type and s is the
-number of transpositions already used. Its remaining budget is 10 - s. The
-source document specifies known-diameter closure and the priority of the
-three reductions, with a depth cap of two and fresh child annotations.
-Table 2 remains the complete inventory of 204 terminal types. Its R and Q
+number of transpositions already used. Let N be its number of nonfixed
+symbols. Its remaining budget is 10 - s. The
+source document specifies known-diameter closure and the reduction priorities,
+with a depth cap of two for recursive transposition branches and fresh child
+annotations. The reduction families come from the shared manuscript's
+oriented-3 corollary, odd-length-cycle reduction proposition, and even-pair
+proposition in [its TD(16) argument](../../td/docs/paper/main.tex). The present
+priorities account for TD(18)'s budgets; the manuscript's U/T/E9/O/E priority
+table applies to its 17-symbol domain.
+
+At every depth, test the known-diameter bound first. If the state remains
+open and every annotation in its type is unoriented, retain it as a direct
+obligation and apply no structural reduction. This is a routing-policy
+stop; it does not assert that sorting transpositions are unavailable. The
+following reduction rules apply only when some cycle is oriented.
+
+Orientation does not guarantee a qualifying 2-move. For lengths
+`k = 5, 7, 9, 11, 13, 17`, the cited odd-length-cycle reduction supplies either
+a qualifying 2-move or a support-clearing sequence of at most `(k+1)/2`
+transpositions, apart from the specified local 9-cycle exception. Clearing
+closes a state only when `s + (k+1)/2 + TD(N-k-1) <= 10`. Thus root
+`(13O,3U,3U)` closes its no-qualifying-move branch with `7 + TD(5) = 10`,
+while its qualifying 2-moves lead to freshly annotated children. By contrast,
+clearing a root 5-cycle gives `3 + TD(13) = 11`, so another route is required.
+Length 15 is absent from that cited classification because the TD(16)
+argument excludes it by parity on 17 symbols. The independent local
+classification below handles that length for the present domain.
+
+After the oriented-3 rule, inspect oriented odd-length cycles in increasing
+order of distinct length. Include their qualifying 2-move branches and stop fallback exploration
+when a cited support-clearing alternative fits the budget. The exceptional
+9-cycle and 19-cycle root cases have the separate certificate branches
+described above; the exceptional 15-cycle uses its restricted companion
+interleavings below. Otherwise continue with later oriented cycles and the
+even-pair fallback. That fallback requires some oriented cycle in the type,
+but the two selected even-length cycles may both be unoriented. For example,
+`(5O,4U,4U,3U,3U)` still has this fallback if its 5-cycle lacks a qualifying
+move. If none covers the case without a qualifying move, retain
+the type while continuing its conditional branches. Rows 205–292 add
+51 root obligations and 37 one-move obligations to the original rows 1–204.
+Table 2 is the complete inventory of 292 retained types. Its R and Q
 columns serve different purposes; [the workflow](WORKFLOW.md) explains how
 each becomes a computational obligation.
+
+### The exceptional oriented 15-cycle
+
+Let `beta_15 = (0 1 ... 14)` be the current cycle induced on the selected
+support. The independent checker extends the shared paper's half-turn and
+qualifying-move criteria to length 15. Its exhaustive DFS visits 169,355
+nodes and retains exactly `beta_15^14` and `gamma = beta_15^8`. The first is
+unoriented. Thus the unique oriented local configuration without a
+qualifying transposition is represented by
+
+~~~text
+gamma = (0 8 1 9 2 10 3 11 4 12 5 13 6 14 7).
+~~~
+
+This is a cyclic-target candidate: `gamma * beta_15 = beta_15^9` has three
+cycles. It cannot have a support-clearing sequence at any length. Every
+applicable transposition supported there preserves that local product,
+while the restricted current permutation remains one cycle. Clearing
+`gamma` would identify that cycle with a three-cycle product. The
+[classification test](../checker/src/test/java/br/unb/cic/td18/verification/OrientedFifteenCycleClassificationTest.java)
+reproduces the exhaustive classification, checks all 455 local applicable
+transpositions, and verifies a realizable `(15O,3U)` companion interleaving.
+
+The separate computational branch fixes this local pattern and generates
+only its companion interleavings. Its standardized rank progression is
+`(2*j mod 15) + 1` at occurrence `j`, starting at zero. The same progression
+is preserved by twisted reflection and auxiliary rank standardization, so
+the restriction is defined on candidate orbits. The two obligations are:
+
+| State | Candidate bracelets | Realizable classes | Remaining budget |
+| --- | ---: | ---: | ---: |
+| `(15O,2U,2U)`, depth 0 | 360 | 90 | 10 |
+| `(15O,3U)`, depth 1 | 27 | 7 | 9 |
+
+The dedicated generator and checker cover these restricted classes;
+`(15O,3U)` is consequently absent from Table 2 as a whole-type obligation.
+Every other oriented 15-cycle supplies a qualifying transposition, and an
+oriented 3-cycle companion closes through its usual clearing reduction.
+The counts are checked by direct generation and independent fixed-content
+interleavings. CPU search finds a prefix that closes 86 of these classes;
+independent replay checks applicability, target preservation, fixed-point
+gain, and the known diameter at every selected class:
+
+| Classes | Prefix length | Created fixed points | Global bound |
+| --- | ---: | ---: | --- |
+| 74 roots | 3 | 6 | `3 + TD(12) = 10` |
+| 5 roots | 2 | 4 | `2 + TD(14) = 10` |
+| All 7 intermediate classes | 3 | 6 | `1 + 3 + TD(11) = 10` |
+
+Each proof run regenerates these prefixes. The seven intermediate classes
+therefore need no complete sorting certificate. The remaining 11 root
+classes have no closure from this bounded prefix search and still require
+complete ten-transposition witnesses. Their certificate checks remain
+pending. A prefix-search miss does not establish a lower bound.
 
 A short qualifying CPU prefix creates fixed points and closes the remainder
 using an independently known diameter within the global budget. It is not a
@@ -148,6 +270,7 @@ to each module’s src/main/java/br/unb/cic/td18 directory.
 | Source-table access | table/Table2.java, table/TableEntry.java |
 | Two-reduction policy | reduction/ReductionTypeEnumerator.java |
 | Independent inventory and Q check | checker’s verification/IndependentTypeEnumerator.java and verification/PaperDischargeLemma.java |
+| Exceptional 15-cycle classification and interleavings | checker’s verification/OrientedFifteenCycleClassification.java; model/ExceptionalFifteenCycle.java; bracelet/DirectTwistedBraceletGenerator.java |
 | CPU prefixes and emitted searches | search/CommonOperations.java; emitter’s search/WitnessSearch.java |
 | Witness encoding and replay | certificate/CertificateCodec.java, certificate/CertificateValidator.java |
 | Predecessor reconstruction | avoidance/ObstructionAvoidance.java, independently implemented in the two modules |

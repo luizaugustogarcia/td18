@@ -27,6 +27,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CertificateCheckerTest {
     @Test
+    void independentlyChecksAvailabilityBranchesAndRetainedStates() {
+        final var inventory = IndependentTypeEnumerator.enumerate();
+        assertEquals(53, inventory.rootPartitions());
+        assertEquals(360, inventory.annotatedRoots());
+        assertEquals(292, inventory.entries().size());
+        assertEquals(java.util.Map.of(0, 59L, 1, 45L, 2, 188L), inventory.entries().stream()
+                .collect(java.util.stream.Collectors.groupingBy(IndependentTypeEnumerator.Entry::movesUsed,
+                        java.util.stream.Collectors.counting())));
+        assertEquals(1203, IndependentTypeEnumerator.verifyReductionPolicy());
+    }
+
+    @Test
     void reconstructsResidualContextWithoutCompletionManifests(@TempDir final Path directory) throws Exception {
         final var pair = AvoidanceFixtures.controlResidual();
         RocksDB.loadLibrary();
@@ -138,8 +150,8 @@ class CertificateCheckerTest {
                 PaperDischargeLemma.PAPER_SORTED_SUCCESSOR_CLASSES);
         assertEquals(2_036L,
                 PaperDischargeLemma.PAPER_RESIDUAL_SUCCESSOR_CLASSES);
-        assertEquals(14, audit.emptyUncoveredRows());
-        assertEquals(116, audit.zeroObligationRows());
-        assertEquals(29_064_174_153L, audit.totalQ());
+        assertEquals(35, audit.emptyUncoveredRows());
+        assertEquals(137, audit.zeroObligationRows());
+        assertEquals(688_413_622_139L, audit.totalQ());
     }
 }

@@ -475,16 +475,13 @@ public final class ObstructionAvoidance {
         final int parentMovesUsed = ReductionTypeEnumerator.MAX_BUDGET
                 - successor.maximumMoves() - 1;
         if (!ReductionTypeEnumerator.isReachableOpenState(
-                parentType.lengths(), parentType.oriented(), parentMovesUsed)
-                || ReductionTypeEnumerator.selectedReductionKind(
-                parentType.lengths(), parentType.oriented()) != expectedKind) {
+                parentType.lengths(), parentType.oriented(), parentMovesUsed)) {
             return;
         }
 
         final int[] childLengths = cycleLengths(successor.pair());
-        final boolean matchesChild = ReductionTypeEnumerator
-                .selectedChildPartitions(parentType.lengths(), parentType.oriented())
-                .stream().anyMatch(candidate -> Arrays.equals(candidate, childLengths));
+        final boolean matchesChild = ReductionTypeEnumerator.allowsTransition(
+                parentType.lengths(), parentType.oriented(), parentMovesUsed, expectedKind, childLengths);
         if (!matchesChild) {
             return;
         }

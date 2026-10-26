@@ -38,21 +38,26 @@ class ObstructionAvoidanceTest {
                 controlResidual(), 8);
 
         assertEquals(2_176, batch.applications());
-        assertEquals(627, batch.parents().size());
+        assertEquals(1_759, batch.parents().size());
         final var digest = MessageDigest.getInstance("SHA-256");
         batch.parents().stream().map(CertificateCodec::keyFor)
                 .sorted(Arrays::compareUnsigned).forEach(digest::update);
-        // Recorded with the original exhaustive insertion implementation.
-        assertEquals("be7cecc20d7136833867f95a048c7c31c6b4334d1eda0d8e04229c17deae67d2",
+        // Compared with the independent sequential-insertion reconstruction.
+        assertEquals("9fc9908c1a5e106ed7eb135ef7a339bb14dcf157e7141db3e3112b15e2b5456b",
                 HexFormat.of().formatHex(digest.digest()));
         assertTrue(batch.parents().stream().allMatch(pair ->
                 pair.getBeta().size() == 18));
+        assertTrue(batch.parents().stream().allMatch(pair -> pair.getOmega().stream()
+                .anyMatch(cycle -> CommonOperations.isOriented(pair.getBeta(), cycle))),
+                "A totally unoriented state has no forward structural edge to reconstruct");
         final var rootBatch = batch.parents().stream()
                 .map(parent -> ObstructionAvoidance.reconstructParents(parent, 9))
                 .filter(candidate -> !candidate.parents().isEmpty())
                 .findFirst().orElseThrow();
         assertTrue(rootBatch.parents().stream().allMatch(pair ->
                 pair.getBeta().size() == ReductionTypeEnumerator.ROOT_SYMBOLS));
+        assertTrue(rootBatch.parents().stream().allMatch(pair -> pair.getOmega().stream()
+                .anyMatch(cycle -> CommonOperations.isOriented(pair.getBeta(), cycle))));
     }
 
     @Test
@@ -74,10 +79,10 @@ class ObstructionAvoidanceTest {
         assertTrue(result.complete());
         assertEquals(1, result.terminalResiduals());
         assertEquals(2_176, result.reconstructionApplications());
-        assertEquals(627, result.intermediatePrefixObligations());
+        assertEquals(1_759, result.intermediatePrefixObligations());
         assertEquals(0, result.propagatedPrefixMisses());
         assertEquals(0, result.rootSearchObligations());
-        assertEquals(627, result.trivialClosures());
+        assertEquals(1_759, result.trivialClosures());
         assertEquals(0, result.certificates());
         assertTrue(persistedMisses.isEmpty());
     }
@@ -103,11 +108,11 @@ class ObstructionAvoidanceTest {
 
             assertTrue(result.complete());
             assertEquals(1, result.terminalResiduals());
-            assertEquals(1_728_934, result.reconstructionApplications());
-            assertEquals(627, result.intermediatePrefixObligations());
-            assertEquals(627, result.propagatedPrefixMisses());
-            assertEquals(623_283, result.rootSearchObligations());
-            assertEquals(623_283, result.trivialClosures());
+            assertEquals(4_846_462, result.reconstructionApplications());
+            assertEquals(1_759, result.intermediatePrefixObligations());
+            assertEquals(1_759, result.propagatedPrefixMisses());
+            assertEquals(1_901_013, result.rootSearchObligations());
+            assertEquals(1_901_013, result.trivialClosures());
             assertEquals(0, result.certificates());
             assertTrue(persistedMisses.isEmpty());
         }

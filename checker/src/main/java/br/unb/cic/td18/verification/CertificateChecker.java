@@ -50,12 +50,20 @@ public final class CertificateChecker {
             progress.phase("CPU-only oriented 19-cycle classification");
             final var orientedNineteenSurvivors =
                     verifyOrientedNineteenClassification();
+            ExceptionalNineCycleVerifier.verifyInventory();
+            ExceptionalFifteenCycleVerifier.verifyInventory();
             if (options.structuralOnly()) {
                 return;
             }
 
             final var residuals = new ConcurrentLinkedQueue<ResidualObligation>();
             try (final var certificates = new CertificateStore(options.database())) {
+                if (options.checksExceptionalNine()) {
+                    ExceptionalNineCycleVerifier.verify(certificates, options.nineType(), progress);
+                }
+                if (options.checksExceptionalFifteen()) {
+                    ExceptionalFifteenCycleVerifier.verify(certificates, options.fifteenType(), progress);
+                }
                 final var missingSurvivors = options.checksSurvivors()
                         ? checkOrientedNineteenCertificates(certificates, orientedNineteenSurvivors)
                         : List.<String>of();
@@ -78,8 +86,7 @@ public final class CertificateChecker {
             }
 
             System.out.printf(
-                    "development checks complete: phase=%s rows=%d-%d elapsed=%s; "
-                            + "file-integrity validation deferred%n",
+                    "certificate checks complete: phase=%s rows=%d-%d elapsed=%s%n",
                     options.phase(), options.firstRow(), options.lastRow(),
                     Duration.between(started, Instant.now()));
         }
@@ -91,7 +98,7 @@ public final class CertificateChecker {
         final var inventory = IndependentTypeEnumerator.enumerate();
         if (inventory.rootPartitions() != 53
                 || inventory.annotatedRoots() != 360
-                || inventory.entries().size() != 204
+                || inventory.entries().size() != Table2.EXPECTED_ENTRIES
                 || table.size() != inventory.entries().size()) {
             throw new IllegalStateException(
                     "Independent inventory mismatch: partitions="
@@ -119,10 +126,10 @@ public final class CertificateChecker {
             }
             depthCounts[expected.movesUsed()]++;
         }
-        if (depthCounts[0] != 8 || depthCounts[1] != 8
+        if (depthCounts[0] != 59 || depthCounts[1] != 45
                 || depthCounts[2] != 188) {
             throw new IllegalStateException(
-                    "Independent depth distribution is not 8, 8, 188");
+                    "Independent depth distribution is not 59, 45, 188");
         }
     }
 
@@ -130,8 +137,8 @@ public final class CertificateChecker {
             final PaperDischargeLemma.Audit audit
     ) {
         System.out.printf(
-                "inventory verified: rows=204, roots=53/360, "
-                        + "depths=8/8/188%n");
+                "inventory verified: rows=292, roots=53/360, "
+                        + "depths=59/45/188%n");
         System.out.printf(
                 "Q lemma verified from %s: oriented-3=%d, "
                 + "TD(16)-successor=%d (%d settled, %d retained), "
@@ -199,7 +206,8 @@ public final class CertificateChecker {
         long verifiedR = 0;
         long verifiedQ = 0;
         for (final var entry : entries) {
-            progress.phase("row " + entry.number() + "/204 Burnside count: " + entry.type());
+            progress.phase("row " + entry.number() + "/" + Table2.EXPECTED_ENTRIES
+                    + " Burnside count: " + entry.type());
             final long counted = DirectTwistedBraceletGenerator
                     .countRepresentativesByBurnside(
                             entry.partition(), entry.orientedByPart());
@@ -220,7 +228,7 @@ public final class CertificateChecker {
                     result.trivialClosures(), result.certificates(),
                     result.residuals());
         }
-        if (entries.size() == 204 && (verifiedR != 33_544_626_415L
+        if (entries.size() == Table2.EXPECTED_ENTRIES && (verifiedR != 692_894_074_401L
                 || verifiedQ != PaperDischargeLemma.EXPECTED_TOTAL_Q)) {
             throw new IllegalStateException(
                     "Table totals disagree: R=" + verifiedR
@@ -244,8 +252,9 @@ public final class CertificateChecker {
         final var residual = new LongAdder();
         final long rowStarted = System.nanoTime();
         progress.phase(() -> String.format(java.util.Locale.ROOT,
-                "row %d/204 %s checked=%d/%d trivial=%d witnesses=%d residuals=%d rate=%.1f/s",
-                entry.number(), entry.type(), trivial.sum() + certified.sum() + residual.sum(),
+                "row %d/%d %s checked=%d/%d trivial=%d witnesses=%d residuals=%d rate=%.1f/s",
+                entry.number(), Table2.EXPECTED_ENTRIES, entry.type(),
+                trivial.sum() + certified.sum() + residual.sum(),
                 entry.remainingClassObligations(), trivial.sum(), certified.sum(), residual.sum(),
                 (trivial.sum() + certified.sum() + residual.sum())
                         / Math.max(1e-9, (System.nanoTime() - rowStarted) / 1e9)));
@@ -313,8 +322,8 @@ public final class CertificateChecker {
         }
     }
 
-    private static boolean cpuClosure(final CyclicTargetPair pair,
-                                      final int maximumMoves) {
+    static boolean cpuClosure(final CyclicTargetPair pair,
+                              final int maximumMoves) {
         final byte[] omega = pair.getOmega().getOneLineNotation();
         final byte[] beta = betaBytes(pair);
         final var prefix = CommonOperations.searchForSorting(
@@ -531,7 +540,8 @@ public final class CertificateChecker {
     private static void printUsage() {
         System.out.println("CertificateChecker [--table=path] "
                 + "[--database=path] [--work=path] [--rows=first-last] "
-                + "[--phase=all|rows|avoidance|survivors] [--structural-only]");
+                + "[--phase=all|rows|avoidance|survivors|exceptional-nine|exceptional-fifteen] "
+                + "[--nine-type=9O-...] [--fifteen-type=15O-...@depth] [--structural-only]");
     }
 
     private record RowResult(long generated, long trivialClosures,
@@ -551,7 +561,7 @@ public final class CertificateChecker {
     }
 
     record Options(Path table, Path database, Path work, int firstRow, int lastRow,
-                   String phase, boolean structuralOnly, boolean help) {
+                   String phase, String nineType, String fifteenType, boolean structuralOnly, boolean help) {
         static Options parse(final String[] arguments,
                                      final Path root) throws IOException {
             var table = root.resolve("docs/td18-reduction-count.tex");
@@ -561,8 +571,10 @@ public final class CertificateChecker {
             var work = root.resolve("checker/target/verification-work-"
                     + ProcessHandle.current().pid() + "-" + System.currentTimeMillis());
             var firstRow = 1;
-            var lastRow = 204;
+            var lastRow = Table2.EXPECTED_ENTRIES;
             var phase = "all";
+            String nineType = null;
+            String fifteenType = null;
             var structuralOnly = false;
             var help = false;
             for (final var argument : arguments) {
@@ -577,6 +589,10 @@ public final class CertificateChecker {
                     }
                     firstRow = Integer.parseInt(bounds[0]);
                     lastRow = Integer.parseInt(bounds[1]);
+                } else if (argument.startsWith("--nine-type=")) {
+                    nineType = argument.substring("--nine-type=".length());
+                } else if (argument.startsWith("--fifteen-type=")) {
+                    fifteenType = argument.substring("--fifteen-type=".length());
                 } else if (argument.startsWith("--phase=")) {
                     phase = argument.substring("--phase=".length());
                 } else if (argument.startsWith("--table=")) {
@@ -592,8 +608,16 @@ public final class CertificateChecker {
                             "Unknown argument: " + argument);
                 }
             }
-            if (firstRow < 1 || lastRow < firstRow || lastRow > 204
-                    || !List.of("all", "rows", "avoidance", "survivors").contains(phase)) {
+            if (firstRow < 1 || lastRow < firstRow || lastRow > Table2.EXPECTED_ENTRIES
+                    || !List.of("all", "rows", "avoidance", "survivors", "exceptional-nine",
+                    "exceptional-fifteen").contains(phase)
+                    || (nineType != null && (!phase.equals("exceptional-nine")
+                    || !br.unb.cic.td18.model.ExceptionalNineCycle.rootTypes().stream()
+                    .map(br.unb.cic.td18.model.ExceptionalNineCycle::typeKey).toList().contains(nineType)))
+                    || (fifteenType != null && (!phase.equals("exceptional-fifteen")
+                    || !br.unb.cic.td18.model.ExceptionalFifteenCycle.obligations().stream()
+                    .map(br.unb.cic.td18.model.ExceptionalFifteenCycle.Obligation::key)
+                    .toList().contains(fifteenType)))) {
                 throw new IllegalArgumentException("Invalid row range or checker phase");
             }
             work = work.toAbsolutePath().normalize();
@@ -610,11 +634,19 @@ public final class CertificateChecker {
             }
             return new Options(table.toAbsolutePath(),
                     database.toAbsolutePath(), work, firstRow, lastRow,
-                    phase, structuralOnly, help);
+                    phase, nineType, fifteenType, structuralOnly, help);
         }
 
         boolean includes(final int row) {
             return row >= firstRow && row <= lastRow;
+        }
+
+        boolean checksExceptionalNine() {
+            return phase.equals("all") || phase.equals("exceptional-nine");
+        }
+
+        boolean checksExceptionalFifteen() {
+            return phase.equals("all") || phase.equals("exceptional-fifteen");
         }
 
         boolean checksSurvivors() {

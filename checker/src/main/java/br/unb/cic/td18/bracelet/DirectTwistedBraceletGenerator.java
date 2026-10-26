@@ -91,6 +91,58 @@ public final class DirectTwistedBraceletGenerator {
                 null, cancellationCheck).generate();
     }
 
+    /**
+     * Generates the invariant subfamily whose unique oriented 9-cycle has ranks
+     * 0,2,4,6,8,1,3,5,7 in induced beta order. Rank origins are auxiliary data;
+     * twisted reflection reverses positions and inverts ranks, preserving this
+     * progression. Thus the ordinary orbit comparisons remain exhaustive.
+     * The partition must be fixed-point-free and contain exactly one 9-cycle.
+     * Iteration follows the deterministic generation order.
+     */
+    public static void generateExceptionalNineRepresentatives(
+            final int[] partition,
+            final boolean[] orientedByPart,
+            final Consumer<CyclicTargetPair> consumer) {
+        generateExceptionalProgressionRepresentatives(partition, orientedByPart, 9, consumer);
+    }
+
+    /**
+     * Generates the invariant subfamily whose unique oriented 15-cycle has rank
+     * progression 2 modulo 15 in induced beta order. Twisted reflection reverses
+     * positions and inverts ranks, so it preserves that progression. The usual
+     * auxiliary and dihedral comparisons therefore apply to this subfamily.
+     * The partition must be fixed-point-free and contain exactly one 15-cycle.
+     */
+    public static void generateExceptionalFifteenRepresentatives(
+            final int[] partition,
+            final boolean[] orientedByPart,
+            final Consumer<CyclicTargetPair> consumer) {
+        generateExceptionalProgressionRepresentatives(partition, orientedByPart, 15, consumer);
+    }
+
+    private static void generateExceptionalProgressionRepresentatives(
+            final int[] partition,
+            final boolean[] orientedByPart,
+            final int cycleLength,
+            final Consumer<CyclicTargetPair> consumer) {
+        validate(partition, orientedByPart);
+        final var specs = normalizedSpecs(partition, orientedByPart);
+        var exceptionalCycle = -1;
+        for (var index = 0; index < specs.length; index++) {
+            if (specs[index].size == cycleLength) {
+                if (exceptionalCycle != -1 || !specs[index].oriented) {
+                    throw new IllegalArgumentException("Expected a unique oriented " + cycleLength + "-cycle");
+                }
+                exceptionalCycle = index;
+            }
+        }
+        if (exceptionalCycle == -1) {
+            throw new IllegalArgumentException("Expected a unique oriented " + cycleLength + "-cycle");
+        }
+        new Generator(specs, java.util.Objects.requireNonNull(consumer), null,
+                null, NO_CANCELLATION_CHECK, exceptionalCycle).generate();
+    }
+
     /** Counts realizable representatives without decoding completed words. */
     public static long countRepresentatives(final int[] partition,
                                      final boolean[] orientedByPart) {
@@ -526,11 +578,23 @@ public final class DirectTwistedBraceletGenerator {
         private int comparisonMapTrailSize;
         private Consumer<GenerationTask> continuationCollector;
 
+        private final int exceptionalCycle;
+
         private Generator(final CycleSpec[] specs,
                           final Consumer<CyclicTargetPair> consumer,
                           final Consumer<int[]> wordConsumer,
                           final Runnable countConsumer,
                           final Runnable cancellationCheck) {
+            this(specs, consumer, wordConsumer, countConsumer, cancellationCheck, -1);
+        }
+
+        private Generator(final CycleSpec[] specs,
+                          final Consumer<CyclicTargetPair> consumer,
+                          final Consumer<int[]> wordConsumer,
+                          final Runnable countConsumer,
+                          final Runnable cancellationCheck,
+                          final int exceptionalCycle) {
+            this.exceptionalCycle = exceptionalCycle;
             this.specs = specs;
             this.consumer = consumer;
             this.wordConsumer = wordConsumer;
@@ -615,7 +679,7 @@ public final class DirectTwistedBraceletGenerator {
 
         private Generator(final Generator source) {
             this(source.specs, source.consumer, source.wordConsumer, source.countConsumer,
-                    source.cancellationCheck);
+                    source.cancellationCheck, source.exceptionalCycle);
 
             copy(source.word, word);
             copy(source.remaining, remaining);
@@ -1371,6 +1435,10 @@ public final class DirectTwistedBraceletGenerator {
         /** Records orientation information for a placement. */
         private boolean recordPlacement(final int position, final int symbol) {
             final var cycle = symbolCycle[symbol];
+            if (cycle == exceptionalCycle
+                    && symbolRank[symbol] != (2 * placedByCycle[cycle]) % specs[cycle].size) {
+                return false;
+            }
             previousRankByPosition[position] = lastRankByCycle[cycle];
             previousReverseOrderByPosition[position] = followsReverseOrder[cycle];
             previousLastPositionByPosition[position] = lastPositionByCycle[cycle];

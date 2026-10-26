@@ -46,11 +46,11 @@ class ReductionTypeEnumeratorTest {
     }
 
     @Test
-    void enumeratorYieldsThe204ReductionNoteTypes() {
-        assertEquals(204, ReductionTypeEnumerator.distinctStatePairs());
+    void enumeratorYieldsThe292ReductionNoteTypes() {
+        assertEquals(292, ReductionTypeEnumerator.distinctStatePairs());
         final var obligations = ReductionTypeEnumerator.enumerate();
-        assertEquals(204, obligations.size());
-        assertEquals(new TreeMap<>(java.util.Map.of(0, 8, 1, 8, 2, 188)),
+        assertEquals(292, obligations.size());
+        assertEquals(new TreeMap<>(java.util.Map.of(0, 59, 1, 45, 2, 188)),
                 depthDistribution());
     }
 
@@ -63,10 +63,44 @@ class ReductionTypeEnumeratorTest {
     }
 
     @Test
+    void totallyUnorientedTypesStopAtEveryDepthIncludingWithEvenPairs() {
+        for (var symbols = 14; symbols <= 19; symbols++) {
+            for (final var lengths : Partitions.generateValidPartitions(symbols)) {
+                final var orientations = new boolean[lengths.length];
+                for (var depth = 0; depth <= 2; depth++) {
+                    assertTrue(ReductionTypeEnumerator.reductionOptions(lengths, orientations, depth).isEmpty());
+                    assertTrue(ReductionTypeEnumerator.selectedChildPartitions(lengths, orientations, depth).isEmpty());
+                    assertTrue(ReductionTypeEnumerator.mayHaveNoAvailableReduction(lengths, orientations, depth));
+                }
+            }
+        }
+        assertEquals(53, ReductionTypeEnumerator.enumerate().stream()
+                .filter(o -> o.movesUsed() == 0 && ReductionTypeEnumerator.isTotallyUnoriented(o.oriented())).count());
+        assertTrue(ReductionTypeEnumerator.enumerate().stream().anyMatch(o ->
+                o.typeKey().equals("5U,4U,4U,3U,3U") && o.movesUsed() == 0 && o.budget() == 10));
+        assertTrue(ReductionTypeEnumerator.enumerate().stream().anyMatch(o ->
+                o.typeKey().equals("6U,6U,3U,3U") && o.movesUsed() == 1 && o.budget() == 9));
+    }
+
+    @Test
+    void packedReconstructionPolicyContainsNoTotallyUnorientedParent() {
+        for (var depth = 0; depth <= 2; depth++) {
+          for (final var transition : ReductionTypeEnumerator.reconstructionTransitions(depth)) {
+            final long packed = transition.parentType();
+            var hasOrientedCycle = false;
+            for (var index = 0; index < (packed & 15); index++) {
+                hasOrientedCycle |= ((packed >>> (4 + 6 * index)) & 32) != 0;
+            }
+            assertTrue(hasOrientedCycle, "A CPU/CUDA inverse must not reconstruct an all-U reduction parent");
+          }
+        }
+    }
+
+    @Test
     void checkedTd16ComputationReducesTheClassObligations() {
         final var obligations = ReductionTypeEnumerator.enumerate();
         assertEquals(Map.of(
-                        ReductionTypeEnumerator.Td16Disposition.NOT_COVERED, 100L,
+                        ReductionTypeEnumerator.Td16Disposition.NOT_COVERED, 188L,
                         ReductionTypeEnumerator.Td16Disposition.SETTLED, 102L,
                         ReductionTypeEnumerator.Td16Disposition.PARTIAL, 2L),
                 obligations.stream().collect(Collectors.groupingBy(
@@ -87,4 +121,56 @@ class ReductionTypeEnumeratorTest {
                         ReductionTypeEnumerator::td16ResidualClasses));
         assertEquals(Map.of("11O,5O", 495, "9O,7O", 1_541), partial);
     }
+    @Test
+    void offersEvenPairWhenOrientedFiveHasNoQualifyingMove() {
+        final int[] lengths = {5, 4, 4, 3, 3};
+        final boolean[] orientations = {true, false, false, false, false};
+        assertTrue(ReductionTypeEnumerator.allowsTransition(lengths, orientations, 0,
+                ReductionTypeEnumerator.ReductionKind.ORIENTED_ODD, new int[]{4, 4, 3, 3, 3}));
+        assertTrue(ReductionTypeEnumerator.allowsTransition(lengths, orientations, 0,
+                ReductionTypeEnumerator.ReductionKind.EVEN_PAIR, new int[]{7, 5, 3, 3}));
+        assertTrue(!ReductionTypeEnumerator.mayHaveNoAvailableReduction(lengths, orientations, 0));
+        assertTrue(ReductionTypeEnumerator.enumerate().stream().noneMatch(o ->
+                o.typeKey().equals("5O,4U,4U,3U,3U")));
+    }
+
+    @Test
+    void retainsOneMoveTypesWhenClearingAlternativesExceedTheBudget() {
+        final int[] lengths = {7, 5, 3, 3};
+        final boolean[] orientations = {true, true, false, false};
+        assertTrue(ReductionTypeEnumerator.mayHaveNoAvailableReduction(lengths, orientations, 1));
+        assertEquals(java.util.Set.of(5, 7), ReductionTypeEnumerator.reductionOptions(lengths, orientations, 1)
+                .stream().map(ReductionTypeEnumerator.ReductionOption::cycleLength)
+                .collect(Collectors.toSet()));
+        assertTrue(ReductionTypeEnumerator.enumerate().stream().anyMatch(o ->
+                o.typeKey().equals("7O,5O,3U,3U") && o.movesUsed() == 1 && o.budget() == 9));
+    }
+
+    @Test
+    void orientedThreeStillClearsBeforeConditionalBranches() {
+        final int[] lengths = {5, 4, 4, 3, 3};
+        final boolean[] orientations = {true, false, true, false, true};
+        final var options = ReductionTypeEnumerator.reductionOptions(lengths, orientations, 0);
+        assertEquals(1, options.size());
+        assertEquals(ReductionTypeEnumerator.ReductionKind.ORIENTED_THREE, options.getFirst().kind());
+        org.junit.jupiter.api.Assertions.assertArrayEquals(new int[]{5, 4, 4, 3}, options.getFirst().childLengths());
+        assertTrue(!ReductionTypeEnumerator.mayHaveNoAvailableReduction(lengths, orientations, 0));
+    }
+
+    @Test
+    void orientedFiveCounterexampleHasNoTwoFixedPointTransposition() {
+        final var beta = br.unb.cic.td18.permutation.Cycle.of(0, 1, 2, 3, 4);
+        final var omega = new br.unb.cic.td18.permutation.MulticyclePermutation(java.util.List.of(
+                br.unb.cic.td18.permutation.Cycle.of(0, 3, 1, 4, 2)));
+        final var pair = br.unb.cic.td18.model.CyclicTargetPair.of(omega, beta);
+        assertTrue(br.unb.cic.td18.search.CommonOperations.isOriented(beta, omega.asNCycle()));
+        for (var a = 0; a < 3; a++) for (var b = a + 1; b < 4; b++) for (var c = b + 1; c < 5; c++) {
+            final var move = br.unb.cic.td18.permutation.Cycle.of(a, b, c);
+            final var childOmega = br.unb.cic.td18.permutation.PermutationGroups.computeProduct(
+                    pair.getOmega(), move.getInverse());
+            final var parts = childOmega.stream().mapToInt(cycle -> cycle.size()).sorted().toArray();
+            assertTrue(!Arrays.equals(new int[]{1, 1, 3}, parts));
+        }
+    }
+
 }
