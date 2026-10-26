@@ -9,9 +9,12 @@ lower bound, that would establish TD(18) = 10.
 No completed TD(18) proof artifact is currently included. Table 2 is a finite
 inventory of 292 annotated types, not a diameter certificate. Its `R` column
 counts all realizable extended-toric classes, while `Q` counts the classes
-still requiring a sorting witness after checked TD(16) reuse. Every `Q` class
-must be discharged within its displayed budget, subject to the local reduction
-hypothesis.
+emitted after checked TD(16) reuse and restricted odd-pair retention. Each
+ordinary `Q` class must close within its displayed budget or through checked
+root avoidance. Rows 267, 270, and 274 instead contribute 391, 321, and 1,172
+direct root-lifting seeds: regenerate all their admitted roots and close them
+within ten moves. The source state's displayed budget nine is not a requirement
+to sort a restricted seed in nine moves.
 
 Use [WORKFLOW.md](WORKFLOW.md) to map these stages to runnable commands and
 output paths, [KNOWLEDGE.md](KNOWLEDGE.md) for framework references, and
@@ -59,6 +62,13 @@ two-reduction method:
 - the even-pair reduction has the stated effect and is used only for types
   containing some oriented cycle; the two selected even-length cycles
   themselves may both be unoriented;
+- the local no-qualifying-move classification at lengths 5, 7, 9, 11, and 13
+  is exhaustively regenerated. For rows 267, 270, and 274, either cycle's
+  qualifying move enters an existing child branch; simultaneous failure is
+  exactly the restricted rank-progression family. Preserve all 292 types and
+  every structural edge. Directly lift every restricted seed to all admitted
+  roots by restoring one fixed point and reversing the odd-split/even-pair
+  supports, then require a ten-move root closure or witness;
 - every recursive transposition branch spends one move and lowers the 3-norm
   by one; support-clearing alternatives have their separate move costs;
 - each diameter value used to close a state is established independently of
@@ -108,10 +118,12 @@ method identifier, total, and code revision, plus an independent
 verification report. Independently verify the `Q` mapping: 52 direct
 oriented-3 closures; 50 complete TD(16) successor-search closures; full
 emission of the two starred rows whose checked searches found 495 and 1,541
-obstructions; and totals `R = 692,894,074,401` and `Q = 688,413,622,139`.
+obstructions; the restricted counts `Q = 391, 321, 1172` at rows 267, 270,
+and 274; and totals `R = 692,894,074,401` and `Q = 45,498,334,516`.
 The dispositions are 102 fully settled rows, 2 partially covered rows, and
-188 rows not covered by these TD(16) results. The latter two groups retain
-`Q = R`; 35 empty uncovered rows and the 102 settled rows give 137 literal
+188 rows not covered by these TD(16) results. Three of the latter group use
+restricted retention; the other 187 rows in the two groups retain `Q = R`.
+Thirty-five empty uncovered rows and the 102 settled rows give 137 literal
 zero-`Q` rows. There are 46 empty types altogether, including 11 of the
 settled rows.
 
@@ -119,6 +131,13 @@ settled rows.
 
 For every class counted by `Q`, directly generate exactly one representative.
 This includes every class in starred rows 130 and 134 in ordinary table order.
+For rows 267, 270, and 274, constrain both oriented colors' rank progressions
+during prefix construction and generate only simultaneous local failures.
+The independent checker must compare the complete generated class sets with
+support-subset enumeration: 756, 912, and 2,917 candidate orbits yield 391,
+321, and 1,172 valid classes. The fixed-point-free precondition, auxiliary
+standardization, twisted reflection, and full-domain realizability remain
+mandatory; generating the full rows and filtering them is not the route.
 Keep fixed-content encoding, auxiliary
 standardization, twisted reflection, and realizability checks explicit.
 
@@ -134,12 +153,22 @@ with `Q = 0` require the checked discharge artifact instead of generation.
 ## Stage 4 — discharge every sorting obligation
 
 Let a row be reached after s reductions on a contracted domain of N symbols.
-Discharge every representative remaining in `Q` within 10 - s moves. One valid
+Except for the three direct root-lifting rows below, first attempt to
+discharge every representative remaining in `Q` within 10 - s moves. One valid
 discharge is a checked prefix of d at most three transpositions that creates r
 algebraic fixed points (adjacencies), satisfies r/d >= 1.6, and satisfies
 s + d + TD(N-r-1) <= 10 after fixed-point contraction. Otherwise, find and
 validate a complete sorting sequence of length at most 10 - s. Search
 boundaries must be exhaustive and explicit.
+
+Rows 267, 270, and 274 send all 1,884 seeds directly to root reconstruction,
+without nine-move CPU or CUDA sorting searches. They require at most
+`1,884 * 18 * binomial(18,2) = 5,188,536` inverse attempts before parent
+filtering and class deduplication. A seed marker is a routing record, not
+evidence of failed sorting. Independently regenerate the seeds and roots,
+then replay each root's checked CPU closure or complete witness within ten
+moves. Missing seed markers must not hide these obligations, including in
+standalone avoidance verification. Full root certificates remain pending.
 
 The short prefix is not a full sorting witness and must not be stored as a
 certificate. The independent verifier must regenerate the representative,
@@ -186,12 +215,22 @@ remains unresolved. The versioned sidecar range manifest records
 reconstruction counts, intermediate prefix-check and propagated-miss counts, root
 search counts, all outcomes, the class-key checksum, and whether any root
 obstruction remains.
-Avoidance manifests use version 6 and the work database uses format version 4.
+Row manifests use version 4, avoidance manifests use version 7, and the work
+database uses format version 5. Standalone avoidance regenerates all 1,884
+restricted seeds and preserves source budgets eight, nine, and ten separately.
+Resume validation checks the exact source inventory; a recovered work database
+must not drop direct budget-nine seeds or unresolved budget-ten roots.
+The work database saves the exact immutable terminal sources before search,
+so a successful root witness deleting its obstruction marker cannot erase an
+input on resume. Completed searches retry unresolved roots. Before each retry,
+the old completion record is invalidated; an interrupted retry then replays
+the complete candidate set on resume. Work-source rows and budgets are
+operational metadata, not proof inputs.
 Reconstruction counts include inverse supports on canonical restorations after
 the domain, depth, and known-diameter tests, before parent-type filtering and
 class deduplication. Older work databases and avoidance manifests are rejected
-because their predecessor sets may include structural branches excluded by
-the current stop for totally unoriented types.
+because their source inventories and completion semantics predate this route
+or their predecessor sets include excluded structural branches.
 The emitter may execute inverse-support applications in CUDA batches. The
 device reconstructs and forward-replays each parent, applies a transition table
 derived from the Java reduction enumerator, computes the exact twisted-bracelet
@@ -201,9 +240,11 @@ unless both the pre-filter application count and complete key set agree. This
 changes execution and buffering only; the independent checker and the manifest
 counting convention remain unchanged.
 
-Exit criterion: every class counted by `Q` has either a checked
-prefix-plus-known-diameter closure or a replayable valid witness within its row
-budget, and no unresolved residual remains.
+Exit criterion: every class counted by `Q` has a checked
+prefix-plus-known-diameter closure or valid witness within its row budget,
+or every represented root has a checked ten-move closure through avoidance.
+Every restricted odd-pair seed must pass the latter complete root coverage
+check, and no unresolved residual remains.
 
 ## Stage 5 — independent end-to-end verification
 
@@ -219,7 +260,10 @@ The verifier must independently:
 6. regenerate all exceptional 9-cycle root interleavings, both exceptional
    15-cycle companion families, and both exceptional 19-cycle classes,
    checking every prefix closure and witness against its budget;
-7. reject any missing row, class, partition, witness, or unresolved obligation.
+7. independently regenerate the restricted odd-pair local classification,
+   every restricted seed, and every admitted reconstructed root; verify
+   ten-move root outcomes even if stored seed markers are missing;
+8. reject any missing row, class, partition, witness, or unresolved obligation.
 
 Only a complete verification report permits the upper-bound claim. The final
 report must state all hypotheses and artifact versions explicitly.
@@ -259,11 +303,19 @@ more with `2 + TD(14) = 10`. These 86 closures are checked and regenerated
 on every proof run. The remaining 11 roots require complete witnesses
 within ten transpositions; their certificate checks remain pending.
 Missing required witnesses and exceeded budgets fail verification.
+The active restricted odd-pair route generates only 1,884 simultaneous local
+failures, retains the complete structural inventory, and sends the seeds
+directly to root reconstruction with full ten-move root budgets. The checker
+independently classifies the local cycles, compares complete support-enumerated
+and directly generated class sets, regenerates all seeds without relying on
+obstruction markers, and reconstructs and verifies the roots. Row and work
+formats distinguish these obligations from bounded-search misses. Complete
+root sorting and the exhaustive end-to-end certificate run remain pending.
 For every branch, verification uses
 exhaustive regeneration, witness replay, and checked closure arguments;
 checksums and sidecar files are not proof inputs. Selected row ranges or
 phases cover only their selected obligations. No completed large checker run
-or verification report is included. Obstruction provenance is intentionally not
+or verification report is included. Certificate-database obstruction provenance is intentionally not
 persisted: the avoidance phase and independent checker regenerate every
 reachable predecessor type and reduction path from Table 2 and the checked
 policy.
@@ -272,3 +324,10 @@ above.
 
 Generated databases, checkpoints, logs, and certificates must remain
 untracked.
+
+The architecture guide previously said both database readers and writers
+reject two-family databases. That disagreed with the writer implementation:
+it accepts a compatible default/obstructions database and adds the legacy
+intermediate family. The guide now states this behavior and the checker's
+separate read-only requirement for all three families. No certificate
+encoding or database-family change is part of the restricted strategy.

@@ -1,12 +1,12 @@
 package br.unb.cic.td18.verification;
 
-import br.unb.cic.td18.avoidance.AvoidanceSearchMiss;
 import br.unb.cic.td18.avoidance.ObstructionAvoidance;
 import br.unb.cic.td18.avoidance.ResidualObligation;
 import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
 import br.unb.cic.td18.certificate.CertificateCodec;
 import br.unb.cic.td18.certificate.CertificateStore;
 import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.reduction.ReductionTypeEnumerator;
 import br.unb.cic.td18.runtime.ProjectPaths;
 import br.unb.cic.td18.search.CheckedSearchResult;
@@ -45,6 +45,8 @@ public final class CertificateChecker {
             verifyInventory(entries);
             System.out.printf("reduction policy independently verified: reachedStates=%d%n",
                     IndependentTypeEnumerator.verifyReductionPolicy());
+            progress.phase("independent restricted odd-pair classification and support enumeration");
+            RestrictedOddPairVerifier.verifyInventory();
             final var paperAudit = PaperDischargeLemma.verify(entries);
             reportStructuralChecks(paperAudit);
             progress.phase("CPU-only oriented 19-cycle classification");
@@ -140,9 +142,9 @@ public final class CertificateChecker {
                 "inventory verified: rows=292, roots=53/360, "
                         + "depths=59/45/188%n");
         System.out.printf(
-                "Q lemma verified from %s: oriented-3=%d, "
+                "Q partition verified: paper=%s oriented-3=%d, "
                 + "TD(16)-successor=%d (%d settled, %d retained), "
-                        + "empty=%d, literal-Q0=%d, totalQ=%d%n",
+                        + "empty=%d, literal-Q0=%d, restrictedRows=3 restrictedSeeds=1884 totalQ=%d%n",
                 PaperDischargeLemma.PAPER, audit.orientedThreeRows(),
                 audit.successorSearchRows(),
                 audit.paperSettledSuccessorRows(),
@@ -236,12 +238,25 @@ public final class CertificateChecker {
         }
     }
 
-    private static RowResult verifyRow(
+    static RowResult verifyRow(
             final TableEntry entry,
             final CertificateStore certificates,
             final ConcurrentLinkedQueue<ResidualObligation> residualSink,
             final VerificationProgress progress
     ) {
+        if (RestrictedOddPair.isObligation(entry.partition(), entry.orientedByPart(), entry.movesUsed())) {
+            final var seeds = RestrictedOddPairVerifier.representatives(
+                    entry.partition(), entry.orientedByPart());
+            if (seeds.size() != entry.remainingClassObligations()) {
+                throw new IllegalStateException("Restricted row Q disagrees with independent enumeration");
+            }
+            for (final var pair : seeds) {
+                residualSink.add(new ResidualObligation(entry.number(), entry.remainingMoves(), pair));
+            }
+            // This branch has no nine-move premise and requires no persisted
+            // seed marker. Every root is reconstructed and checked afterwards.
+            return new RowResult(seeds.size(), 0, 0, seeds.size());
+        }
         if (entry.remainingClassObligations() == 0) {
             return RowResult.EMPTY;
         }
@@ -450,7 +465,7 @@ public final class CertificateChecker {
                 domains.add(entry.nonfixedSymbols());
             }
         }
-        final var result = new ArrayList<ResidualObligation>();
+        final var result = new java.util.LinkedHashMap<String, ResidualObligation>();
         final var scanned = new LongAdder();
         final var selected = new LongAdder();
         progress.phase(() -> "loading residual obstructions: scanned=" + scanned.sum()
@@ -458,6 +473,7 @@ public final class CertificateChecker {
         certificates.forEachObstruction(key -> {
             CyclicTargetPair rootMiss = null;
             ResidualObligation recovered = null;
+            boolean obsoleteRestricted = false;
             for (final int domain : domains) {
                 if (key.length != (5 * domain + 7) / 8) {
                     continue;
@@ -470,6 +486,17 @@ public final class CertificateChecker {
                 }
                 final var entry = contexts.get(ObstructionAvoidance.annotatedTypeOf(pair));
                 if (entry != null && entry.nonfixedSymbols() == domain) {
+                    if (!java.util.Arrays.equals(key,
+                            CertificateCodec.keyFor(pair.canonicalRepresentative()))) {
+                        throw new IllegalStateException("Noncanonical terminal obstruction key");
+                    }
+                    if (RestrictedOddPair.isObligation(entry.partition(), entry.orientedByPart(),
+                            entry.movesUsed()) && !RestrictedOddPair.contains(pair)) {
+                        // Old full-row misses with an available qualifying move belong
+                        // to the preserved child branches in the active route.
+                        obsoleteRestricted = true;
+                        continue;
+                    }
                     if (recovered != null) {
                         throw new IllegalStateException("Ambiguous residual context");
                     }
@@ -479,23 +506,42 @@ public final class CertificateChecker {
                     rootMiss = pair;
                 }
             }
-            if (recovered == null && rootMiss == null) {
+            if (recovered == null && rootMiss == null && !obsoleteRestricted) {
                 throw new IllegalStateException("Obstruction has no valid Table 2 or root context: "
                         + java.util.HexFormat.of().formatHex(key));
             }
             if (recovered != null && options.includes(recovered.row())) {
-                result.add(recovered);
+                result.put(residualKey(recovered), recovered);
                 selected.increment();
             }
             scanned.increment();
         });
-        System.out.printf("residual obstructions loaded: scanned=%d selected=%d rows=%d-%d; "
-                        + "row generation was not performed in this run%n",
+        for (final var entry : entries) {
+            if (options.includes(entry.number()) && RestrictedOddPair.isObligation(
+                    entry.partition(), entry.orientedByPart(), entry.movesUsed())) {
+                final var seeds = RestrictedOddPairVerifier.representatives(
+                        entry.partition(), entry.orientedByPart());
+                if (seeds.size() != entry.remainingClassObligations()) {
+                    throw new IllegalStateException("Restricted row Q disagrees with regenerated seeds");
+                }
+                for (final var pair : seeds) {
+                    final var seed = new ResidualObligation(entry.number(), entry.remainingMoves(), pair);
+                    result.put(residualKey(seed), seed);
+                }
+            }
+        }
+        System.out.printf("residual obstructions loaded and restricted seeds regenerated: "
+                        + "scanned=%d selected=%d rows=%d-%d%n",
                 scanned.sum(), result.size(), options.firstRow(), options.lastRow());
-        return List.copyOf(result);
+        return List.copyOf(result.values());
     }
 
-    private static void verifyAvoidance(
+    private static String residualKey(final ResidualObligation residual) {
+        return residual.row() + ":" + residual.maximumMoves() + ":"
+                + java.util.HexFormat.of().formatHex(residual.key());
+    }
+
+    static void verifyAvoidance(
             final CertificateStore certificates,
             final ConcurrentLinkedQueue<ResidualObligation> residuals,
             final Path work,
@@ -514,7 +560,7 @@ public final class CertificateChecker {
                     return moves.isPresent()
                             ? CheckedSearchResult.certificate(moves.orElseThrow())
                             : CheckedSearchResult.residual();
-                }, miss -> requireAvoidanceMiss(certificates, miss),
+                }, miss -> { },
                 work.resolve("avoidance"), progress);
         System.out.printf("avoidance checked: terminalResiduals=%d intermediate=%d "
                         + "propagatedMisses=%d roots=%d witnesses=%d unresolved=%d%n",
@@ -526,17 +572,6 @@ public final class CertificateChecker {
         }
     }
 
-    private static void requireAvoidanceMiss(
-            final CertificateStore certificates,
-            final AvoidanceSearchMiss miss
-    ) {
-        if (!certificates.hasAvoidanceMiss(miss)) {
-            throw new IllegalStateException(
-                    "Missing persisted avoidance miss: classKey="
-                            + miss.pair().extendedToricClassKey());
-        }
-    }
-
     private static void printUsage() {
         System.out.println("CertificateChecker [--table=path] "
                 + "[--database=path] [--work=path] [--rows=first-last] "
@@ -544,12 +579,12 @@ public final class CertificateChecker {
                 + "[--nine-type=9O-...] [--fifteen-type=15O-...@depth] [--structural-only]");
     }
 
-    private record RowResult(long generated, long trivialClosures,
+    record RowResult(long generated, long trivialClosures,
                              long certificates, long residuals) {
         private static final RowResult EMPTY =
                 new RowResult(0, 0, 0, 0);
 
-        private RowResult {
+        RowResult {
             if (generated < 0 || trivialClosures < 0 || certificates < 0
                     || residuals < 0
                     || trivialClosures + certificates + residuals

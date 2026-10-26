@@ -2,6 +2,7 @@ package br.unb.cic.td18.reduction;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -9,9 +10,38 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /** Regression guard for the TD(18) two-reduction enumeration. */
 class ReductionTypeEnumeratorTest {
+    @Test
+    void restrictedOddPairsRetainAllQualifyingChildTypesAndThe292TypeInventory() {
+        final var expectedChildren = Map.of(
+                "13O,5O", Set.of("[13, 3]", "[11, 5]", "[9, 5, 3]", "[7, 5, 5]"),
+                "11O,7O", Set.of("[11, 5]", "[11, 3, 3]", "[9, 7]", "[7, 7, 3]", "[7, 5, 5]"),
+                "9O,9O", Set.of("[9, 7]", "[9, 5, 3]"));
+        final var obligations = ReductionTypeEnumerator.enumerate();
+        final int[] rows = {267, 270, 274};
+        final long[] counts = {391L, 321L, 1_172L};
+        for (var index = 0; index < rows.length; index++) {
+            final var obligation = obligations.get(rows[index] - 1);
+            final var options = ReductionTypeEnumerator.reductionOptions(
+                    obligation.lengths(), obligation.oriented(), obligation.movesUsed());
+            assertEquals(expectedChildren.get(obligation.typeKey()), options.stream()
+                    .map(option -> Arrays.toString(option.childLengths())).collect(Collectors.toSet()));
+            assertTrue(options.stream().allMatch(option -> option.kind()
+                    == ReductionTypeEnumerator.ReductionKind.ORIENTED_ODD));
+            assertTrue(ReductionTypeEnumerator.mayHaveNoAvailableReduction(
+                    obligation.lengths(), obligation.oriented(), 1));
+            assertEquals(counts[index], ReductionTypeEnumerator.remainingClassObligations(
+                    obligation, Long.MAX_VALUE));
+            assertThrows(IllegalArgumentException.class, () ->
+                    ReductionTypeEnumerator.remainingClassObligations(obligation, 0L));
+        }
+        assertEquals(292, obligations.size());
+        assertEquals(Map.of(0, 59, 1, 45, 2, 188), depthDistribution());
+    }
+
     @Test
     void commandValidationChecksTheSourceTable() throws java.io.IOException {
         ReductionTypeEnumerator.main(new String[]{"--validate"});

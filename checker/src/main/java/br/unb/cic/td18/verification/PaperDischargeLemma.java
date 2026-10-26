@@ -1,6 +1,7 @@
 package br.unb.cic.td18.verification;
 
 import br.unb.cic.td18.table.TableEntry;
+import br.unb.cic.td18.model.RestrictedOddPair;
 
 import java.util.List;
 import java.util.Set;
@@ -18,7 +19,9 @@ import java.util.Set;
  * rows have {@code R = Q = 0}; the checker skips those only after the Burnside
  * count has independently confirmed that the type is empty. This lemma does
  * not turn either residual type into a partial TD(18) row: both starred rows
- * retain {@code Q = R}.</p>
+ * retain {@code Q = R}. Separately, rows 267, 270 and 274 have independently
+ * enumerated restricted root-lifting obligations. These are not consequences
+ * of the TD(16) paper discharge.</p>
  */
 final class PaperDischargeLemma {
     static final String PAPER = "https://arxiv.org/abs/2609.17493";
@@ -30,7 +33,7 @@ final class PaperDischargeLemma {
     static final long PAPER_SUCCESSOR_CLASSES = 4_511_223_147L;
     static final long PAPER_SORTED_SUCCESSOR_CLASSES = 4_511_221_111L;
     static final long PAPER_RESIDUAL_SUCCESSOR_CLASSES = 2_036L;
-    static final long EXPECTED_TOTAL_Q = 688_413_622_139L;
+    static final long EXPECTED_TOTAL_Q = 45_498_334_516L;
 
     private static final Set<String> RESIDUAL_TYPES = Set.of(
             "(11-O,5-O)",
@@ -53,6 +56,8 @@ final class PaperDischargeLemma {
         var zeroObligationRows = 0;
         var successorClasses = 0L;
         var totalQ = 0L;
+        var restrictedRows = 0;
+        var restrictedClasses = 0L;
 
         for (final var entry : entries) {
             final Long realizable = entry.recordedRealizableClasses();
@@ -71,7 +76,14 @@ final class PaperDischargeLemma {
                     && RESIDUAL_TYPES.contains(entry.type());
 
             final long expectedQ;
-            if (orientedThree) {
+            if (RestrictedOddPair.isObligation(entry.partition(), entry.orientedByPart(), entry.movesUsed())) {
+                restrictedRows++;
+                // Independently enumerated powers/supports supply this Q;
+                // it is a root-lifting obligation, not a paper discharge.
+                expectedQ = RestrictedOddPairVerifier.representatives(
+                        entry.partition(), entry.orientedByPart()).size();
+                restrictedClasses += expectedQ;
+            } else if (orientedThree) {
                 orientedThreeRows++;
                 expectedQ = 0;
             } else if (successorSearch) {
@@ -93,7 +105,7 @@ final class PaperDischargeLemma {
 
             if (recordedQ != expectedQ) {
                 throw new IllegalStateException(
-                        "Paper discharge lemma gives Q=" + expectedQ
+                        "Checked obligation policy gives Q=" + expectedQ
                                 + " for Table 2 row " + entry.number()
                                 + ", but the table records " + recordedQ);
             }
@@ -107,13 +119,14 @@ final class PaperDischargeLemma {
                 || paperSettledSuccessorRows != 50
                 || retainedResidualRows != 2 || emptyUncoveredRows != 35
                 || zeroObligationRows != 137
+                || restrictedRows != 3 || restrictedClasses != 1_884
                 || successorClasses != PAPER_SUCCESSOR_CLASSES
                 || PAPER_SUCCESSOR_CLASSES
                 - PAPER_SORTED_SUCCESSOR_CLASSES
                 != PAPER_RESIDUAL_SUCCESSOR_CLASSES
                 || totalQ != EXPECTED_TOTAL_Q) {
             throw new IllegalStateException(
-                    "Table 2 does not match the paper-backed Q partition: "
+                    "Table 2 does not match the checked Q partition: "
                             + "orientedThree=" + orientedThreeRows
                             + ", successorSearch=" + successorSearchRows
                             + ", settledSuccessors="

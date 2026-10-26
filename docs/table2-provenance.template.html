@@ -46,6 +46,7 @@
     <div class="controls"><label for="root-filter" id="root-filter-label">Origin:</label><select id="root-filter"></select><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit">Fit width</button><button id="export">Save graph as SVG</button></div>
     <div class="legend"><span style="--swatch:var(--blue)">Clear oriented 3-cycle · +3 fixed</span><span data-conditional style="--swatch:var(--green)">Odd-length-cycle reduction: qualifying 2-move · +2 fixed</span><span data-conditional style="--swatch:var(--orange)">Odd-length-cycle reduction: qualifying 2-move · +1 fixed</span><span style="--swatch:var(--purple)">Even-pair reduction · +1 fixed</span></div>
     <p class="note">A qualifying 2-move on an oriented odd-length cycle is shown by a dashed arrow. The established alternatives are a support-clearing sequence or a separate certificate obligation for classified exceptions. For length 15, every instance without a qualifying move contains the unique exceptional local cycle; only its companion interleavings are generated separately. A clearing sequence closes its branch when its move count plus the known diameter fits the remaining budget. Otherwise the routing tries another cycle or an even-pair reduction; if none covers the remaining case, the type is retained.</p>
+    <p class="note">Rows 267, 270, and 274 keep their whole-type R counts and all qualifying children. Their Q values are 391, 321, and 1,172 simultaneous local failures, generated directly and lifted to roots with budget ten. These 1,884 seeds require at most 5,188,536 inverse attempts before filtering and deduplication. Total Q is 45,498,334,516.</p>
     <div id="direct-closures" class="note"></div>
     <p id="graph-summary" aria-live="polite"></p>
     <div id="level-links" class="level-links" role="group" aria-label="Root children by depth" hidden></div>
@@ -81,7 +82,7 @@ function el(tag, attrs = {}, text = '') {
   return element;
 }
 function validate(data) {
-  if (data.format !== 'td18-type-provenance' || data.version !== 5 || data.complete !== true) throw Error('Unsupported or incomplete provenance artifact.');
+  if (data.format !== 'td18-type-provenance' || data.version !== 6 || data.complete !== true) throw Error('Unsupported or incomplete provenance artifact.');
   const value = JSON.parse(data.payload);
   if (value.rootPartitions !== 53 || value.annotatedRoots !== 360 || value.rowCount !== 292 || value.nodes.length !== value.nodeCount || value.edges.length !== value.edgeCount) throw Error('Missing inventory data.');
   const byKey = new Map();
@@ -89,10 +90,13 @@ function validate(data) {
     if (byKey.has(n.key) || n.key !== n.type + '@' + n.depth || ![0,1,2].includes(n.depth) || n.kappa >= 10 - n.depth || !['closed','retained','open'].includes(n.status)) throw Error('Malformed or repeated state.');
     if (n.status === 'closed' ? n.D === null || n.depth + n.D > 10 : n.D !== null && n.depth + n.D <= 10) throw Error('Inconsistent diameter closure.');
     if ((n.status === 'retained') !== (n.row > 0) || (n.depth === 2 && n.status === 'open') || (!n.row && (n.R !== null || n.Q !== null))) throw Error('Inconsistent obligation state.');
+    if (typeof n.rootLifting !== 'boolean' || n.rootLifting !== [267,270,274].includes(n.row)) throw Error('Missing or invalid restricted root-lifting route.');
+    if (n.rootLifting && (n.depth !== 1 || n.N !== 18 || n.Q !== ({267:'391',270:'321',274:'1172'})[n.row] || BigInt(n.R) <= BigInt(n.Q))) throw Error('Invalid restricted seed inventory.');
     byKey.set(n.key, n);
   }
   const terminal = value.nodes.filter(n => n.row > 0).sort((a,b) => a.row-b.row);
   if (terminal.length !== 292 || terminal.some((n,i) => n.row !== i+1 || n.R === null || n.Q === null)) throw Error('Missing Table 2 row.');
+  if (terminal.reduce((sum,n) => sum+BigInt(n.R),0n) !== 692894074401n || terminal.reduce((sum,n) => sum+BigInt(n.Q),0n) !== 45498334516n) throw Error('Invalid Table 2 class totals.');
   if ([0,1,2].map(d => terminal.filter(n => n.depth === d).length).join(',') !== '59,45,188' || value.nodes.filter(n => n.depth === 0).length !== 360) throw Error('Incomplete depth inventory.');
   const edgeKeys = new Set(), reached = new Set(value.nodes.filter(n => n.depth === 0).map(n => n.key));
   for (const edge of value.edges) {
@@ -126,9 +130,9 @@ async function start() {
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data.payload));
       const checksum = Array.from(new Uint8Array(digest), v => v.toString(16).padStart(2,'0')).join('');
       if (checksum !== data.payloadSha256) throw Error('Provenance checksum mismatch.');
-      $('integrity').textContent = 'Format v5 · payload SHA-256 checked: ' + checksum + ' · source SHA-256: ' + data.sourceSha256;
+      $('integrity').textContent = 'Format v6 · payload SHA-256 checked: ' + checksum + ' · source SHA-256: ' + data.sourceSha256;
     } else {
-      $('integrity').textContent = 'Format v5 · structure checked; SHA-256 unavailable in this browser · payload SHA-256: ' + data.payloadSha256 + ' · source SHA-256: ' + data.sourceSha256;
+      $('integrity').textContent = 'Format v6 · structure checked; SHA-256 unavailable in this browser · payload SHA-256: ' + data.payloadSha256 + ' · source SHA-256: ' + data.sourceSha256;
     }
     nodes = new Map(graph.nodes.map(n => [n.key,n]));
     roots = graph.nodes.filter(n => n.depth === 0).sort(typeOrder);
@@ -194,7 +198,14 @@ function closureLabel(c) {
 }
 function renderClosures(node) {
   const container = $('direct-closures'); container.replaceChildren();
-  container.hidden = !closures.get(node.key).length;
+  container.hidden = !closures.get(node.key).length && !node.rootLifting;
+  if (node.rootLifting) {
+    const p = document.createElement('p'), strong = document.createElement('strong');
+    strong.textContent = fmt(node.Q)+' restricted classes → root reconstruction → budget 10';
+    p.append(strong,document.createTextNode('. Generate only classes where neither local cycle has a qualifying transposition. Restore one fixed point in all 18 cyclic gaps and enumerate the inverse supports. At most '+fmt(Number(node.Q)*2754)+' attempts precede filtering and root-class deduplication. Each retained root needs a checked CPU closure or a complete ten-transposition witness; no nine-move successor search is required. The checker regenerates seeds and roots independently of stored obstruction markers.'));
+    const link = document.createElement('a'); link.href = 'two-cycle-residual-route.md'; link.textContent = 'Restricted generation and coverage argument';
+    p.append(document.createTextNode(' '),link); container.append(p);
+  }
   for (const c of closures.get(node.key)) {
     const p = document.createElement('p'), strong = document.createElement('strong');
     strong.textContent = closureLabel(c); p.append(strong);
@@ -207,6 +218,7 @@ function renderClosures(node) {
 }
 function outcome(node) {
   if (node.status === 'closed') return 'Known diameter closure: '+diameterLabel(node)+' ≤ 10';
+  if (node.rootLifting) return 'Row '+node.row+' · '+fmt(node.Q)+' restricted seeds · direct root lifting, budget 10';
   if (isTotallyUnoriented(node)) return 'Totally unoriented · direct obligation · row '+node.row+' · no reductions';
   if (node.row) return (node.depth === 0 ? 'Top-level obligation' : 'Table 2 obligation')+' · row '+node.row+(node.depth < 2 && outgoing.get(node.key).length ? ' · retained if qualifying tests fail; conditional children also shown' : '');
   if (closures.get(node.key).length) return (closures.get(node.key).some(c => c.kind === 'EXCEPTIONAL_FIFTEEN') ? node.depth ? 'Exceptional interleavings close by checked prefixes; ' : 'Separate exceptional interleaving route; ' : closures.get(node.key).every(c => c.kind !== 'SUPPORT_CLEARING') ? 'Separate exceptional certificate obligation; ' : 'Clearing alternative closes; ')+outgoing.get(node.key).length+' qualifying child types';
@@ -221,7 +233,7 @@ function renderList() {
     const button = document.createElement('button');
     button.setAttribute('aria-current', String(direction === 'forward' ? n === forwardRoot : n === selected));
     const label = document.createElement('span'); label.className = 'row-label';
-    label.textContent = direction === 'forward' ? 'Root '+(roots.indexOf(n)+1)+' · '+(n.row ? 'obligation · row '+n.row+' · '+outgoing.get(n.key).length+' conditional child types' : outgoing.get(n.key).length+' child types') : 'Row ' + n.row + (n.row === 130 || n.row === 134 ? ' *' : '') + ' · depth ' + n.depth + (n.R === '0' ? ' · empty' : n.Q === '0' ? ' · TD(16) reuse' : ' · Q = R');
+    label.textContent = direction === 'forward' ? 'Root '+(roots.indexOf(n)+1)+' · '+(n.row ? 'obligation · row '+n.row+' · '+outgoing.get(n.key).length+' conditional child types' : outgoing.get(n.key).length+' child types') : 'Row ' + n.row + (n.row === 130 || n.row === 134 ? ' *' : '') + ' · depth ' + n.depth + (n.rootLifting ? ' · restricted seeds → roots' : n.R === '0' ? ' · empty' : n.Q === '0' ? ' · TD(16) reuse' : ' · Q = R');
     const type = document.createElement('span'); type.className = 'row-type'; type.textContent = typeLabel(n);
     button.append(label,type); button.onclick = () => { if (direction === 'forward') location.hash = rootHash(n); else navigate(n.row); }; $('row-list').append(button);
   }
@@ -251,13 +263,14 @@ function choose(node, nextDirection) {
   for (const text of metadata) {
     const span = document.createElement('span'); span.textContent = text; $('metadata').append(span);
   }
-  const rowDisposition = selected.R === '0' ? 'Recorded R = 0: this empty type remains in the complete inventory.' : selected.Q === '0' ? 'Recorded Q = 0: ' + (selected.type.includes('3O') ? 'clearing an oriented 3-cycle and applying the known diameter discharges this row through TD(16) reuse.' : 'the checked TD(16) successor search discharges this row.') : (selected.row === 130 || selected.row === 134) ? 'Starred row: the TD(16) search retained '+(selected.row === 130 ? '495' : '1,541')+' obstructions. The full row retains Q = R.' : 'Q = R: every recorded realizable class remains a class generation and sorting obligation.';
+  const rowDisposition = selected.rootLifting ? 'R counts the whole annotated type. Q counts only its '+fmt(selected.Q)+' simultaneous local failures, lifted directly from source budget 9 to roots with budget 10. Every qualifying child branch remains included.' : selected.R === '0' ? 'Recorded R = 0: this empty type remains in the complete inventory.' : selected.Q === '0' ? 'Recorded Q = 0: ' + (selected.type.includes('3O') ? 'clearing an oriented 3-cycle and applying the known diameter discharges this row through TD(16) reuse.' : 'the checked TD(16) successor search discharges this row.') : (selected.row === 130 || selected.row === 134) ? 'Starred row: the TD(16) search retained '+(selected.row === 130 ? '495' : '1,541')+' obstructions. The full row retains Q = R.' : 'Q = R: every recorded realizable class remains a class generation and sorting obligation.';
   $('disposition').textContent = !forward ? rowDisposition : selected.status === 'closed' ? outcome(selected)+'. No further reductions are expanded from this type.' : selected.status === 'retained' ? (selected.depth === 2 ? 'The two-reduction limit is reached. ' : 'The remaining case has no qualifying 2-move, no established clearing alternative within budget, and no even-pair fallback. '+(outgoing.get(selected.key).length ? 'Its qualifying 2-move branches are also expanded. ' : ''))+outcome(selected)+'. '+rowDisposition : 'This type has '+outgoing.get(selected.key).length+' direct children. The root graph shows all reachable children through depth 2 under the documented selection policy.';
   renderClosures(selected);
   if (forward && closures.get(selected.key).length) $('disposition').textContent = 'The case without a qualifying move follows the clearing or exceptional certificate route shown below. Qualifying 2-moves continue to the child types in the graph. This type is not a Table 2 obligation.';
   const retentionReason = {
-    '13O,5O@1':'Clearing 13O gives 1 + 7 + TD(4) = 11; clearing 5O gives 1 + 3 + TD(12) = 11. Neither bound fits ten total moves, so this type retains its remaining obligation and conditional qualifying children.',
-    '11O,7O@1':'Clearing 11O gives 1 + 6 + TD(6) = 11; clearing 7O gives 1 + 4 + TD(10) = 11. Neither bound fits ten total moves, so this type retains its remaining obligation and conditional qualifying children.'
+    '13O,5O@1':'Clearing 13O gives 1 + 7 + TD(4) = 11; clearing 5O gives 1 + 3 + TD(12) = 11. Neither bound fits ten total moves.',
+    '11O,7O@1':'Clearing 11O gives 1 + 6 + TD(6) = 11; clearing 7O gives 1 + 4 + TD(10) = 11. Neither bound fits ten total moves.',
+    '9O,9O@1':'Clearing either 9O gives 1 + 5 + TD(8) = 11. Both equal-length cycles are tested for qualifying transpositions.'
   }[selected.key];
   if (retentionReason) $('disposition').textContent += ' '+retentionReason;
   if (isTotallyUnoriented(selected) && selected.row) $('disposition').textContent = 'Every cycle is unoriented. The routing stops before any reduction, including an even-pair reduction, so this type is a direct obligation with no children. '+rowDisposition;

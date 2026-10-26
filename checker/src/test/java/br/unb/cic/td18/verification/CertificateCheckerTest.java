@@ -152,6 +152,6 @@ class CertificateCheckerTest {
                 PaperDischargeLemma.PAPER_RESIDUAL_SUCCESSOR_CLASSES);
         assertEquals(35, audit.emptyUncoveredRows());
         assertEquals(137, audit.zeroObligationRows());
-        assertEquals(688_413_622_139L, audit.totalQ());
+        assertEquals(45_498_334_516L, audit.totalQ());
     }
 }

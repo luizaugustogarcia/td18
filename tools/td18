@@ -9,12 +9,12 @@ CPU checks:
   test              Run both modules' CPU tests (CUDA smoke tests stay opt-in)
   test-emitter      Run emitter CPU tests
   test-checker      Run checker CPU tests
-  inventory         Validate 53 partitions, 360 roots, and all 225 Table 2 types
-  structure         Check inventory, Q mapping, 19/15-cycle DFS, and exceptional companion types
+  inventory         Validate 53 partitions, 360 roots, and all 292 Table 2 types
+  structure         Check inventory, restricted Q sets, local DFS, and exceptional types
 
 Computation:
   count             Recount Table 2 R values on CPU; writes a local count log
-  emit              Generate Table 2 classes and discharge/search them (CUDA)
+  emit              Generate Table 2 classes, lift restricted seeds, and search (CUDA)
   avoidance         Resume obstruction reconstruction and root searches (CUDA)
   survivors         Search the two exceptional oriented 19-cycle classes (CUDA)
   exceptional-nine  Emit fixed exceptional 9-cycle extensions to 19 symbols (CUDA)

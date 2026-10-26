@@ -2,11 +2,14 @@ package br.unb.cic.td18.emission;
 
 import br.unb.cic.td18.avoidance.ResidualObligation;
 import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
+import br.unb.cic.td18.model.ExtendedToricClassKey;
+import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.search.WitnessSearch;
 import br.unb.cic.td18.table.TableEntry;
 
 import java.util.List;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -20,6 +23,47 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WitnessEmitterTest {
+    @Test
+    void sendsEveryRestrictedSeedDirectlyToRootLiftingWithoutNineMoveSearch() {
+        final int[] rows = {267, 270, 274};
+        final int[][] types = {{13, 5}, {11, 7}, {9, 9}};
+        final long[] fullCounts = {284_235_604_416L, 243_117_785_088L, 115_561_900_003L};
+        final long[] restrictedCounts = {391L, 321L, 1_172L};
+        for (var index = 0; index < rows.length; index++) {
+            final var entry = new TableEntry(rows[index], types[index], new boolean[]{true, true},
+                    18, 1, 1, 9, 8, fullCounts[index], restrictedCounts[index]);
+            final var persisted = new ConcurrentLinkedQueue<ResidualObligation>();
+            final var result = WitnessEmitter.emitEntry(entry, (pair, rate, budget) -> {
+                throw new AssertionError("A restricted seed must bypass nine-move search");
+            }, persisted::add);
+            assertEquals(restrictedCounts[index], result.generated());
+            assertEquals(restrictedCounts[index], result.residuals());
+            assertEquals(0L, result.trivialClosures());
+            assertEquals(0L, result.certificates());
+            final var keys = new HashSet<ExtendedToricClassKey>();
+            for (final var obligation : persisted) {
+                assertEquals(entry.number(), obligation.row());
+                assertEquals(9, obligation.maximumMoves());
+                assertTrue(RestrictedOddPair.contains(obligation.pair()));
+                assertTrue(keys.add(obligation.pair().extendedToricClassKey()));
+            }
+            assertEquals(restrictedCounts[index], keys.size());
+            assertEquals(persisted.stream().mapToLong(ResidualObligation::checksumContribution).sum(),
+                    result.checksum());
+        }
+    }
+
+    @Test
+    void rejectsMissingTruncatedAndObsoleteWholeTypeCountsForRestrictedSeeds() {
+        for (final long count : new long[]{0L, 390L, 392L, 284_235_604_416L}) {
+            final var entry = new TableEntry(267, new int[]{13, 5}, new boolean[]{true, true},
+                    18, 1, 1, 9, 8, 284_235_604_416L, count);
+            assertThrows(IllegalStateException.class, () -> WitnessEmitter.emitEntry(entry,
+                    (pair, rate, budget) -> { throw new AssertionError("Invalid count reached search"); },
+                    obligation -> { throw new AssertionError("Invalid count persisted a seed"); }));
+        }
+    }
+
     @Test
     void skipsRowsWithNoRemainingClassObligations() {
         final var entry = new TableEntry(

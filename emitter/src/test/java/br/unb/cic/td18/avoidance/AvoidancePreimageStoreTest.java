@@ -223,7 +223,6 @@ class AvoidancePreimageStoreTest {
             assertEquals(source, store.hardInventory(8));
             assertEquals(1, store.scanBatches(8, 1, seen::addAll));
             assertEquals(1, seen.size());
-            store.requireOrRecordSource(source);
 
             final var output = store.inventory(9);
             store.recordWave(new AvoidancePreimageStore.WaveManifest(
@@ -233,10 +232,6 @@ class AvoidancePreimageStoreTest {
         }
 
         try (final var reopened = new AvoidancePreimageStore(directory)) {
-            reopened.requireOrRecordSource(source);
-            // Development resumes compare the source count, not saved fingerprints.
-            reopened.requireOrRecordSource(new AvoidancePreimageStore.StateInventory(
-                    source.count(), source.checksum() + 1));
             assertEquals(source, reopened.inventory(8));
             final var wave = reopened.waveManifest(8).orElseThrow();
             assertEquals(17, wave.reconstructionApplications());
@@ -326,5 +321,33 @@ class AvoidancePreimageStoreTest {
                 CertificateCodec.keyFor(intermediate)));
         assertFalse(ObstructionAvoidanceRunner.isAvoidanceRootMiss(
                 new byte[]{1, 2, 3}));
+    }
+
+    @Test
+    void rootRetryInvalidatesCompletionBeforeRemovingOnlyResolvedHardStates() {
+        final var beta = Cycle.of(0, 1, 2);
+        final var first = CyclicTargetPair.of(new MulticyclePermutation(), beta).canonicalRepresentative();
+        final var second = CyclicTargetPair.of(new MulticyclePermutation(Cycle.of(0, 1, 2)), beta)
+                .canonicalRepresentative();
+        final var path = temporaryDirectory.resolve("root-retry-reset");
+        try (final var store = new AvoidancePreimageStore(path)) {
+            store.putPairs(10, List.of(first, second));
+            store.putHardPairs(10, List.of(first, second));
+            store.recordSearch(new AvoidancePreimageStore.SearchManifest(10, store.inventory(10),
+                    0, 0, store.hardInventory(10), 0));
+            store.clearSearchManifest(10);
+            assertTrue(store.searchManifest(10).isEmpty());
+            store.removeHardPairs(10, List.of(first));
+            assertEquals(2, store.inventory(10).count(), "Retry preserves the full candidate frontier");
+            assertEquals(1, store.hardInventory(10).count());
+        }
+        try (final var store = new AvoidancePreimageStore(path)) {
+            assertTrue(store.searchManifest(10).isEmpty(), "Interrupted retry must be replayable");
+            assertEquals(2, store.inventory(10).count());
+            assertEquals(1, store.hardInventory(10).count());
+            final var residuals = new ArrayList<CyclicTargetPair>();
+            store.scanHardBatches(10, 1, residuals::addAll);
+            assertEquals(List.of(second), residuals);
+        }
     }
 }

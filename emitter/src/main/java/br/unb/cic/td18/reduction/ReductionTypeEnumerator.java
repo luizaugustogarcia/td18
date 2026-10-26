@@ -1,6 +1,7 @@
 package br.unb.cic.td18.reduction;
 
 import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
+import br.unb.cic.td18.model.RestrictedOddPair;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -196,8 +197,9 @@ public final class ReductionTypeEnumerator {
     }
 
     /**
-     * Returns the row's emitted class obligation after applying the checked
-     * TD(16) results. A partially settled TD(16) row remains a full obligation:
+     * Returns the row's emitted class obligation after applying restricted
+     * odd-pair root lifting and the checked TD(16) results. A partially settled
+     * TD(16) row remains a full obligation:
      * its bounded-search misses must enter the common TD(18) obstruction phase.
      */
     public static long remainingClassObligations(
@@ -206,6 +208,16 @@ public final class ReductionTypeEnumerator {
     ) {
         if (realizableClasses < 0) {
             throw new IllegalArgumentException("Realizable-class count must be nonnegative");
+        }
+        if (RestrictedOddPair.isObligation(
+                obligation.lengths(), obligation.oriented(), obligation.movesUsed())) {
+            final long restricted = RestrictedOddPair.expectedClasses(
+                    obligation.lengths(), obligation.oriented());
+            if (restricted > realizableClasses) {
+                throw new IllegalArgumentException(
+                        "Restricted odd-pair class count exceeds the realizable-class count");
+            }
+            return restricted;
         }
         return switch (td16Disposition(obligation)) {
             case NOT_COVERED -> realizableClasses;
@@ -723,7 +735,8 @@ public final class ReductionTypeEnumerator {
 
     /**
      * Renders the complete type inventory. R is the realizable-class count and
-     * Q is the emitted class obligation after checked TD(16) reuse.
+     * Q is the emitted class obligation after checked TD(16) reuse and the
+     * restricted odd-pair root-lifting route.
      */
     public static String renderTable(final List<Obligation> obligations) {
         final var rows = new StringBuilder();

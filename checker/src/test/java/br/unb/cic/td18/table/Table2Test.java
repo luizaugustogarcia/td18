@@ -128,7 +128,7 @@ class Table2Test {
         assertEquals(692_894_074_401L, entries.stream()
                 .mapToLong(TableEntry::recordedRealizableClasses)
                 .sum());
-        assertEquals(688_413_622_139L, entries.stream()
+        assertEquals(45_498_334_516L, entries.stream()
                 .mapToLong(TableEntry::remainingClassObligations)
                 .sum());
 

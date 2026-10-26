@@ -2,6 +2,7 @@ package br.unb.cic.td18.avoidance;
 
 import br.unb.cic.td18.certificate.CertificateCodec;
 import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.model.ExtendedToricClassKey;
 import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
@@ -288,7 +289,7 @@ public final class ObstructionAvoidance {
                 .toList();
     }
 
-    private static void validateTerminalResidual(
+    static void validateTerminalResidual(
             final ResidualObligation residual
     ) {
         final int movesUsed = ReductionTypeEnumerator.MAX_BUDGET
@@ -308,7 +309,9 @@ public final class ObstructionAvoidance {
         if (tableType.budget() != residual.maximumMoves()
                 || !formatType(recordedType).equals(formatType(type))
                 || !ReductionTypeEnumerator.isReachableOpenState(
-                type.lengths(), type.oriented(), movesUsed)) {
+                type.lengths(), type.oriented(), movesUsed)
+                || RestrictedOddPair.isObligation(type.lengths(), type.oriented(), movesUsed)
+                && !RestrictedOddPair.contains(residual.pair())) {
             throw new IllegalArgumentException(
                     "Residual obligation does not match its reachable Table 2 type");
         }

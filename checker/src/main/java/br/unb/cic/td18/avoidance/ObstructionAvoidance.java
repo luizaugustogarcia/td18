@@ -3,6 +3,7 @@ package br.unb.cic.td18.avoidance;
 import br.unb.cic.td18.certificate.CertificateCodec;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.model.ExtendedToricClassKey;
+import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
 import br.unb.cic.td18.permutation.PermutationGroups;
@@ -267,6 +268,10 @@ public final class ObstructionAvoidance {
                 type.lengths(), type.oriented(), movesUsed)) {
             throw new IllegalArgumentException(
                     "Residual obligation does not match its reachable Table 2 type");
+        }
+        if (RestrictedOddPair.isObligation(tableType.lengths(), tableType.oriented(), movesUsed)
+                && !RestrictedOddPair.contains(residual.pair())) {
+            throw new IllegalArgumentException("Residual lies outside the restricted odd-pair family");
         }
     }
 

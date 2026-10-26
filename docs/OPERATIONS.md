@@ -39,9 +39,13 @@ Length 15 uses its independently classified exceptional local pattern and
 separate companion interleavings, alongside the qualifying transposition
 branches for every other oriented 15-cycle.
 Rows 1–204 remain unchanged; rows 205–292 add 88 early obligations, comprising
-51 roots and 37 one-move states. Provenance format v5 displays support-clearing,
+51 roots and 37 one-move states. Provenance format v6 displays support-clearing,
 exceptional CPU prefix closures, and remaining certificate obligations
 separately from transposition branches.
+Rows 267, 270, and 274 preserve all those branches while retaining only
+391, 321, and 1,172 simultaneous local failures as direct root-lifting seeds.
+The graph displays their source budget nine, recovered root budget ten,
+whole-type R counts, and restricted Q values explicitly.
 Retained states may still have qualifying outgoing branches. Existing avoidance
 work databases and manifests must match the current formats and policy.
 All previously retained types remain present; the totally unoriented stop
@@ -283,11 +287,18 @@ The emitter reads Table 2 directly from
 `Q = 0` are recorded in sidecar manifests as already discharged and bypass
 generation and search.
 Rows with `Q = R` are directly generated and checked against `Q`, including
-starred rows 130 and 134 in their normal positions. The manifest partitions
-generated classes into trivial CPU/known-diameter closures, validated GPU
-certificates, and residuals. CPU prefixes are not certificate records and are
+starred rows 130 and 134 in their normal positions. Rows 267, 270, and 274
+instead generate only 391, 321, and 1,172 classes where neither local cycle
+has a qualifying move. Both rank progressions are constrained during prefix
+construction. Their seeds enter root reconstruction directly with source
+budget nine, without CPU-prefix or CUDA successor searches. The manifest
+identifies these direct seeds by their row/type context and partitions generated
+classes into CPU/known-diameter closures, validated complete witnesses, and
+residual routes. CPU prefixes are not certificate records and are
 not stored in RocksDB; an independent checker must regenerate and recheck those
-closures. A row marker is complete only when it has no obstruction. Any native
+closures. Finished generation for a restricted row records complete seed
+coverage with `generated=Q`, `residuals=Q`, and `complete=false`; its
+reconstructed roots still require verification. Any native
 obstruction is persisted as only its raw five-bit instance key, with an empty
 value, in the `obstructions` column family before the sidecar row manifest.
 Its row, annotated type, budget, and reduction path are reconstructed from
@@ -317,7 +328,7 @@ TD(18) database directory. Opening a compatible two-family database adds the
 intermediate-witness family non-destructively; the emitter still rejects the
 old prefixed single-family format.
 
-To run or resume only the persisted obstruction phase from the current database, use:
+To run or resume the final avoidance phase from the current database, use:
 
 ~~~bash
 mvn -pl emitter -Pgpu compile exec:exec \
@@ -342,6 +353,35 @@ and full canonical key set must agree before the run continues. Set
 sort/unique operation, or
 `-Dtd18.avoidanceGpuVerifyBatches=...` for additional checked batches.
 
+The standalone runner independently regenerates all 1,884 restricted odd-pair
+seeds even if their key-only obstruction records are absent. Source budgets
+eight, nine, and ten have distinct handling: eight-move misses can need two
+inverse waves with intermediate CPU screening, direct nine-move seeds need
+one root wave, and ten-move residuals are already root obligations. Resume
+checks the complete source inventory and preserves all three groups. The
+restricted seeds alone require at most 5,188,536 inverse attempts before
+parent filtering and class deduplication. Every resulting root needs a CPU
+closure or complete ten-transposition certificate. This is a bound on
+attempts, not a measured root count or a runtime estimate.
+
+The work database persists the exact immutable terminal frontier, including
+each row, budget, and canonical pair, before starting searches. Successful
+root certificates remove obstruction markers from the certificate database;
+reopening the work database restores those original sources instead of
+mistaking the smaller marker set for a new run. A changed source requires a
+new work directory, except for root misses already present in this work's
+reconstructed root set. Missing or altered saved source records are rejected.
+Old whole-type markers for rows 267, 270, and 274 that fall outside the
+restricted families are ignored by both avoidance loaders: their qualifying
+child branches are the active obligations.
+
+A completed root wave with unresolved cases retries only those unresolved
+roots. Before a retry changes its frontier, it invalidates the old search
+completion record. An interrupted retry therefore restarts from the complete
+root candidate set, reusing validated certificates, rather than accepting a
+partially updated completion record. These work records support resumption;
+the proof checker regenerates its own obligations and does not trust them.
+
 The work writer drains buffered keys at the configured cap and forces
 memtables to disk every 60 seconds and at checked
 manifest boundaries. Size-triggered drains use RocksDB's normal memtable
@@ -363,12 +403,12 @@ their recorded output inventories without rescanning the output sets. The
 default is `false`; independent verification of the persisted sets is still
 required for a checked computational artifact.
 
-Work-database format version 4 and
-avoidance-manifest version 6 count inverse
+Row manifests use format version 4. Work-database format version 5 and
+avoidance-manifest version 7 count inverse
 supports on canonical restorations after domain, depth, and known-diameter
 tests, before parent-type filtering and class deduplication. Earlier work
-databases and avoidance manifests are rejected: their stored parent sets
-may include structural branches from totally unoriented types. Use a new work directory to
+databases and manifests are rejected: their source-budget inventories,
+completion semantics, or structural policies predate the active route. Use a new work directory to
 reconstruct the avoidance phase from the existing Table 2 row artifacts; an
 existing work database must use the current routing policy and counting convention. Development
 runs can replace an existing final avoidance sidecar.
@@ -395,7 +435,8 @@ Use `-Dexec.args` to choose a starting point:
   rows, restarting row 52 from the beginning.
 - `-Dexec.args="--phase=rows --rows=2-16"` checks only those Table 2 rows.
 - `-Dexec.args="--phase=avoidance --rows=130-134"` starts from persisted
-  residual obstruction keys for those rows.
+  residual obstruction keys for those rows. Selecting rows 267, 270, or 274
+  regenerates their restricted seeds even when seed records are absent.
 - `-Dexec.args="--phase=survivors"` checks only the two exceptional
   oriented 19-cycle certificates.
 - `-Dexec.args="--phase=exceptional-fifteen --fifteen-type=15O-3U@1"`

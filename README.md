@@ -8,6 +8,15 @@ At every recursion depth, a totally unoriented type receives no structural
 reduction: a known diameter closes it when possible, and otherwise it becomes
 a direct obligation.
 
+Rows 267, 270, and 274 generate only 391, 321, and 1,172 classes where
+neither oriented cycle has a qualifying transposition. Their 1,884 classes
+are lifted directly to compatible roots and checked with the full ten-move
+budget; every qualifying child branch remains covered. This leaves
+45,498,334,516 Table 2 class obligations, including those seeds, and at most
+5,188,536 inverse attempts from the seeds before filtering and deduplication.
+See [the restricted route](docs/two-cycle-residual-route.md) for its proof,
+counts, and the additional exceptional-cycle obligations.
+
 **TD(18) = 10 is not proved here.** Every exit criterion in
 [the research plan](docs/RESEARCH_PLAN.md) still needs its checked artifact.
 The checker regenerates obligations and validates their witnesses or closure

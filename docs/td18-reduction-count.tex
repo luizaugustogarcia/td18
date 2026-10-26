@@ -34,7 +34,11 @@ rows contain the $2\,036$ diametral successor obstructions found there, so
 this computation retains both rows in full rather than importing a partial
 $\TD(16)$ discharge. The remaining $188$ rows are not covered by that
 computation. Exceptional oriented $9$-, $15$-, and $19$-cycle cases have
-separate certificate obligations. This calculation is conditional on
+separate certificate obligations. For three depth-one odd-cycle pairs,
+only the $1\,884$ classes without a qualifying transposition on either
+cycle are retained, and all their compatible roots are reconstructed and
+checked within ten moves. The complete type inventory is unchanged.
+This calculation is conditional on
 completing those certificates and the table obligations; it does not
 establish $\TD(18)=10$.
 \end{abstract}
@@ -146,6 +150,23 @@ Allow every companion orientation; algebraic $2$-cycles remain unoriented.
 The respective numbers of annotation multisets are $2,4,4,3,2,3$, for a
 total of $18$ annotated root types. This conservative branch includes
 companion orientations that could also use another reduction.
+
+Across all these annotations there are exactly $1\,622\,812\,068$
+candidate orbits, hence at most that many realizable classes. This bound
+does not impose target realizability. For a companion partition with
+$m_j$ parts of length $j$, the identity fixed-set count is
+$\binom{19}{9}10!/\prod_j(j^{m_j}m_j!)$. Nonidentity rotations fix no
+candidate since $19$ is prime and no power of the current $19$-cycle has
+the required type. A reflection-invariant exceptional support contains
+the reflection's fixed symbol and four pairs of exchanged symbols, giving
+$\binom94$ choices. On the complement, a companion permutation $\pi$
+is fixed by twisted reflection $f$ exactly when $\pi f$ is an involution.
+Enumerating the $9\,496$ involutions on ten symbols gives each reflection
+term; all $19$ reflections are conjugate. Burnside's identity gives the
+stated total. The complete terms, small-domain checks, and executable audit
+are in \nolinkurl{docs/two-cycle-residual-route.md} and
+\nolinkurl{tools/research/verify_exceptional_nine_bound.py}.
+The exact realizable class count remains a separate computational result.
 
 Define ranks $0,\ldots,8$ along $\gamma$. In induced $\beta$ order their
 subsequence is
@@ -463,8 +484,11 @@ own state budgets; their completeness replaces retention of the whole type.
   $2$-move, no established support-clearing closure within budget,
   no separate exceptional interleaving route,
   and no even-pair fallback. Conditional qualifying branches from
-  such a type are still enumerated. Retention conservatively includes
-  every realizable class of the type.
+  such a type are still enumerated. Retention includes every realizable
+  class of the type, except that rows $267$, $270$, and $274$ retain
+  only their simultaneous local failures under
+  Section~\ref{sec:restricted-odd-pairs}. Their qualifying child branches
+  are unchanged.
 \end{enumerate}
 
 For example, let $\beta=(0\,1\,2\,3\,4)$ and
@@ -505,7 +529,9 @@ $1+6+\TD(6)=11$, while clearing the $7$-cycle gives
 $1+4+\TD(10)=11$. Qualifying moves remain conditional children, but
 neither clearing bound closes the remaining case in ten total moves.
 These types therefore remain Table~\ref{tab:complete} obligations under
-the stated selection policy. This budget issue differs from the
+the stated selection policy, with the restricted class obligations below.
+For $\ctype{\cyc{9}{O},\cyc{9}{O}}$, clearing either cycle likewise gives
+$1+5+\TD(8)=11$. This budget issue differs from the
 exceptional length-$15$ local configuration.
 
 After every move, enumerate all admissible orientation annotations of
@@ -623,8 +649,11 @@ odd-cycle shrink. An oriented-$3$-cycle inverse would restore all three
 symbols in one wave and cannot occur on such a two-edge path.
 
 Define $Q$ to be the number of realizable classes emitted as obligations in
-this computation. Thus $Q=0$ for the $102$ fully settled rows and $Q=R$ for
-the other $190$ rows. In particular, rows $130$ and $134$ are emitted in
+this computation. Thus $Q=0$ for the $102$ fully settled rows,
+$Q=391,321,1\,172$ for rows $267,270,274$ respectively, and $Q=R$ for
+the other $187$ rows. The three restricted counts are root-lifting seeds,
+not requirements to sort those successors in nine moves.
+In particular, rows $130$ and $134$ are emitted in
 full: the checked $\TD(16)$ computation identifies $495$ and $1\,541$
 eight-move obstructions in those rows, but its partial result does not by
 itself discharge either complete row in the present $\TD(18)$ certificate.
@@ -635,13 +664,138 @@ problem, this search cannot produce a new obstruction class: it must reproduce
 exactly the $2\,036$ known obstructions. They join all other obstructions in
 one residual-obligation phase after row emission. Consequently
 Table~\ref{tab:complete} remains the complete $292$-type inventory, while
-the emitted class obligation is $688\,413\,622\,139$.
+the emitted class obligation is $45\,498\,334\,516$.
+
+\subsection{Restricted odd-pair obligations and direct root lifting}
+\label{sec:restricted-odd-pairs}
+
+Let $(\omega,\beta)$ have one of the depth-one types in the following
+list, after contraction of its single fixed point. Both algebraic cycles
+are oriented; the contracted domain has $18$ symbols and budget nine.
+Retain this class directly exactly when neither cycle admits a qualifying
+transposition. If either admits one, its child type is already covered by
+the unchanged recursion. Thus this restriction changes neither the $292$
+retained annotated types nor any of the $4\,617$ structural edges.
+
+\begin{center}
+\begin{tabular}{rrrr}
+\toprule
+Row & Type & Candidate orbits & Required classes $Q$\\
+\midrule
+267 & $\ctype{\cyc{13}{O},\cyc{5}{O}}$ & 756 & 391\\
+270 & $\ctype{\cyc{11}{O},\cyc{7}{O}}$ & 912 & 321\\
+274 & $\ctype{\cyc{9}{O},\cyc{9}{O}}$ & 2\,917 & 1\,172\\
+\midrule
+ & Total & 4\,585 & 1\,884\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The shared paper establishes the local classification using its
+qualifying-move lemma, half-turn corollary, and exception table, labelled
+\nolinkurl{lem:qualifying-criterion}, \nolinkurl{cor:half-turn}, and
+\nolinkurl{tab:local-exceptions}. Let $\beta_k=(0\,1\,\ldots\,k-1)$ denote the
+current cycle induced on an algebraic cycle's support. Its oriented
+cyclic orders without a qualifying move are exactly $\beta_k^e$ for
+\[
+\begin{array}{c|ccccc}
+k&5&7&9&11&13\\
+\hline
+e&3&4&5,7&6&7,10,11.
+\end{array}
+\]
+The independent checker reruns the local depth-first classification,
+visiting respectively $14$, $80$, $506$, $3\,391$, and $23\,619$ nodes,
+and checks every applicable local transposition by direct multiplication.
+The unique unoriented survivor $\beta_k^{-1}$ is excluded. The half-turn
+and triple-order pruning conditions are necessary for having no qualifying
+move, and the wrapped conditions are checked on every completed writing,
+so the classification omits no local failure. Applicability on a cycle's
+support depends only on its induced current order. Its algebraic effect
+is multiplication by the inverse transposition on that support, leaving
+companions unchanged. Therefore the classification applies to every
+companion interleaving, including both equal-length cycles in row $274$.
+A local candidate need not have cyclic target; realizability is checked on
+the whole $18$-symbol pair.
+
+Assign one color to each algebraic cycle in fixed-content encoding, with
+its prescribed multiplicity in current-cycle order. Give each oriented
+bead its cyclic rank along the algebraic cycle. The zero-based rank at
+occurrence $i$ is $hi\pmod k$, where $h=e^{-1}\pmod k$. Hence the allowed
+rank steps are $\{2\}$ for lengths $5,7,11$, $\{2,4\}$ for length $9$,
+and $\{2,4,6\}$ for length $13$. Auxiliary standardization sets each
+first rank to zero and names equal annotated colors by first occurrence.
+Rank-origin changes and rotations preserve these progressions. Twisted
+reflection reverses positions and inverts ranks, so it also preserves
+each progression; ordinary word reversal alone does not describe this
+action. The restricted family is consequently invariant under the shared
+auxiliary and twisted dihedral actions. The shared orbit correspondence
+identifies its twisted bracelets with candidate orbits, and realizable
+orbits with extended-toric classes.
+
+The direct generator enforces both progressions during prefix construction
+and applies the existing canonical comparisons. By the shared generation
+theorem, restricted to this invariant family, it emits one representative
+per realizable class. It never generates the whole type before filtering.
+The checker independently enumerates all support subsets and local powers,
+forms $\omega\beta$, rejects noncyclic targets, and compares the complete
+class sets. This gives the counts above; direct Python and Java audits
+also reproduce all $154\,768$ raw candidates and their $4\,585$ candidate
+orbits. Fixed points must be contracted before this fixed-point-free
+generator is called. An unchecked candidate is validated as a cyclic-target
+pair before its extended-toric key is used.
+
+Every one of the $1\,884$ restricted classes enters the final inverse
+construction directly, with source budget nine and no nine-move sorting
+search. This is a conservative root obligation, not a claim that its
+successor sorts in nine moves. Cunha, Kowada, Hausen, and de Figueiredo,
+\emph{Advancing the Transposition Distance and Diameter through Lonely
+Permutations}, Table~6.2, report a distance-ten example in row $267$'s
+restricted family. Its membership is checked in
+\nolinkurl{tools/research/verify_two_cycle_residuals.py}; its distance
+lower bound is cited computational evidence rather than an independently
+replayed lower-bound certificate here. No part of this route depends on
+that lower bound.
+
+Restore the single contracted fixed point in each of the $18$ current-cycle
+gaps. Each inverse support consists of that symbol and two old symbols,
+with one applicable cyclic ordering per support. Selecting old symbols
+from different child cycles reverses an odd-cycle split; selecting them
+from the same cycle reverses an even-pair reduction. These possibilities
+partition all $\binom{18}{2}$ old-symbol pairs. Thus there are at most
+\[
+  18\binom{18}{2}=2\,754\quad\hbox{inverse attempts per seed},\qquad
+  1\,884\cdot2\,754=5\,188\,536\quad\hbox{in total}.
+\]
+No restoration of two or three fixed points fits the $19$-symbol root
+domain. Forward replay, root status, and the checked reduction policy
+filter these attempts; extended-toric keys deduplicate retained roots.
+Every actual parent is represented: extend a relabeling of its contracted
+successor to the restored symbol, choose its current-cycle gap, and
+reverse the actual transposition. This construction commutes with
+relabeling and the twisted orbit correspondence. Therefore one seed per
+successor class covers every predecessor class.
+
+Each reconstructed root must have a checked CPU prefix and known-diameter
+closure or a complete sorting witness of at most ten transpositions. Do
+not prepend the original reduction to a ten-move successor witness.
+The checker regenerates every seed from its mathematical definition and
+independently reconstructs every required root; missing obstruction keys,
+sidecar manifests, or work databases cannot remove an obligation. Missing
+root witnesses fail verification unless a regenerated CPU closure applies.
+The $5\,188\,536$ count bounds inverse attempts before filtering and
+class deduplication, not distinct roots or runtime. Other Table~\ref{tab:complete}
+rows contribute $45\,498\,332\,632$ classes, and their residual roots
+and the separate exceptional-cycle families remain additional work.
+Full certificate generation and independent verification remain pending.
 
 \subsection{Final obstruction-avoidance phase}
 
 The final phase adapts the avoidance-preimage construction checked for
 $\TD(16)$ in \nolinkurl{../td16}. Let $(\omega,\beta)$ be a terminal
-obstruction with remaining budget $b<10$. For each number
+residual obligation with remaining budget $b<10$. This may be a
+bounded-search miss or a restricted odd-pair seed lifted directly as above.
+For each number
 $f\in\{1,2,3\}$ of fixed points compatible with a predecessor at the
 preceding recursion depth, restore
 the $f$ symbols in every cyclic gap of $\beta$. Each restored symbol is fixed
@@ -717,16 +871,28 @@ root obstruction is stored as a key-only entry in the
 \texttt{obstructions} column family, remains unresolved, and makes the emitter
 fail. The versioned range manifest records the intermediate prefix-check
 count, the number of conservatively propagated prefix misses, the root search count, all outcome
-counts, and the class-key checksum. Avoidance manifest version $6$ counts
+counts, and the class-key checksum. Avoidance manifest version $7$ counts
 inverse-support applications on canonical restorations after the domain,
 depth, and known-diameter tests, before parent-type filtering and class
-deduplication. Work-database format version $4$ uses the same convention;
-earlier work databases and avoidance manifests are rejected because their
-reconstruction policy or insertion-history application counts differ.
+deduplication. Work-database format version $5$ uses the same convention
+and records source budgets eight, nine, and ten separately. Row manifests
+use version $4$ and distinguish direct root-lifting seeds from search misses.
+Earlier work databases and manifests are rejected because their policies,
+source-budget inventories, or completion semantics differ. A standalone
+avoidance run regenerates the restricted seeds even if their obstruction
+records are absent. Resume validation requires the complete source inventory
+and preserves direct budget-nine seeds and terminal budget-ten roots.
+The work database records the exact immutable terminal frontier, including
+row, budget, and canonical pair, before searching. Thus a successful root
+witness removing an obstruction marker cannot remove a source on resume.
+Completed root searches retry only unresolved roots. Before each retry, the
+old completion record is invalidated; an interrupted retry then replays the
+complete root candidate set on resume. These work records are operational
+metadata, not proof inputs.
 Totally unoriented types are excluded from inverse reduction parents.
 The policy also stops later-cycle and even-pair branches once the
-complementary support-clearing alternative closes within budget. The independent checker regenerates both
-preimage waves, rechecks non-persisted prefix closures, replays full-domain
+complementary support-clearing alternative closes within budget. The independent checker regenerates all
+required preimage waves for source budgets eight and nine, rechecks non-persisted prefix closures, replays full-domain
 witnesses, and rejects a missing outcome or count.
 
 \clearpage
@@ -743,8 +909,11 @@ twisted bracelet per class, obtained by Burnside's identity on the
 contracted, fixed-point-free domain; a value of $0$ marks an empty type
 with no realizable cyclic-target pair. The column $Q$ gives the class
 obligation emitted after applying the checked $\TD(16)$ results as described
-above. Thus $R$ totals $692\,894\,074\,401$, whereas $Q$ totals
-$688\,413\,622\,139$.
+above and the restricted retention of Section~\ref{sec:restricted-odd-pairs}.
+For its three rows, $b=9$ describes the source state and $Q$ counts seeds
+lifted directly to roots checked with budget ten. Their whole-type $R$
+counts remain unchanged. Thus $R$ totals $692\,894\,074\,401$, whereas
+$Q$ totals $45\,498\,334\,516$.
 
 \begingroup
 \small
@@ -1032,14 +1201,14 @@ $688\,413\,622\,139$.
   264 & \ctype{\cyc{4}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 18 & 1 & 1 & 9 & 7 & 4\,331\,570 & 4\,331\,570 \\
   265 & \ctype{\cyc{13}{U},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 & 0 & 0 \\
   266 & \ctype{\cyc{13}{O},\cyc{5}{U}} & 18 & 1 & 1 & 9 & 8 & 3\,805\,523\,712 & 3\,805\,523\,712 \\
-  267 & \ctype{\cyc{13}{O},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 & 284\,235\,604\,416 & 284\,235\,604\,416 \\
+  267 & \ctype{\cyc{13}{O},\cyc{5}{O}} & 18 & 1 & 1 & 9 & 8 & 284\,235\,604\,416 & 391 \\
   268 & \ctype{\cyc{11}{U},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 & 0 & 0 \\
   269 & \ctype{\cyc{11}{O},\cyc{7}{U}} & 18 & 1 & 1 & 9 & 8 & 13\,314\,240 & 13\,314\,240 \\
-  270 & \ctype{\cyc{11}{O},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 & 243\,117\,785\,088 & 243\,117\,785\,088 \\
+  270 & \ctype{\cyc{11}{O},\cyc{7}{O}} & 18 & 1 & 1 & 9 & 8 & 243\,117\,785\,088 & 321 \\
   271 & \ctype{\cyc{11}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 18 & 1 & 1 & 9 & 8 & 0 & 0 \\
   272 & \ctype{\cyc{10}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U}} & 18 & 1 & 1 & 9 & 8 & 0 & 0 \\
   273 & \ctype{\cyc{9}{U},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 & 2\,437 & 2\,437 \\
-  274 & \ctype{\cyc{9}{O},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 & 115\,561\,900\,003 & 115\,561\,900\,003 \\
+  274 & \ctype{\cyc{9}{O},\cyc{9}{O}} & 18 & 1 & 1 & 9 & 8 & 115\,561\,900\,003 & 1\,172 \\
   275 & \ctype{\cyc{9}{U},\cyc{5}{U},\cyc{2}{U},\cyc{2}{U}} & 18 & 1 & 1 & 9 & 8 & 0 & 0 \\
   276 & \ctype{\cyc{9}{U},\cyc{4}{U},\cyc{3}{U},\cyc{2}{U}} & 18 & 1 & 1 & 9 & 8 & 0 & 0 \\
   277 & \ctype{\cyc{8}{U},\cyc{5}{U},\cyc{3}{U},\cyc{2}{U}} & 18 & 1 & 1 & 9 & 8 & 1\,785 & 1\,785 \\
@@ -1059,7 +1228,7 @@ $688\,413\,622\,139$.
   291 & \ctype{\cyc{4}{U},\cyc{4}{U},\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U}} & 18 & 1 & 1 & 9 & 8 & 8\,355\,676 & 8\,355\,676 \\
   292 & \ctype{\cyc{3}{U},\cyc{3}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U},\cyc{2}{U}} & 18 & 1 & 1 & 9 & 8 & 3\,832\,855 & 3\,832\,855 \\
   \midrule
-  \multicolumn{7}{r}{\textbf{Total}} & \textbf{692\,894\,074\,401} & \textbf{688\,413\,622\,139} \\
+  \multicolumn{7}{r}{\textbf{Total}} & \textbf{692\,894\,074\,401} & \textbf{45\,498\,334\,516} \\
 \end{longtable}
 \noindent\textsuperscript{*}Rows 130 and 134 are emitted in full. The
 checked $\TD(16)$ successor search found, respectively, $495$ and $1\,541$

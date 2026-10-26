@@ -21,7 +21,9 @@ inventory checks 53 admissible fixed-point-free root partitions, 360 annotated
 roots, and the complete 292-type obligation inventory, with obligation depth
 distribution 59, 45, and 188. structure uses the checker’s independent work-list
 enumeration, checks the Q mapping, and reproduces the oriented 15- and
-19-cycle classifications.
+19-cycle classifications. It also independently classifies the local
+5-, 7-, 9-, 11-, and 13-cycle failures and compares support enumeration
+with the direct generator's exact 1,884 restricted odd-pair classes.
 It also checks the six exceptional-nine companion partitions and 18 root
 annotations, and the two exceptional-fifteen companion obligations. It does
 not open a certificate database or replay witnesses.
@@ -62,6 +64,8 @@ flowchart TD
     I --> C[Count R and verify the Q partition]
     C --> G[Generate one valid pair per Q class]
     G --> D[CPU prefix closure or bounded CUDA search]
+    G --> P[Rows 267, 270, 274: 1,884 restricted seeds]
+    P --> R
     D --> W[Complete sorting witnesses]
     D --> O[Terminal obstructions]
     O --> A[Inverse reconstruction and intermediate CPU screening]
@@ -88,14 +92,24 @@ flowchart TD
 | 5: end-to-end verification | verify | CPU regeneration and witness replay; a complete run and verification report remain pending. |
 
 Table 2 always contains all 292 types. R counts every realizable extended-toric
-class. Q retains the obligations after the specified TD(16) reuse: 102 rows
-are discharged, 2 are partially covered, and 188 are not covered. The latter
-190 retain Q = R. Thirty-five of those rows are empty, giving 137 literal
+class. Q retains the obligations after the specified TD(16) reuse and the
+restricted odd-pair route: 102 rows are discharged; rows 267, 270, and 274
+have Q = 391, 321, and 1,172; the other 187 retain Q = R.
+Thirty-five of the latter rows are empty, giving 137 literal
 zero-Q rows. There are 46 empty types overall, including 11 settled rows.
 Rows 130 and 134 retain Q = R in
 ordinary table order. The recorded totals are R = 692,894,074,401 and
-Q = 688,413,622,139; a new run checks them rather than treating them as
+Q = 45,498,334,516; a new run checks them rather than treating them as
 completed proof artifacts.
+
+The three restricted rows retain all qualifying child branches. Their
+1,884 classes have no qualifying move on either cycle and enter root
+reconstruction directly, without nine-move search. At most 5,188,536 inverse
+attempts precede filtering and root-class deduplication; every resulting
+root must close by a checked CPU prefix or a full ten-move witness.
+The checker regenerates these seeds even if their stored obstruction
+markers are absent. Other rows' residual roots and the separate exceptional
+families add work beyond the Table 2 count; see [the workload accounting](two-cycle-residual-route.md#workload-and-proof-completion).
 
 ## Run and resume computations
 
@@ -131,7 +145,8 @@ tools/td18 verify -Dtd18.certificateDb="$PWD/certificates"
 Consult [the operations guide](OPERATIONS.md) before selecting row ranges,
 changing device/memory settings, or resuming existing work. Row subsets and
 selected verification phases cover only those obligations. An avoidance-only
-check does not repeat the original Table 2 generation.
+check reconstructs the selected residual routes and always regenerates the
+restricted odd-pair seeds; it does not repeat all other Table 2 generation.
 
 ## Know where outputs belong
 

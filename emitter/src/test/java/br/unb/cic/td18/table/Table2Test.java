@@ -128,7 +128,7 @@ class Table2Test {
         assertEquals(692_894_074_401L, entries.stream()
                 .mapToLong(TableEntry::recordedRealizableClasses)
                 .sum());
-        assertEquals(688_413_622_139L, entries.stream()
+        assertEquals(45_498_334_516L, entries.stream()
                 .mapToLong(TableEntry::remainingClassObligations)
                 .sum());
 
@@ -160,5 +160,27 @@ class Table2Test {
                 "1\\,384\\,025\\,295\\textsuperscript{*}");
         assertThrows(IllegalArgumentException.class,
                 () -> Table2.parse(invalid));
+    }
+
+    @Test
+    void restrictsOnlyTheThreeOddPairRowsAndRejectsMissingSeeds() throws IOException {
+        final var latex = table();
+        final var entries = Table2.parse(latex);
+        final int[] rows = {267, 270, 274};
+        final long[] counts = {391L, 321L, 1_172L};
+        final long[] fullCounts = {284_235_604_416L, 243_117_785_088L, 115_561_900_003L};
+        for (var index = 0; index < rows.length; index++) {
+            final int row = rows[index];
+            final var entry = entries.get(row - 1);
+            assertEquals(fullCounts[index], entry.recordedRealizableClasses());
+            assertEquals(counts[index], entry.remainingClassObligations());
+            final var line = latex.substring(latex.indexOf("\\label{tab:complete}")).lines()
+                    .filter(candidate -> candidate.stripLeading().startsWith(row + " &"))
+                    .findFirst().orElseThrow();
+            final var invalidLine = line.substring(0, line.lastIndexOf('&') + 1) + " 0 \\\\";
+            assertThrows(IllegalArgumentException.class, () -> Table2.parse(latex.replace(line, invalidLine)));
+        }
+        assertEquals(3, entries.stream().filter(entry -> entry.remainingClassObligations() > 0
+                && !entry.remainingClassObligations().equals(entry.recordedRealizableClasses())).count());
     }
 }

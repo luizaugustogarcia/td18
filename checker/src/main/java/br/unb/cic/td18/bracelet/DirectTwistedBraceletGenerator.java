@@ -1,6 +1,7 @@
 package br.unb.cic.td18.bracelet;
 
 import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
 
@@ -118,6 +119,52 @@ public final class DirectTwistedBraceletGenerator {
             final boolean[] orientedByPart,
             final Consumer<CyclicTargetPair> consumer) {
         generateExceptionalProgressionRepresentatives(partition, orientedByPart, 15, consumer);
+    }
+
+    /**
+     * Generates exactly the simultaneous no-qualifying-transposition family
+     * of either (13O,5O), (11O,7O), or (9O,9O). Both local cyclic-rank
+     * progressions are enforced while constructing prefixes. In particular,
+     * equal-length cycles may independently choose either allowed progression;
+     * their auxiliary interchange remains part of the canonical comparisons.
+     * The family is invariant under rotation and twisted reflection, so the
+     * existing direct orbit comparisons emit one representative per realizable
+     * class without generating or filtering the unrestricted types.
+     */
+    public static void generateRestrictedOddPairRepresentatives(
+            final int[] partition,
+            final boolean[] orientedByPart,
+            final Consumer<CyclicTargetPair> consumer) {
+        if (!RestrictedOddPair.isType(partition, orientedByPart)) {
+            throw new IllegalArgumentException("Expected a restricted oriented odd-pair type");
+        }
+        final var specs = normalizedSpecs(partition, orientedByPart);
+        final int[] masks = restrictedOddPairMasks(specs);
+        new Generator(specs, java.util.Objects.requireNonNull(consumer), null,
+                null, NO_CANCELLATION_CHECK, masks).generate();
+    }
+
+    /** Test boundary before target realizability, using the same prefix tree. */
+    static void generateRestrictedOddPairWords(
+            final int[] partition,
+            final boolean[] orientedByPart,
+            final Consumer<int[]> consumer) {
+        if (!RestrictedOddPair.isType(partition, orientedByPart)) {
+            throw new IllegalArgumentException("Expected a restricted oriented odd-pair type");
+        }
+        final var specs = normalizedSpecs(partition, orientedByPart);
+        new Generator(specs, null, java.util.Objects.requireNonNull(consumer),
+                null, NO_CANCELLATION_CHECK, restrictedOddPairMasks(specs)).generate();
+    }
+
+    private static int[] restrictedOddPairMasks(final CycleSpec[] specs) {
+        final int[] masks = new int[specs.length];
+        for (var cycle = 0; cycle < specs.length; cycle++) {
+            for (final int step : RestrictedOddPair.allowedRankSteps(specs[cycle].size)) {
+                masks[cycle] |= 1 << step;
+            }
+        }
+        return masks;
     }
 
     private static void generateExceptionalProgressionRepresentatives(
@@ -578,7 +625,8 @@ public final class DirectTwistedBraceletGenerator {
         private int comparisonMapTrailSize;
         private Consumer<GenerationTask> continuationCollector;
 
-        private final int exceptionalCycle;
+        private final int[] allowedRankStepMasks;
+        private final int[] rankStepsByCycle;
 
         private Generator(final CycleSpec[] specs,
                           final Consumer<CyclicTargetPair> consumer,
@@ -594,7 +642,27 @@ public final class DirectTwistedBraceletGenerator {
                           final Runnable countConsumer,
                           final Runnable cancellationCheck,
                           final int exceptionalCycle) {
-            this.exceptionalCycle = exceptionalCycle;
+            this(specs, consumer, wordConsumer, countConsumer, cancellationCheck,
+                    exceptionalProgressionMasks(specs.length, exceptionalCycle));
+        }
+
+        private static int[] exceptionalProgressionMasks(
+                final int cycleCount, final int exceptionalCycle) {
+            final int[] masks = new int[cycleCount];
+            if (exceptionalCycle >= 0) {
+                masks[exceptionalCycle] = 1 << 2;
+            }
+            return masks;
+        }
+
+        private Generator(final CycleSpec[] specs,
+                          final Consumer<CyclicTargetPair> consumer,
+                          final Consumer<int[]> wordConsumer,
+                          final Runnable countConsumer,
+                          final Runnable cancellationCheck,
+                          final int[] allowedRankStepMasks) {
+            this.allowedRankStepMasks = allowedRankStepMasks.clone();
+            this.rankStepsByCycle = new int[specs.length];
             this.specs = specs;
             this.consumer = consumer;
             this.wordConsumer = wordConsumer;
@@ -679,7 +747,8 @@ public final class DirectTwistedBraceletGenerator {
 
         private Generator(final Generator source) {
             this(source.specs, source.consumer, source.wordConsumer, source.countConsumer,
-                    source.cancellationCheck, source.exceptionalCycle);
+                    source.cancellationCheck, source.allowedRankStepMasks);
+            copy(source.rankStepsByCycle, rankStepsByCycle);
 
             copy(source.word, word);
             copy(source.remaining, remaining);
@@ -1435,9 +1504,19 @@ public final class DirectTwistedBraceletGenerator {
         /** Records orientation information for a placement. */
         private boolean recordPlacement(final int position, final int symbol) {
             final var cycle = symbolCycle[symbol];
-            if (cycle == exceptionalCycle
-                    && symbolRank[symbol] != (2 * placedByCycle[cycle]) % specs[cycle].size) {
-                return false;
+            if (allowedRankStepMasks[cycle] != 0) {
+                final int occurrence = placedByCycle[cycle];
+                final int rank = symbolRank[symbol];
+                if (occurrence == 1) {
+                    if ((allowedRankStepMasks[cycle] & (1 << rank)) == 0) {
+                        return false;
+                    }
+                    // Every sibling at the second occurrence overwrites this
+                    // value; below that depth it is constant along the branch.
+                    rankStepsByCycle[cycle] = rank;
+                } else if (rank != rankStepsByCycle[cycle] * occurrence % specs[cycle].size) {
+                    return false;
+                }
             }
             previousRankByPosition[position] = lastRankByCycle[cycle];
             previousReverseOrderByPosition[position] = followsReverseOrder[cycle];

@@ -55,8 +55,10 @@ fallback requires an oriented cycle somewhere in the type, including when
 both selected even-length cycles are unoriented. Among types with an
 oriented cycle, the enumerations retain an early type when the remaining no-qualifying-move
 case lacks a closing alternative or an available fallback. The provenance graph's
-version 5 format distinguishes these closures from transposition edges and
+version 6 format distinguishes these closures from transposition edges and
 allows retained early states to have outgoing qualifying branches.
+It records the three restricted odd-pair rows as direct root-lifting routes:
+their whole-type R values remain unchanged, while Q is 391, 321, and 1,172.
 The exceptional-nine restriction uses the copied direct-generation primitive
 with a prescribed rank progression. Tests compare it with independent small
 interleavings and the established TD(16) extension counts; this is not a second
@@ -74,6 +76,17 @@ not generate every class of the ambient annotated types.
 The checker's avoidance reconstruction uses sequential insertions and its own scratch
 sets, rather than trusting the emitter’s reconstruction work database.
 
+For rows 267, 270, and 274, `model/RestrictedOddPair` defines the two-cycle
+rank-progressions and accepts only the fixed-point-free 18-symbol types.
+The generator constrains both colors during prefix construction. The checker
+independently reruns the local DFS at lengths 5, 7, 9, 11, and 13, enumerates
+all support subsets and allowed powers, and compares the complete 1,884-class
+set with direct generation. The emitter sends these seeds directly to
+avoidance with source budget nine. The checker regenerates them without
+consulting stored residual markers and requires every admitted root to close
+within ten transpositions. Its proof boundary is complete reconstruction and
+replay, not the existence of a seed record or work manifest.
+
 Some framework code is copied into both modules: permutation operations,
 encoding and keys, the Burnside counter, and substantial direct-generation
 code. The two artifacts are independent at build time; this does not mean
@@ -89,23 +102,27 @@ The certificate database uses three column families:
 | Family | Records | Proof role |
 | --- | --- | --- |
 | default | Raw five-bit instance keys and fifteen-bit transposition triples. | Complete Table 2 or full-domain-root witnesses, checked by replay. |
-| obstructions | Raw instance keys with empty values. | Search misses; row/type/budget/path context is regenerated from Table 2 and the policy. |
+| obstructions | Raw instance keys with empty values. | Search misses or direct restricted root-lifting seeds; row/type/budget/path context is regenerated from Table 2 and the policy. |
 | avoidance-intermediate-witnesses | Retained legacy namespace. | Compatibility only; the present route neither writes nor consumes it as proof input. |
 
-Older databases containing only default and obstructions are rejected by both
-the current reader and writer. Inspect the schema before resuming a local
-database; importing witnesses into a fresh compatible database is a separate
-operation from verifying an older artifact.
+The read-only checker requires all three families. The emitter accepts an
+older compatible database containing default and obstructions and creates
+the legacy intermediate family non-destructively when opening it. Both
+reject the old prefixed single-family format. This reader/writer distinction
+also applies when resuming a database for the restricted route.
 
 CPU prefixes are not persisted as sorting certificates. Their fixed-point
 gain, contracted domain, known diameter, and budget are regenerated and checked.
-The emitter’s versioned sidecar row manifests use format 3, avoidance manifests
-use format 6, and the avoidance work database uses format 4. They record
+The emitter’s versioned sidecar row manifests use format 4, avoidance manifests
+use format 7, and the avoidance work database uses format 5. They record
 deterministic keys, counts, checksums, and completion state. Canonical-restoration
 inverse-support counts precede parent-type filtering and class deduplication.
-Earlier avoidance formats can contain parent branches excluded by the
-current stop for totally unoriented types and are rejected where those
-artifacts are read.
+Standalone avoidance regenerates the restricted seeds even when their
+obstruction records are absent. Mixed source budgets eight, nine, and ten
+are preserved across reconstruction and resume; exact source-inventory
+validation prevents old work from omitting newly required seeds or terminal
+roots. Earlier formats are rejected because their source inventories,
+completion semantics, or structural policy differ.
 
 The exceptional-nine branch regenerates the class stream and replays every
 full database witness within ten transpositions, rejecting missing witnesses

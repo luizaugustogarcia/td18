@@ -256,6 +256,43 @@ proves an upper bound only for its represented class. A search miss is a
 residual obligation; avoidance reconstructs the reachable predecessor paths
 and requires each remaining full-domain root to close within ten moves.
 
+### Restricted odd-pair classes and recovered root budgets
+
+At depth one, rows 267, 270, and 274 have types `(13O,5O)`, `(11O,7O)`,
+and `(9O,9O)`. Any qualifying move on either cycle follows an existing
+child branch. Direct retention is therefore needed only when both local
+cycles lack such a move. The shared qualifying criterion and half-turn
+corollary, independently enumerated here, give the following local powers
+relative to the current support cycle `beta_k`:
+
+| Length | Algebraic powers without a qualifying move | Zero-based rank steps |
+| --- | --- | --- |
+| 5 | 3 | 2 |
+| 7 | 4 | 2 |
+| 9 | 5, 7 | 2, 4 |
+| 11 | 6 | 2 |
+| 13 | 7, 10, 11 | 2, 4, 6 |
+
+The rank step is the multiplicative inverse of the displayed power modulo
+the cycle length. Prescribe that progression for both oriented colors in
+fixed-content generation, retaining all companion interleavings. Auxiliary
+standardization, rotations, and twisted reflection preserve the condition:
+reflection reverses positions and inverts ranks. Thus the existing canonical
+comparisons give one representative per candidate orbit; target validation
+selects extended-toric classes. Independent support-subset enumeration gives
+756, 912, and 2,917 candidate orbits and 391, 321, and 1,172 valid classes.
+
+These 1,884 classes are seeds for direct root reconstruction, not required
+nine-move sorts. Restore their single contracted fixed point in every cyclic
+gap and reverse every admitted odd-split/even-pair support. There are at most
+`18 * binomial(18,2) = 2,754` attempts per seed, or 5,188,536 in total,
+before filtering and deduplication. Every retained root requires a checked
+CPU closure or a full sorting witness within ten moves. No original
+reduction is prepended to that independent root witness. Both standalone
+avoidance and the checker regenerate all seeds, so missing obstruction
+markers cannot omit this branch. [The full argument and audits](two-cycle-residual-route.md)
+state the coverage proof, literature example, and remaining proof artifacts.
+
 ## Find the implementation
 
 Both modules use the br.unb.cic.td18 package prefix; paths below are relative
@@ -271,6 +308,7 @@ to each module’s src/main/java/br/unb/cic/td18 directory.
 | Two-reduction policy | reduction/ReductionTypeEnumerator.java |
 | Independent inventory and Q check | checker’s verification/IndependentTypeEnumerator.java and verification/PaperDischargeLemma.java |
 | Exceptional 15-cycle classification and interleavings | checker’s verification/OrientedFifteenCycleClassification.java; model/ExceptionalFifteenCycle.java; bracelet/DirectTwistedBraceletGenerator.java |
+| Restricted odd-pair seeds | model/RestrictedOddPair.java; bracelet/DirectTwistedBraceletGenerator.java; checker’s verification/RestrictedOddPairVerifier.java |
 | CPU prefixes and emitted searches | search/CommonOperations.java; emitter’s search/WitnessSearch.java |
 | Witness encoding and replay | certificate/CertificateCodec.java, certificate/CertificateValidator.java |
 | Predecessor reconstruction | avoidance/ObstructionAvoidance.java, independently implemented in the two modules |

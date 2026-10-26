@@ -6,7 +6,7 @@ import br.unb.cic.td18.model.CyclicTargetPair;
 import java.util.Objects;
 import java.util.zip.CRC32C;
 
-/** In-memory terminal obstruction reconstructed in context from Table 2. */
+/** In-memory terminal search miss or deliberate root-lifting seed from Table 2. */
 public record ResidualObligation(
         int row,
         int maximumMoves,

@@ -10,6 +10,7 @@ import br.unb.cic.td18.certificate.AvoidancePhaseManifest;
 import br.unb.cic.td18.certificate.CertificateCodec;
 import br.unb.cic.td18.certificate.CertificateRowManifest;
 import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.runtime.ProjectPaths;
 import br.unb.cic.td18.search.SortingSearch;
 import br.unb.cic.td18.search.WitnessSearch;
@@ -43,6 +44,9 @@ import lombok.extern.slf4j.Slf4j;
  * native miss is persisted for the common final obstruction phase. That phase
  * reconstructs every reachable full-domain root preimage and searches each
  * root independently with the ten-move budget.
+ * The three restricted odd-pair rows emit only their simultaneous local
+ * failure classes and send every class directly to that root reconstruction,
+ * without attempting a nine-transposition successor search.
  * </p>
  */
 @Slf4j
@@ -104,11 +108,12 @@ public final class WitnessEmitter {
                             entry.recordedRealizableClasses());
                 } else {
                     log.info("Table 2 row {}: status=started, type={}, R={}, Q={}, "
-                                    + "budget={}, minimumRate={}",
+                                    + "budget={}, minimumRate={}, route={}",
                             entry.number(), entry.type(),
                             entry.recordedRealizableClasses(),
                             entry.remainingClassObligations(),
-                            entry.remainingMoves(), minimumRate(entry));
+                            entry.remainingMoves(), minimumRate(entry),
+                            isRestrictedOddPair(entry) ? "direct-root-lifting" : "bounded-search");
                 }
 
                 final var result = emitEntry(entry, (pair, rate, maximumMoves) ->
@@ -210,29 +215,36 @@ public final class WitnessEmitter {
         final var checksum = new LongAdder();
         final var firstResidual = new AtomicReference<CyclicTargetPair>();
         final float rate = minimumRate(entry);
+        final boolean restrictedOddPair = isRestrictedOddPair(entry);
 
-        DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(
-                entry.partition(), entry.orientedByPart(), () -> { }, pair -> {
-                    generated.increment();
-                    final var result = search.search(
-                            pair, rate, entry.remainingMoves());
-                    switch (result.disposition()) {
-                        case TRIVIALLY_SETTLED -> trivialClosures.increment();
-                        case CERTIFICATE -> {
-                            certificates.increment();
-                            checksum.add(CertificateCodec.checksumContribution(
-                                    pair, result.moves()));
-                        }
-                        case RESIDUAL -> {
-                            final var obligation = new ResidualObligation(
-                                    entry.number(), entry.remainingMoves(), pair);
-                            residualSink.accept(obligation);
-                            residuals.increment();
-                            checksum.add(obligation.checksumContribution());
-                            firstResidual.compareAndSet(null, obligation.pair());
-                        }
-                    }
-                });
+        final Consumer<CyclicTargetPair> consume = pair -> {
+            generated.increment();
+            final var result = restrictedOddPair
+                    ? WitnessSearch.SearchResult.residual()
+                    : search.search(pair, rate, entry.remainingMoves());
+            switch (result.disposition()) {
+                case TRIVIALLY_SETTLED -> trivialClosures.increment();
+                case CERTIFICATE -> {
+                    certificates.increment();
+                    checksum.add(CertificateCodec.checksumContribution(pair, result.moves()));
+                }
+                case RESIDUAL -> {
+                    final var obligation = new ResidualObligation(
+                            entry.number(), entry.remainingMoves(), pair);
+                    residualSink.accept(obligation);
+                    residuals.increment();
+                    checksum.add(obligation.checksumContribution());
+                    firstResidual.compareAndSet(null, obligation.pair());
+                }
+            }
+        };
+        if (restrictedOddPair) {
+            DirectTwistedBraceletGenerator.generateRestrictedOddPairRepresentatives(
+                    entry.partition(), entry.orientedByPart(), consume);
+        } else {
+            DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(
+                    entry.partition(), entry.orientedByPart(), () -> { }, consume);
+        }
 
         final long generatedCount = generated.sum();
         if (generatedCount != entry.remainingClassObligations()) {
@@ -253,6 +265,16 @@ public final class WitnessEmitter {
             throw new IllegalArgumentException(
                     "Table row has no checked R/Q counts: " + entry.number());
         }
+        if (isRestrictedOddPair(entry)) {
+            final long expected = RestrictedOddPair.expectedClasses(
+                    entry.partition(), entry.orientedByPart());
+            if (entry.remainingClassObligations() != expected) {
+                throw new IllegalStateException("Table 2 row " + entry.number()
+                        + " requires restricted odd-pair Q=" + expected
+                        + ", found " + entry.remainingClassObligations());
+            }
+            return;
+        }
         if (entry.remainingClassObligations() != 0
                 && !entry.remainingClassObligations().equals(
                 entry.recordedRealizableClasses())) {
@@ -260,8 +282,13 @@ public final class WitnessEmitter {
                     "Table 2 row " + entry.number() + " has R="
                             + entry.recordedRealizableClasses() + " and Q="
                             + entry.remainingClassObligations()
-                            + "; emission permits only Q=0 or Q=R");
+                            + "; outside restricted odd pairs, emission permits only Q=0 or Q=R");
         }
+    }
+
+    private static boolean isRestrictedOddPair(final TableEntry entry) {
+        return RestrictedOddPair.isObligation(
+                entry.partition(), entry.orientedByPart(), entry.movesUsed());
     }
 
     static float minimumRate(final TableEntry entry) {

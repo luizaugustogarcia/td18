@@ -81,6 +81,27 @@ class Table2ProvenanceGraphTest {
                 latex.replace("& 19 & 0 & 0 & 10 & 7 & 96", "& 19 & 0 & 1 & 9 & 7 & 96")));
     }
     @Test
+    void restrictedRowsKeepWholeCountsAndConditionalChildrenButLiftOnlyTheirSeeds() throws Exception {
+        final var graph = Table2ProvenanceGraph.build(source());
+        final var expected = Map.of(267, 391L, 270, 321L, 274, 1172L);
+        assertEquals(1203, graph.nodes().size());
+        assertEquals(4617, graph.edges().size());
+        assertEquals(3, graph.nodes().stream().filter(Table2ProvenanceGraph.Node::rootLifting).count());
+        for (final var node : graph.nodes().stream().filter(Table2ProvenanceGraph.Node::rootLifting).toList()) {
+            assertEquals(expected.get(node.row()), node.remaining());
+            assertTrue(node.realizable() > node.remaining());
+            assertEquals(1, node.depth());
+            assertEquals("retained", node.status());
+            assertTrue(graph.edges().stream().anyMatch(edge -> edge.source().equals(node.key())));
+            assertTrue(graph.closures().stream().noneMatch(closure -> closure.source().equals(node.key())));
+        }
+        assertEquals(45_498_334_516L, graph.nodes().stream().filter(node -> node.row() > 0)
+                .mapToLong(Table2ProvenanceGraph.Node::remaining).sum());
+        assertThrows(IllegalArgumentException.class, () -> Table2ProvenanceGraph.build(
+                source().replace("& 391 ", "& 392 ")));
+    }
+
+    @Test
     void displaysFallbackAndRetainedPathsWhenQualifyingFiveIsUnavailable() throws Exception {
         final var graph = Table2ProvenanceGraph.build(source());
         final var sourceKey = "5O,4U,4U,3U,3U@0";

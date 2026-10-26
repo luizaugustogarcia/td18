@@ -2,6 +2,7 @@ package br.unb.cic.td18.avoidance;
 
 import br.unb.cic.td18.base.GPUSortingSearch;
 import br.unb.cic.td18.base.GpuDeviceLayout;
+import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
 import br.unb.cic.td18.certificate.AsyncCertificateWriter;
 import br.unb.cic.td18.certificate.AvoidancePhaseManifest;
 import br.unb.cic.td18.certificate.CertificateCodec;
@@ -9,6 +10,8 @@ import br.unb.cic.td18.emission.OrientedNineteenCycleEmitter;
 import br.unb.cic.td18.emission.ExceptionalNineCycleEmitter;
 import br.unb.cic.td18.emission.ExceptionalFifteenCycleEmitter;
 import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.model.ExtendedToricClassKey;
+import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.reduction.ReductionTypeEnumerator;
 import br.unb.cic.td18.runtime.ProjectPaths;
 import br.unb.cic.td18.search.SortingSearch;
@@ -19,10 +22,13 @@ import br.unb.cic.td18.table.TableEntry;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Comparator;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -48,7 +54,7 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-/** Resumes only the final obstruction-avoidance phase from persisted misses. */
+/** Resumes avoidance from persisted misses and regenerated restricted root-lifting seeds. */
 @Slf4j
 public final class ObstructionAvoidanceRunner {
     private static final byte[] OBSTRUCTIONS_COLUMN_FAMILY =
@@ -83,6 +89,7 @@ public final class ObstructionAvoidanceRunner {
             log.info("Persisted terminal-obstruction validation complete: "
                             + "residuals={}, database={}",
                     residuals.size(), options.database().toAbsolutePath());
+            DirectTwistedBraceletGenerator.shutdownExecutor();
             return;
         }
 
@@ -93,28 +100,11 @@ public final class ObstructionAvoidanceRunner {
              final var writer = new AsyncCertificateWriter(
                      options.database(), flushSeconds)) {
             WitnessSearch.installWriter(writer);
-            for (var start = 0; start < residuals.size(); start += 10_000) {
-                final int end = Math.min(residuals.size(), start + 10_000);
-                final var states = residuals.subList(start, end).stream()
-                        .map(residual -> new AvoidancePreimageStore.State(
-                                residual.maximumMoves(), residual.pair()))
-                        .toList();
-                store.putStates(states);
-                store.putHardStates(states);
-            }
-            final var source = store.inventory(8);
-            final var hardSource = store.hardInventory(8);
-            if (source.count() != residuals.size()
-                    || source.count() != hardSource.count()) {
-                throw new IllegalStateException(
-                        "Terminal obstruction classes were not unique: recovered="
-                                + residuals.size() + ", candidates=" + source.count()
-                                + ", hard=" + hardSource.count());
-            }
-            store.requireOrRecordSource(source);
+            final var sources = initializeSources(store, residuals);
+            final long terminalSources = sources.values().stream().mapToLong(List::size).sum();
             log.info("Avoidance terminal source persisted: uniqueClasses={}, "
                             + "workDatabase={}",
-                    source.count(),
+                    terminalSources,
                     options.workDatabase().toAbsolutePath());
 
             long reconstructionApplications = 0;
@@ -136,9 +126,9 @@ public final class ObstructionAvoidanceRunner {
                     final var actualOutput = trustWaveManifest
                             ? manifest.output()
                             : store.inventory(maximumMoves + 1);
-                    if (manifest.input().count() != input.count()
+                    if (!manifest.input().equals(input)
                             || (!trustWaveManifest
-                            && manifest.output().count() != actualOutput.count())) {
+                            && !manifest.output().equals(actualOutput))) {
                         throw new IllegalStateException(
                                 "Persisted avoidance wave inventory mismatch at budget "
                                         + maximumMoves);
@@ -159,7 +149,8 @@ public final class ObstructionAvoidanceRunner {
                     store.clearUncommittedWaveOutput(maximumMoves);
                     final var wave = reconstructWave(
                             store, maximumMoves, input.count());
-                    final var output = store.inventory(maximumMoves + 1);
+                    final var output = prepareWaveOutput(store, maximumMoves + 1,
+                            sources.getOrDefault(maximumMoves + 1, List.of()));
                     final var manifest = new AvoidancePreimageStore.WaveManifest(
                             maximumMoves, input, wave.applications(), output);
                     store.recordWave(manifest);
@@ -174,7 +165,8 @@ public final class ObstructionAvoidanceRunner {
 
                 final int searchBudget = maximumMoves + 1;
                 if (searchBudget == ReductionTypeEnumerator.MAX_BUDGET
-                        && store.searchManifest(searchBudget).isEmpty()
+                        && store.searchManifest(searchBudget)
+                        .map(manifest -> manifest.residuals().count() != 0).orElse(true)
                         && reconstructed.count() != 0
                         && !gpuInitialized.get()) {
                     initializeGpu();
@@ -182,7 +174,9 @@ public final class ObstructionAvoidanceRunner {
                 }
                 final var search = requireOrRunSearch(
                         store, searchBudget, reconstructed, writer,
-                        searchBudget == ReductionTypeEnumerator.MAX_BUDGET);
+                        searchBudget == ReductionTypeEnumerator.MAX_BUDGET,
+                        searchBudget < ReductionTypeEnumerator.MAX_BUDGET
+                                ? sources.getOrDefault(searchBudget, List.of()) : List.of());
                 if (searchBudget == ReductionTypeEnumerator.MAX_BUDGET) {
                     rootSearchObligations = Math.addExact(
                             rootSearchObligations, search.candidates().count());
@@ -226,7 +220,7 @@ public final class ObstructionAvoidanceRunner {
             writer.flush();
             log.info("Required oriented 19-cycle witnesses are present: 2");
             final var manifest = new AvoidancePhaseManifest(1, Table2.EXPECTED_ENTRIES,
-                    residuals.size(), reconstructionApplications,
+                    terminalSources, reconstructionApplications,
                     intermediatePrefixObligations, propagatedPrefixMisses,
                     rootSearchObligations, trivialClosures, certificates,
                     unresolved, checksum, unresolved == 0);
@@ -236,7 +230,7 @@ public final class ObstructionAvoidanceRunner {
                             + "intermediatePrefixChecks={}, propagatedPrefixMisses={}, "
                             + "rootSearches={}, unresolved={}, "
                             + "reconstructionApplications={}",
-                    residuals.size(), intermediatePrefixObligations,
+                    terminalSources, intermediatePrefixObligations,
                     propagatedPrefixMisses, rootSearchObligations, unresolved,
                     reconstructionApplications);
             if (unresolved != 0) {
@@ -248,7 +242,40 @@ public final class ObstructionAvoidanceRunner {
             if (gpuInitialized.get()) {
                 GPUSortingSearch.shutdownStatsReporter();
             }
+            DirectTwistedBraceletGenerator.shutdownExecutor();
         }
+    }
+
+    /** Keeps budget-nine sources out of prefix searches and budget-ten sources at roots. */
+    static Map<Integer, List<CyclicTargetPair>> initializeSources(
+            final AvoidancePreimageStore store, final List<ResidualObligation> residuals) {
+        // Successful full-domain witnesses delete their obstruction markers.
+        // Restore the original exact source before initializing any work frontier.
+        final var original = store.requireOrRecordTerminalSources(residuals);
+        final var sources = new java.util.TreeMap<Integer, List<CyclicTargetPair>>();
+        for (var budget = 8; budget <= 10; budget++) {
+            final int selected = budget;
+            final var pairs = original.stream().filter(state -> state.maximumMoves() == selected)
+                    .map(ResidualObligation::pair).toList();
+            sources.put(budget, pairs);
+            if (budget < 10) store.putHardPairs(budget, pairs);
+            if (budget == 8) store.putPairs(budget, pairs);
+        }
+        return Map.copyOf(sources);
+    }
+
+    /** Called before committing a reconstructed wave, and again after an interrupted wave. */
+    static AvoidancePreimageStore.StateInventory prepareWaveOutput(
+            final AvoidancePreimageStore store, final int budget,
+            final List<CyclicTargetPair> directSources) {
+        if (budget == 9) {
+            store.removeCandidates(budget, directSources);
+        } else if (budget == 10) {
+            store.putPairs(budget, directSources);
+        } else {
+            throw new IllegalArgumentException("Avoidance output budget must be nine or ten");
+        }
+        return store.inventory(budget);
     }
 
     private static void initializeGpu() {
@@ -492,14 +519,15 @@ public final class ObstructionAvoidanceRunner {
             final int maximumMoves,
             final AvoidancePreimageStore.StateInventory candidates,
             final AsyncCertificateWriter writer,
-            final boolean fullDomain
+            final boolean fullDomain,
+            final List<CyclicTargetPair> directSeeds
     ) {
         final var existing = store.searchManifest(maximumMoves);
         if (existing.isPresent()) {
             final var manifest = existing.orElseThrow();
-            final var actualResiduals = store.hardInventory(maximumMoves);
-            if (manifest.candidates().count() != candidates.count()
-                    || manifest.residuals().count() != actualResiduals.count()) {
+            final var actualResiduals = store.hardInventoryExcluding(maximumMoves, directSeeds);
+            if (!manifest.candidates().equals(candidates)
+                    || !manifest.residuals().equals(actualResiduals)) {
                 throw new IllegalStateException(
                         "Persisted avoidance search inventory mismatch at budget "
                                 + maximumMoves);
@@ -509,13 +537,18 @@ public final class ObstructionAvoidanceRunner {
                     maximumMoves, candidates.count(),
                     manifest.trivialClosures(), manifest.certificates(),
                     manifest.residuals().count());
+            if (fullDomain && actualResiduals.count() != 0) {
+                return retryUnresolvedRoots(store, manifest, writer::enqueueAvoidanceMiss,
+                        ObstructionAvoidanceRunner::search, writer::flush);
+            }
             return manifest;
         }
 
+        store.resetHard(maximumMoves, directSeeds);
         final SearchWaveResult result = searchWave(store, maximumMoves,
                 candidates.count(), fullDomain, writer::enqueueAvoidanceMiss);
         writer.flush();
-        final var residuals = store.hardInventory(maximumMoves);
+        final var residuals = store.hardInventoryExcluding(maximumMoves, directSeeds);
         if (result.residuals() != residuals.count()) {
             throw new IllegalStateException(
                     "Avoidance search residual inventory mismatch at budget "
@@ -530,6 +563,34 @@ public final class ObstructionAvoidanceRunner {
                         + "completed=true",
                 maximumMoves, candidates.count(), result.trivialClosures(),
                 result.certificates(), residuals.count());
+        return manifest;
+    }
+
+    /** Retry only failed roots; an interrupted retry falls back to a full candidate replay. */
+    static AvoidancePreimageStore.SearchManifest retryUnresolvedRoots(
+            final AvoidancePreimageStore store,
+            final AvoidancePreimageStore.SearchManifest previous,
+            final Consumer<AvoidanceSearchMiss> missSink,
+            final PairSearch search, final Runnable flushCertificates) {
+        if (previous.maximumMoves() != 10
+                || !previous.candidates().equals(store.inventory(10))
+                || !previous.residuals().equals(store.hardInventory(10))) {
+            throw new IllegalStateException("Invalid root retry inventory");
+        }
+        // Persist this invalidation before retiring any hard keys. A crash now
+        // cannot leave a completed manifest referring to a partly retried set.
+        store.clearSearchManifest(10);
+        final var result = searchWave(store, 10, previous.residuals().count(), true,
+                missSink, search, true);
+        flushCertificates.run();
+        final var remaining = store.hardInventory(10);
+        if (remaining.count() != result.residuals()) {
+            throw new IllegalStateException("Incomplete root retry");
+        }
+        final var manifest = new AvoidancePreimageStore.SearchManifest(10,
+                previous.candidates(), previous.trivialClosures() + result.trivialClosures(),
+                previous.certificates() + result.certificates(), remaining, previous.checksum());
+        store.recordSearch(manifest);
         return manifest;
     }
 
@@ -552,6 +613,15 @@ public final class ObstructionAvoidanceRunner {
             final Consumer<AvoidanceSearchMiss> missSink,
             final PairSearch search
     ) {
+        return searchWave(store, maximumMoves, expectedInputs, fullDomain, missSink, search, false);
+    }
+
+    private static SearchWaveResult searchWave(
+            final AvoidancePreimageStore store, final int maximumMoves,
+            final long expectedInputs, final boolean fullDomain,
+            final Consumer<AvoidanceSearchMiss> missSink, final PairSearch search,
+            final boolean retryHardOnly
+    ) {
         if (fullDomain
                 != (maximumMoves == ReductionTypeEnumerator.MAX_BUDGET)) {
             throw new IllegalArgumentException(
@@ -569,9 +639,10 @@ public final class ObstructionAvoidanceRunner {
         final long scanned;
         final SearchWaveResult result;
         try (final var processor = new SearchProcessor(store, maximumMoves,
-                expectedInputs, parallelism, fullDomain, missSink, search)) {
-            scanned = store.scanBatches(maximumMoves, ROCKS_SCAN_BATCH_SIZE,
-                    processor::submitAll);
+                expectedInputs, parallelism, fullDomain, missSink, search, retryHardOnly)) {
+            scanned = retryHardOnly
+                    ? store.scanHardBatches(maximumMoves, ROCKS_SCAN_BATCH_SIZE, processor::submitAll)
+                    : store.scanBatches(maximumMoves, ROCKS_SCAN_BATCH_SIZE, processor::submitAll);
             result = processor.finish();
         }
         if (scanned != expectedInputs || result.processed() != expectedInputs) {
@@ -624,6 +695,7 @@ public final class ObstructionAvoidanceRunner {
         private final boolean fullDomain;
         private final Consumer<AvoidanceSearchMiss> missSink;
         private final PairSearch search;
+        private final boolean retireResolvedHard;
         private final LinkedBlockingQueue<WorkItem> queue;
         private final ExecutorService executor;
         private final ScheduledExecutorService statsReporter;
@@ -646,7 +718,8 @@ public final class ObstructionAvoidanceRunner {
                 final int parallelism,
                 final boolean fullDomain,
                 final Consumer<AvoidanceSearchMiss> missSink,
-                final PairSearch search
+                final PairSearch search,
+                final boolean retireResolvedHard
         ) {
             this.store = Objects.requireNonNull(store);
             this.maximumMoves = maximumMoves;
@@ -655,6 +728,7 @@ public final class ObstructionAvoidanceRunner {
             this.fullDomain = fullDomain;
             this.missSink = Objects.requireNonNull(missSink);
             this.search = Objects.requireNonNull(search);
+            this.retireResolvedHard = retireResolvedHard;
             final var statsPeriod = System.getProperty(
                     "td18.gpuStatsPeriodSeconds", "").trim();
             final long statsPeriodSeconds = statsPeriod.isEmpty()
@@ -725,6 +799,10 @@ public final class ObstructionAvoidanceRunner {
                             / (2 * (float) norm);
                     final var result = search.search(
                             pair, minimumRate, maximumMoves, fullDomain);
+                    if (retireResolvedHard
+                            && result.disposition() != WitnessSearch.Disposition.RESIDUAL) {
+                        store.removeHardPairs(maximumMoves, List.of(pair));
+                    }
                     checksum.add(fullDomain
                             ? CertificateCodec
                             .classKeyChecksumContribution(pair)
@@ -1029,7 +1107,8 @@ public final class ObstructionAvoidanceRunner {
             }
             final var context = new ResidualRowContext(
                     entry.number(), entry.type(), entry.nonfixedSymbols(),
-                    entry.remainingMoves());
+                    entry.remainingMoves(), RestrictedOddPair.isObligation(
+                            entry.partition(), entry.orientedByPart(), entry.movesUsed()));
             if (contextsByType.put(entry.type(), context) != null) {
                 throw new IllegalStateException(
                         "Repeated residual Table 2 type: " + entry.type());
@@ -1043,14 +1122,16 @@ public final class ObstructionAvoidanceRunner {
                 domains.stream().distinct().toList());
 
         final var keys = readObstructionKeys(database);
-        final var counts = new long[entries.size()];
+        final var counts = new HashMap<Integer, Long>();
         final var residuals = new ArrayList<ResidualObligation>(keys.size());
         var scanned = 0;
         var ignoredRootMisses = 0;
+        var ignoredLegacyRestrictedMisses = 0;
         for (final var key : keys) {
             final var domains = domainsByKeyLength.get(key.length);
             ResidualObligation recovered = null;
             RuntimeException lastFailure = null;
+            boolean legacyRestrictedMiss = false;
             if (domains != null) {
                 for (final int domain : domains) {
                     try {
@@ -1059,6 +1140,15 @@ public final class ObstructionAvoidanceRunner {
                         final var context = contextsByType.get(
                                 ObstructionAvoidance.annotatedTypeOf(pair));
                         if (context == null || context.domainSize() != domain) {
+                            continue;
+                        }
+                        if (!Arrays.equals(key, CertificateCodec.keyFor(pair.canonicalRepresentative()))) {
+                            throw new IllegalStateException("Persisted obstruction key is not canonical");
+                        }
+                        if (context.restricted() && !RestrictedOddPair.contains(pair)) {
+                            // The revised route covers these old whole-type misses through
+                            // its qualifying child branches, not through this seed family.
+                            legacyRestrictedMiss = true;
                             continue;
                         }
                         final var candidate = new ResidualObligation(
@@ -1078,7 +1168,9 @@ public final class ObstructionAvoidanceRunner {
                 }
             }
             if (recovered == null) {
-                if (isAvoidanceRootMiss(key)) {
+                if (legacyRestrictedMiss) {
+                    ignoredLegacyRestrictedMisses++;
+                } else if (isAvoidanceRootMiss(key)) {
                     ignoredRootMisses++;
                 } else {
                     throw new IllegalStateException(
@@ -1087,7 +1179,7 @@ public final class ObstructionAvoidanceRunner {
                 }
             } else {
                 residuals.add(recovered);
-                counts[recovered.row() - 1]++;
+                counts.merge(recovered.row(), 1L, Long::sum);
             }
             scanned++;
             if (scanned % 25_000 == 0 || scanned == keys.size()) {
@@ -1098,7 +1190,7 @@ public final class ObstructionAvoidanceRunner {
             }
         }
         for (final var context : contextsByType.values()) {
-            final long actual = counts[context.row() - 1];
+            final long actual = counts.getOrDefault(context.row(), 0L);
             if (actual == 0) {
                 continue;
             }
@@ -1107,7 +1199,52 @@ public final class ObstructionAvoidanceRunner {
                     context.row(), context.type(), context.domainSize(),
                     context.maximumMoves(), actual);
         }
-        return List.copyOf(residuals);
+        if (ignoredLegacyRestrictedMisses != 0) {
+            log.info("Ignored obsolete whole-type residuals outside the restricted families: {}",
+                    ignoredLegacyRestrictedMisses);
+        }
+        return withRestrictedSeeds(entries, residuals);
+    }
+
+    /** Mandatory restricted sources are regenerated even if no residual marker was written. */
+    static List<ResidualObligation> withRestrictedSeeds(
+            final List<TableEntry> entries, final List<ResidualObligation> stored) {
+        final var byClass = new java.util.TreeMap<ExtendedToricClassKey, ResidualObligation>(
+                Comparator.comparing(ExtendedToricClassKey::twistedBracelet));
+        for (final var residual : stored) {
+            ObstructionAvoidance.validateTerminalResidual(residual);
+            final var previous = byClass.putIfAbsent(residual.pair().extendedToricClassKey(), residual);
+            if (previous != null && (previous.row() != residual.row()
+                    || previous.maximumMoves() != residual.maximumMoves())) {
+                throw new IllegalStateException("Ambiguous terminal avoidance source");
+            }
+        }
+        for (final var entry : entries) {
+            if (!RestrictedOddPair.isObligation(entry.partition(), entry.orientedByPart(),
+                    entry.movesUsed())) continue;
+            final long expected = RestrictedOddPair.expectedClasses(
+                    entry.partition(), entry.orientedByPart());
+            if (entry.remainingClassObligations() == null
+                    || entry.remainingClassObligations() != expected || entry.remainingMoves() != 9) {
+                throw new IllegalStateException("Incorrect restricted Table 2 obligation count/budget");
+            }
+            final long[] generated = {0};
+            DirectTwistedBraceletGenerator.generateRestrictedOddPairRepresentatives(
+                    entry.partition(), entry.orientedByPart(), pair -> {
+                        if (!RestrictedOddPair.contains(pair)) {
+                            throw new IllegalStateException("Invalid restricted avoidance seed");
+                        }
+                        final var seed = new ResidualObligation(entry.number(), 9, pair);
+                        byClass.putIfAbsent(pair.extendedToricClassKey(), seed);
+                        generated[0]++;
+                    });
+            if (generated[0] != expected) {
+                throw new IllegalStateException("Incomplete restricted avoidance source generation");
+            }
+            log.info("Regenerated restricted root-lifting seeds: row={}, classes={}",
+                    entry.number(), generated[0]);
+        }
+        return List.copyOf(byClass.values());
     }
 
     static boolean isAvoidanceRootMiss(final byte[] key) {
@@ -1126,6 +1263,14 @@ public final class ObstructionAvoidanceRunner {
     }
 
     private static List<byte[]> readObstructionKeys(final Path directory) {
+        if (Files.notExists(directory)) return List.of();
+        if (Files.isDirectory(directory) && Files.notExists(directory.resolve("CURRENT"))) {
+            try (final var files = Files.list(directory)) {
+                if (files.findAny().isEmpty()) return List.of();
+            } catch (final IOException failure) {
+                throw new IllegalStateException("Cannot inspect certificate directory", failure);
+            }
+        }
         final boolean hasIntermediate =
                 requireCompatibleColumnFamilies(directory);
         final var options = new DBOptions().setMaxOpenFiles(-1);
@@ -1226,7 +1371,7 @@ public final class ObstructionAvoidanceRunner {
     }
 
     private record ResidualRowContext(
-            int row, String type, int domainSize, int maximumMoves
+            int row, String type, int domainSize, int maximumMoves, boolean restricted
     ) {
     }
 

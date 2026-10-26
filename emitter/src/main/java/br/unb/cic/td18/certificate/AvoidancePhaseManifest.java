@@ -21,7 +21,7 @@ public record AvoidancePhaseManifest(
 ) {
     private static final int RECORD_TYPE = 4;
     // Version 6 records the policy that stops every totally unoriented type.
-    private static final int FORMAT_VERSION = 6;
+    private static final int FORMAT_VERSION = 7;
     private static final int KEY_BYTES = 6;
     private static final int VALUE_BYTES = 9 * Long.BYTES + 1;
 

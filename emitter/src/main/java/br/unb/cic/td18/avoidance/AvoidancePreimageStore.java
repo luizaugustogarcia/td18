@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -43,9 +44,9 @@ import org.slf4j.LoggerFactory;
 final class AvoidancePreimageStore implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AvoidancePreimageStore.class);
     // Version 2 uses canonical restorations and early diameter filtering.
-    // Version 4 excludes every totally unoriented parent from the reduction policy.
-    private static final int FORMAT_VERSION = 4;
-    private static final int SCREENING_POLICY_VERSION = 2;
+    // Version 5 preserves mixed-budget terminal sources and restricted root-lifting seeds.
+    private static final int FORMAT_VERSION = 5;
+    private static final int SCREENING_POLICY_VERSION = 3;
     private static final byte[] PREIMAGES_COLUMN_FAMILY =
             "avoidance-preimages".getBytes(StandardCharsets.UTF_8);
     private static final byte[] HARD_COLUMN_FAMILY =
@@ -54,6 +55,10 @@ final class AvoidancePreimageStore implements AutoCloseable {
             "format-version".getBytes(StandardCharsets.UTF_8);
     private static final byte[] SOURCE_KEY =
             "terminal-source".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] SOURCE_STATE_PREFIX =
+            "terminal-source-state/".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] SOURCE_STATE_END =
+            "terminal-source-state0".getBytes(StandardCharsets.UTF_8);
     private static final byte[] EMPTY = new byte[0];
     private static final int STATE_HEADER_BYTES = 3;
     private static final int FLUSH_SECONDS = 60;
@@ -470,22 +475,209 @@ final class AvoidancePreimageStore implements AutoCloseable {
         }
     }
 
-    void requireOrRecordSource(final StateInventory source) {
-        throwIfFailed();
-        final byte[] encoded = source.encoded();
+    /** Inventory of a deduplicated terminal frontier, including its move budgets. */
+    static StateInventory inventoryOf(final List<State> states) {
+        final var unique = new java.util.HashSet<ByteBuffer>();
+        long checksum = 0;
+        for (final var state : states) {
+            final byte[] key = stateKey(state.maximumMoves(), state.pair());
+            if (unique.add(ByteBuffer.wrap(key))) {
+                checksum = Math.addExact(checksum, checksumContribution(key));
+            }
+        }
+        return new StateInventory(unique.size(), checksum);
+    }
+
+    /**
+     * Saves the exact terminal frontier before any search can delete its
+     * obstruction markers. On resume, the immutable frontier remains the source
+     * of work even when a new witness has removed its original marker.
+     * Source records are flushed before their completion inventory; an interrupted
+     * initial write has no completion inventory and is replaced in full.
+     */
+    List<ResidualObligation> requireOrRecordTerminalSources(
+            final List<ResidualObligation> currentMarkers) {
+        final var current = indexedSources(currentMarkers);
         try {
-            final byte[] existing = database.get(metadata, SOURCE_KEY);
-            if (existing == null) {
-                database.put(metadata, writeOptions, SOURCE_KEY, encoded);
-            } else if (ByteBuffer.wrap(existing).getLong() != source.count()) {
+            drain(true);
+            final byte[] committed = database.get(metadata, SOURCE_KEY);
+            if (committed != null) {
+                final var saved = readTerminalSources();
+                final var inventory = inventoryOf(saved.values().stream()
+                        .map(source -> new State(source.maximumMoves(), source.pair())).toList());
+                if (!Arrays.equals(committed, inventory.encoded())) {
+                    throw new IllegalStateException(
+                            "Missing or changed immutable avoidance source records; use a new work directory");
+                }
+                for (final var entry : current.entrySet()) {
+                    final var recorded = saved.get(entry.getKey());
+                    if (recorded != null) {
+                        if (recorded.row() != entry.getValue().row()) {
+                            throw new IllegalStateException("Changed immutable avoidance source row");
+                        }
+                        continue;
+                    }
+                    final var source = entry.getValue();
+                    // An earlier root search can add a marker whose type also
+                    // occurs in Table 2. It is output of this work, not a new source.
+                    final byte[] root = source.maximumMoves() == 10
+                            ? database.get(preimages, stateKey(10, source.pair())) : null;
+                    if (root == null || root.length != 0) {
+                        throw new IllegalStateException(
+                                "New terminal avoidance sources require a new work directory");
+                    }
+                }
+                return List.copyOf(saved.values());
+            }
+
+            if (waveManifest(8).isPresent() || waveManifest(9).isPresent()
+                    || searchManifest(9).isPresent() || searchManifest(10).isPresent()) {
                 throw new IllegalStateException(
-                        "Avoidance work database belongs to another terminal-obstruction set");
+                        "Missing immutable source completion for an existing avoidance run");
+            }
+            // This also removes records from a crash before source completion.
+            database.deleteRange(metadata, writeOptions, SOURCE_STATE_PREFIX, SOURCE_STATE_END);
+            try (final var batch = new WriteBatch()) {
+                var pending = 0;
+                for (final var source : current.values()) {
+                    batch.put(metadata, sourceRecordKey(source),
+                            ByteBuffer.allocate(Short.BYTES).putShort((short) source.row()).array());
+                    if (++pending == ROCKS_WRITE_BATCH_SIZE) {
+                        database.write(writeOptions, batch);
+                        batch.clear();
+                        pending = 0;
+                    }
+                }
+                if (pending != 0) database.write(writeOptions, batch);
+            }
+            flushRocks();
+            final var inventory = inventoryOf(current.values().stream()
+                    .map(source -> new State(source.maximumMoves(), source.pair())).toList());
+            database.put(metadata, writeOptions, SOURCE_KEY, inventory.encoded());
+            flushRocks();
+            return List.copyOf(current.values());
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot persist the immutable terminal avoidance source", failure);
+        }
+    }
+
+    private TreeMap<ByteBuffer, ResidualObligation> readTerminalSources() throws RocksDBException {
+        final var sources = new TreeMap<ByteBuffer, ResidualObligation>();
+        try (final var readOptions = new ReadOptions().setVerifyChecksums(true).setFillCache(false);
+             final var iterator = database.newIterator(metadata, readOptions)) {
+            iterator.seek(SOURCE_STATE_PREFIX);
+            while (iterator.isValid() && Arrays.compareUnsigned(iterator.key(), SOURCE_STATE_END) < 0) {
+                final byte[] key = iterator.key();
+                final byte[] value = iterator.value();
+                if (key.length <= SOURCE_STATE_PREFIX.length + STATE_HEADER_BYTES
+                        || !Arrays.equals(Arrays.copyOf(key, SOURCE_STATE_PREFIX.length), SOURCE_STATE_PREFIX)
+                        || value.length != Short.BYTES) {
+                    throw new IllegalStateException("Malformed immutable terminal avoidance source record");
+                }
+                final byte[] state = Arrays.copyOfRange(key, SOURCE_STATE_PREFIX.length, key.length);
+                final int budget = Byte.toUnsignedInt(state[1]);
+                final var pair = decodeState(state, budget);
+                final int row = Short.toUnsignedInt(ByteBuffer.wrap(value).getShort());
+                final var source = new ResidualObligation(row, budget, pair);
+                ObstructionAvoidance.validateTerminalResidual(source);
+                if (!Arrays.equals(key, sourceRecordKey(source))) {
+                    throw new IllegalStateException("Noncanonical immutable terminal avoidance source key");
+                }
+                if (sources.put(ByteBuffer.wrap(state), source) != null) {
+                    throw new IllegalStateException("Duplicate immutable terminal avoidance source");
+                }
+                iterator.next();
+            }
+            iterator.status();
+        }
+        return sources;
+    }
+
+    private static TreeMap<ByteBuffer, ResidualObligation> indexedSources(
+            final List<ResidualObligation> sources) {
+        final var result = new TreeMap<ByteBuffer, ResidualObligation>();
+        for (final var source : sources) {
+            ObstructionAvoidance.validateTerminalResidual(source);
+            if (result.put(ByteBuffer.wrap(stateKey(source.maximumMoves(), source.pair())), source) != null) {
+                throw new IllegalStateException("Terminal avoidance sources are not unique");
+            }
+        }
+        return result;
+    }
+
+    private static byte[] sourceRecordKey(final ResidualObligation source) {
+        final byte[] key = stateKey(source.maximumMoves(), source.pair());
+        return ByteBuffer.allocate(SOURCE_STATE_PREFIX.length + key.length)
+                .put(SOURCE_STATE_PREFIX).put(key).array();
+    }
+
+    /** Direct intermediate seeds bypass screening, including overlapping preimages. */
+    void removeCandidates(final int maximumMoves, final List<CyclicTargetPair> seeds) {
+        try {
+            drain(true);
+            try (final var batch = new WriteBatch()) {
+                for (final var seed : seeds) {
+                    batch.delete(preimages, stateKey(maximumMoves, seed));
+                }
+                database.write(writeOptions, batch);
             }
             flushRocks();
         } catch (final RocksDBException failure) {
-            throw new IllegalStateException(
-                    "Cannot validate avoidance work source", failure);
+            throw new IllegalStateException("Cannot exclude direct avoidance seeds", failure);
         }
+    }
+
+    /** Discard partial search results before replay, restoring immutable direct seeds. */
+    void resetHard(final int maximumMoves, final List<CyclicTargetPair> seeds) {
+        try {
+            drain(true);
+            database.deleteRange(hard, writeOptions, statePrefix(maximumMoves),
+                    statePrefix(maximumMoves + 1));
+            putHardPairs(maximumMoves, seeds);
+            drain(true);
+            flushRocks();
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot reset an incomplete avoidance search", failure);
+        }
+    }
+
+    /** Deletes resolved retry inputs; the completion manifest makes the deletion durable. */
+    void removeHardPairs(final int maximumMoves, final List<CyclicTargetPair> resolved) {
+        throwIfFailed();
+        // Retry scans use a snapshot and each input has one outcome. There are
+        // no pending hard writes for keys resolved by this retry, so unrelated
+        // producer buffers need not be drained for every successful root.
+        try (final var batch = new WriteBatch()) {
+            for (final var pair : resolved) {
+                batch.delete(hard, stateKey(maximumMoves, pair));
+            }
+            database.write(writeOptions, batch);
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot remove resolved avoidance retry inputs", failure);
+        }
+    }
+
+    /** Search residuals exclude direct seeds that were deliberately not searched. */
+    StateInventory hardInventoryExcluding(final int maximumMoves,
+                                           final List<CyclicTargetPair> seeds) {
+        final var all = hardInventory(maximumMoves);
+        final var seen = new java.util.HashSet<ByteBuffer>();
+        long checksum = 0;
+        try {
+            for (final var seed : seeds) {
+                final byte[] key = stateKey(maximumMoves, seed);
+                if (!seen.add(ByteBuffer.wrap(key))) continue;
+                final byte[] value = database.get(hard, key);
+                if (value == null || value.length != 0) {
+                    throw new IllegalStateException("Missing direct avoidance seed");
+                }
+                checksum = Math.addExact(checksum, checksumContribution(key));
+            }
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot verify direct avoidance seeds", failure);
+        }
+        return new StateInventory(Math.subtractExact(all.count(), seen.size()),
+                Math.subtractExact(all.checksum(), checksum));
     }
 
     Optional<WaveManifest> waveManifest(final int inputMaximumMoves) {
@@ -534,6 +726,17 @@ final class AvoidancePreimageStore implements AutoCloseable {
         } catch (final RocksDBException failure) {
             throw new IllegalStateException(
                     "Cannot read avoidance search manifest", failure);
+        }
+    }
+
+    /** Invalidate completion durably before a retry changes its residual set. */
+    void clearSearchManifest(final int maximumMoves) {
+        try {
+            drain(true);
+            database.delete(metadata, writeOptions, searchKey(maximumMoves));
+            flushRocks();
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException("Cannot invalidate avoidance search completion", failure);
         }
     }
 

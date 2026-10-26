@@ -144,9 +144,14 @@ remains a direct obligation and receives the same realizability count.
 The resulting `R` column totals 692,894,074,401 realizable extended-toric
 classes. Burnside counting does not itself discharge a sorting obligation.
 Table 2 therefore records a separate `Q` column: after reuse of the checked
-TD(16) successor results, 688,413,622,139 class obligations are emitted. This
-uses `Q=0` for 102 fully discharged rows and `Q=R` for the 2 partially covered
-and 188 uncovered rows. Thirty-five of those latter rows have `R=0`, giving
+TD(16) successor results and restricted odd-pair retention,
+45,498,334,516 class obligations are emitted. This uses `Q=0` for 102
+fully discharged rows, `Q=391,321,1172` for rows 267, 270, and 274, and
+`Q=R` for the other 187 rows. The three restricted values count directly
+generated seeds for root lifting, not whole-type Burnside counts or
+nine-move sorting requirements. The local classification and independent
+support enumeration are described in [the restricted route](two-cycle-residual-route.md).
+Thirty-five of the full-emission rows have `R=0`, giving
 137 literal zero-`Q` rows. The table contains 46 empty types altogether,
 including 11 of the settled rows. In
 particular, starred rows 130 and 134 are emitted in full and in ordinary table

@@ -1,5 +1,6 @@
 package br.unb.cic.td18;
 
+import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.reduction.AnnotatedPartitions;
 import br.unb.cic.td18.reduction.Partitions;
 import br.unb.cic.td18.reduction.ReductionTypeEnumerator;
@@ -32,7 +33,8 @@ public final class Table2ProvenanceGraph {
     }
 
     record Node(String key, String type, int depth, int symbols, int norm,
-                int diameter, String status, int row, Long realizable, Long remaining) {
+                int diameter, String status, int row, Long realizable, Long remaining,
+                boolean rootLifting) {
     }
 
     record Edge(String source, String target, String kind, String label, int fixed) {
@@ -70,6 +72,10 @@ public final class Table2ProvenanceGraph {
             if (!key.equals(stateKey(recorded)) || row.recordedRealizableClasses() == null
                     || row.remainingClassObligations() == null) {
                 throw new IllegalArgumentException("Table 2/enumerator mismatch at row " + row.number());
+            }
+            if (row.remainingClassObligations() != ReductionTypeEnumerator.remainingClassObligations(
+                    entry, row.recordedRealizableClasses())) {
+                throw new IllegalArgumentException("Table 2 class-obligation mismatch at row " + row.number());
             }
             byState.put(key, row);
         }
@@ -118,7 +124,8 @@ public final class Table2ProvenanceGraph {
             nodes.put(key, new Node(key, state.typeKey(), state.movesUsed(), state.nonfixedSymbols(),
                     state.threeNorm(), diameter, closed ? "closed" : retained ? "retained" : "open",
                     row == null ? 0 : row.number(), row == null ? null : row.recordedRealizableClasses(),
-                    row == null ? null : row.remainingClassObligations()));
+                    row == null ? null : row.remainingClassObligations(),
+                    RestrictedOddPair.isObligation(state.lengths(), state.oriented(), state.movesUsed())));
             if (retained) {
                 obligationDepths.merge(state.movesUsed(), 1, Integer::sum);
             }
@@ -225,7 +232,8 @@ public final class Table2ProvenanceGraph {
                 + ",\"D\":" + (node.diameter() == Integer.MAX_VALUE ? "null" : node.diameter())
                 + ",\"status\":" + quote(node.status()) + ",\"row\":" + node.row()
                 + ",\"R\":" + (node.realizable() == null ? "null" : quote(node.realizable().toString()))
-                + ",\"Q\":" + (node.remaining() == null ? "null" : quote(node.remaining().toString())) + "}")
+                + ",\"Q\":" + (node.remaining() == null ? "null" : quote(node.remaining().toString()))
+                + ",\"rootLifting\":" + node.rootLifting() + "}")
                 .collect(Collectors.joining(",\n"));
         final var edges = graph.edges().stream().map(edge -> "{\"source\":" + quote(edge.source())
                 + ",\"target\":" + quote(edge.target()) + ",\"kind\":" + quote(edge.kind())
@@ -269,7 +277,7 @@ public final class Table2ProvenanceGraph {
             throw new IllegalArgumentException("Expected exactly one visualization data marker");
         }
         final var data = "<script id=\"provenance-data\" type=\"application/json\">"
-                + "{\"format\":\"td18-type-provenance\",\"version\":5,\"complete\":true,"
+                + "{\"format\":\"td18-type-provenance\",\"version\":6,\"complete\":true,"
                 + "\"sourceSha256\":" + quote(sha256(source)) + ",\"payloadSha256\":" + quote(sha256(payload))
                 + ",\"payload\":" + quote(payload) + "}</script>";
         Files.writeString(root.resolve("docs/table2-provenance.html"), template.replace(DATA_MARKER, data), StandardCharsets.UTF_8);
