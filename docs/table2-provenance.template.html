@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Table 2 · Annotated type provenance</title>
+<style>
+:root{color-scheme:light;--ink:#233547;--muted:#596b7b;--line:#dce3e8;--paper:#f6f8fa;--blue:#3573ac;--green:#25846a;--orange:#c27824;--purple:#8663aa}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 system-ui,sans-serif}header{padding:30px 36px 20px;background:white;border-bottom:1px solid var(--line)}h1{font-size:29px;letter-spacing:-.7px;margin:0 0 7px}h2{font-size:21px;margin:0 0 4px}p{margin:5px 0 12px}.intro{max-width:1080px;color:var(--muted)}a{color:var(--blue)}button,input,select{font:inherit}button,select,input{border:1px solid #c5d0d9;border-radius:6px;padding:7px 10px;background:white;color:var(--ink)}button{cursor:pointer}button:hover{background:#edf3f7}button:disabled{opacity:.4;cursor:default}button:focus-visible,a:focus-visible{outline:3px solid #a1cbea;outline-offset:2px}.summary{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}.summary span{padding:8px 16px;background:var(--paper);border-radius:6px}.summary strong{font-size:20px;margin-right:6px}.layout{display:grid;grid-template-columns:310px minmax(0,1fr);max-width:1800px;margin:auto}aside{padding:20px 14px 20px 22px;border-right:1px solid var(--line)}aside label{font-weight:600}#search{width:100%;margin:7px 0}#row-list{height:calc(100vh - 380px);min-height:360px;overflow:auto}#row-list button{display:block;text-align:left;width:100%;margin:0 0 5px;padding:9px 11px;border-color:transparent;background:transparent}#row-list button[aria-current=true]{border-color:#96b3c9;background:#e8f1f8}#row-list button:hover{background:#eaf0f4}.row-label{display:block;font-size:12px;color:var(--muted)}.row-type{display:block;font-size:13px;font-family:ui-monospace,monospace}.count{font-size:12px;color:var(--muted)}main{padding:24px;min-width:0}.row-heading{display:flex;align-items:start;justify-content:space-between;gap:14px}.nav{display:flex;gap:6px}#type{font-family:ui-monospace,monospace;font-size:16px;overflow-wrap:anywhere}#metadata{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}#metadata span{background:white;border:1px solid var(--line);border-radius:6px;padding:5px 10px}.controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:15px 0 10px}#root-filter{max-width:440px}.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin:12px 0}.legend span:before{content:"";display:inline-block;width:19px;height:3px;vertical-align:middle;background:var(--swatch);margin-right:6px}.graph-scroll{max-height:650px;min-height:260px;overflow:auto;background:white;border:1px solid var(--line);border-radius:8px}#graph svg{display:block}#graph-summary{font-size:13px;color:var(--muted)}.note{font-size:13px;color:var(--muted);max-width:1100px}.status{color:var(--green);font-weight:600}details{margin-top:18px;border:1px solid var(--line);border-radius:8px;background:white;padding:12px 16px}summary{cursor:pointer;font-weight:600}.paths-wrap{max-height:460px;overflow:auto;margin-top:12px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}td code{font-size:12px;overflow-wrap:anywhere}footer{padding:20px 36px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);overflow-wrap:anywhere}#error{padding:24px;color:#a12c2c;font-weight:600}#empty{font-size:13px}#overview{width:100%;max-width:850px;height:auto;margin-top:16px}.breakdown{font-size:13px;color:var(--muted)}
+@media(max-width:850px){header{padding:22px}.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line);padding:14px 22px}#row-list{height:160px;min-height:0}main{padding:20px}h1{font-size:24px}#root-filter{max-width:100%}}
+@media print{aside,.controls,.nav,footer{display:none}.layout{display:block}header,main{padding:12px}header .intro,header .summary,#overview{display:none}.graph-scroll{max-height:none;border:0;overflow:visible}#graph svg{max-width:100%;height:auto}details{break-before:page}.paths-wrap{max-height:none;overflow:visible}}
+</style>
+<header>
+  <h1>Table 2 · Annotated type provenance</h1>
+  <p class="intro">Trace any of the 204 annotated types back to its fixed-point-free roots on 19 symbols. The 3-norm sums the integer part of half each cycle length. Each arrow spends one transposition and lowers this norm by one. After every move, all cycle orientations are enumerated afresh.</p>
+  <p class="note">Let N be the contracted symbol count, f = 19 − N the contracted fixed-symbol count, and s the moves spent. Define b = 10 − s and let κ be the 3-norm. R counts realizable extended-toric classes; Q counts the remaining class obligations after TD(16) reuse.</p>
+  <div class="summary"><span><strong>53</strong>root partitions</span><span><strong>360</strong>annotated roots</span><span><strong>204</strong>Table 2 rows</span><span><strong>8 / 8 / 188</strong>rows at depths 0 / 1 / 2</span></div>
+  <svg id="overview" viewBox="0 0 850 90" role="img" aria-label="Inventory summary: 360 roots, with 8 terminal rows at depth zero; 8 terminal rows at depth one; 188 terminal rows at depth two.">
+    <defs><marker id="summary-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#8496a6"/></marker></defs>
+    <g fill="white" stroke="#c5d0d9"><rect x="1" y="1" width="237" height="74" rx="8"/><rect x="305" y="1" width="237" height="74" rx="8"/><rect x="609" y="1" width="237" height="74" rx="8"/></g>
+    <g fill="none" stroke="#8496a6" stroke-width="2" marker-end="url(#summary-arrow)"><path d="M242 38H297"/><path d="M546 38H601"/></g>
+    <g fill="#233547" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14"><text x="119" y="26">Depth 0 · budget 10</text><text x="423" y="26">Depth 1 · budget 9</text><text x="727" y="26">Depth 2 · budget 8</text><text x="119" y="52">8 terminal types</text><text x="423" y="52">8 terminal types</text><text x="727" y="52">188 terminal types</text></g>
+  </svg>
+  <p class="breakdown" id="state-counts"></p>
+</header>
+<p id="error" hidden></p>
+<div class="layout" id="app" hidden>
+  <aside>
+    <label for="search">Find a Table 2 row</label>
+    <input id="search" type="search" placeholder="Row 130, 11O, 3U…" autocomplete="off">
+    <p class="count" id="match-count"></p>
+    <nav id="row-list" aria-label="Table 2 rows"></nav>
+    <p id="empty" hidden>No matching rows.</p>
+    <p class="note">O = oriented; U = unoriented. Equal-length cycles have U before O. Algebraic 2-cycles always carry U.</p>
+  </aside>
+  <main>
+    <div class="row-heading"><div><h2 id="row-title"></h2><div id="type"></div></div><div class="nav"><button id="previous" aria-label="Previous row">←</button><button id="next" aria-label="Next row">→</button></div></div>
+    <div id="metadata"></div>
+    <p class="note" id="disposition"></p>
+    <div class="controls"><label for="root-filter">Origin:</label><select id="root-filter"></select><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit">Fit width</button><button id="export">Save graph as SVG</button></div>
+    <div class="legend"><span style="--swatch:var(--blue)">Clear oriented 3-cycle · +3 fixed</span><span style="--swatch:var(--green)">Odd-length shortening · +2 fixed</span><span style="--swatch:var(--orange)">Odd-length split · +1 fixed</span><span style="--swatch:var(--purple)">Even-length pair · +1 fixed</span></div>
+    <p id="graph-summary" aria-live="polite"></p>
+    <div class="graph-scroll"><div id="graph"></div></div>
+    <p class="note">The graph retains every incoming branch for this row. Labels below a parent give its displayed reductions; hover over an arrow for its exact move and contracted fixed-point gain. Select an origin to isolate its paths.</p>
+    <details id="paths-details"><summary id="paths-title"></summary><div class="paths-wrap"><table><thead><tr><th>Root annotated type</th><th>First reduction</th><th>Intermediate annotated type</th><th>Second reduction</th></tr></thead><tbody id="paths"></tbody></table></div></details>
+    <p class="note">This graph describes the finite type recursion under the local reduction hypothesis. Fresh annotations include types with R = 0. An arrow does not assert that every child class has an instance-level predecessor of every displayed parent type. Exceptional oriented 19-cycle classes receive separate certificate closures and have no type-level children of their own. Exhaustive class generation, sorting certificates, and the final TD(18) verification remain pending.</p>
+  </main>
+</div>
+<footer>Source: <a href="td18-reduction-count.tex">td18-reduction-count.tex</a> · <a href="RESEARCH_PLAN.md">Research plan</a>. R and Q are the recorded Table 2 counts; this visualization does not recount classes. <span id="integrity"></span></footer>
+<!-- PROVENANCE_DATA -->
+<script>
+'use strict';
+const NS = 'http://www.w3.org/2000/svg';
+const colors = {CLEAR_THREE:'#3573ac',ODD_TWO_FIXED:'#25846a',ODD_SPLIT:'#c27824',EVEN_PAIR:'#8663aa'};
+const $ = id => document.getElementById(id);
+let graph, nodes, rows, incoming, outgoing, selected, rootChoice = '', zoom = 1;
+const fmt = value => Number(value).toLocaleString('en-US');
+const typeLabel = node => '(' + node.type.replaceAll(',', ', ') + ')';
+function el(tag, attrs = {}, text = '') {
+  const element = document.createElementNS(NS, tag);
+  for (const [name, value] of Object.entries(attrs)) element.setAttribute(name, value);
+  if (text) element.textContent = text;
+  return element;
+}
+function validate(data) {
+  if (data.format !== 'td18-type-provenance' || data.version !== 1 || data.complete !== true) throw Error('Unsupported or incomplete provenance artifact.');
+  const value = JSON.parse(data.payload);
+  if (value.rootPartitions !== 53 || value.annotatedRoots !== 360 || value.rowCount !== 204 || value.nodes.length !== value.nodeCount || value.edges.length !== value.edgeCount) throw Error('Missing inventory data.');
+  const byKey = new Map();
+  for (const n of value.nodes) {
+    if (byKey.has(n.key) || n.key !== n.type + '@' + n.depth || ![0,1,2].includes(n.depth) || n.kappa >= 10 - n.depth || !['closed','terminal','open'].includes(n.status)) throw Error('Malformed or repeated state.');
+    if (n.status === 'closed' ? n.D === null || n.depth + n.D > 10 : n.D !== null && n.depth + n.D <= 10) throw Error('Inconsistent diameter closure.');
+    byKey.set(n.key, n);
+  }
+  const terminal = value.nodes.filter(n => n.status === 'terminal').sort((a,b) => a.row-b.row);
+  if (terminal.length !== 204 || terminal.some((n,i) => n.row !== i+1 || n.R === null || n.Q === null)) throw Error('Missing Table 2 row.');
+  if ([0,1,2].map(d => terminal.filter(n => n.depth === d).length).join(',') !== '8,8,188' || value.nodes.filter(n => n.depth === 0).length !== 360) throw Error('Incomplete depth inventory.');
+  const edgeKeys = new Set(), reached = new Set(value.nodes.filter(n => n.depth === 0).map(n => n.key));
+  for (const edge of value.edges) {
+    const a = byKey.get(edge.source), b = byKey.get(edge.target), key = edge.source + '->' + edge.target;
+    if (!a || !b || a.status !== 'open' || b.depth !== a.depth + 1 || b.kappa !== a.kappa - 1 || a.N - b.N !== edge.fixed || !colors[edge.kind] || edgeKeys.has(key)) throw Error('Malformed or repeated reduction.');
+    edgeKeys.add(key);
+  }
+  for (const depth of [1,2]) for (const edge of value.edges) if (byKey.get(edge.target).depth === depth && reached.has(edge.source)) reached.add(edge.target);
+  if (reached.size !== byKey.size || value.nodes.some(n => n.status === 'open' && !value.edges.some(e => e.source === n.key))) throw Error('Missing reachable branch.');
+  return value;
+}
+async function start() {
+  try {
+    const data = JSON.parse($('provenance-data').textContent);
+    graph = validate(data);
+    if (globalThis.crypto && crypto.subtle) {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data.payload));
+      const checksum = Array.from(new Uint8Array(digest), v => v.toString(16).padStart(2,'0')).join('');
+      if (checksum !== data.payloadSha256) throw Error('Provenance checksum mismatch.');
+      $('integrity').textContent = 'Format v1 · payload SHA-256 checked: ' + checksum + ' · source SHA-256: ' + data.sourceSha256;
+    } else {
+      $('integrity').textContent = 'Format v1 · structure checked; SHA-256 unavailable in this browser · payload SHA-256: ' + data.payloadSha256 + ' · source SHA-256: ' + data.sourceSha256;
+    }
+    nodes = new Map(graph.nodes.map(n => [n.key,n]));
+    rows = graph.nodes.filter(n => n.row).sort((a,b) => a.row-b.row);
+    incoming = new Map(graph.nodes.map(n => [n.key,[]]));
+    outgoing = new Map(graph.nodes.map(n => [n.key,[]]));
+    for (const edge of graph.edges) { incoming.get(edge.target).push(edge); outgoing.get(edge.source).push(edge); }
+    $('state-counts').textContent = 'Complete recursion: ' + fmt(graph.nodeCount) + ' distinct (type, depth) states and ' + fmt(graph.edgeCount) + ' arrows, including ' + fmt(graph.nodes.filter(n => n.status === 'closed').length) + ' states closed by known diameters before Table 2.';
+    $('app').hidden = false;
+    const chooseFromHash = () => {
+      const match = location.hash.match(/^#row=(\d+)$/);
+      choose(match ? Number(match[1]) : 130);
+    };
+    addEventListener('hashchange', chooseFromHash);
+    $('search').addEventListener('input', renderList);
+    $('previous').onclick = () => navigate(selected.row - 1);
+    $('next').onclick = () => navigate(selected.row + 1);
+    $('root-filter').onchange = () => { rootChoice = $('root-filter').value; draw(); };
+    $('zoom-out').onclick = () => { zoom = Math.max(.4, zoom-.15); scale(); };
+    $('zoom-in').onclick = () => { zoom = Math.min(2, zoom+.15); scale(); };
+    $('fit').onclick = fitWidth;
+    $('export').onclick = exportSvg;
+    chooseFromHash();
+  } catch (error) { $('error').hidden = false; $('error').textContent = 'Cannot show provenance: ' + error.message; $('app').hidden = true; }
+}
+function navigate(number) { location.hash = 'row=' + number; }
+function renderList() {
+  const query = $('search').value.toLowerCase().replace(/row|[#()\s-]/g,'');
+  const matches = rows.filter(n => /^\d+$/.test(query) ? String(n.row) === query : n.type.toLowerCase().includes(query));
+  $('row-list').replaceChildren();
+  for (const n of matches) {
+    const button = document.createElement('button');
+    button.setAttribute('aria-current', String(selected && n.row === selected.row));
+    const label = document.createElement('span'); label.className = 'row-label';
+    label.textContent = 'Row ' + n.row + (n.row === 130 || n.row === 134 ? ' *' : '') + ' · depth ' + n.depth + (n.R === '0' ? ' · empty' : n.Q === '0' ? ' · TD(16) reuse' : ' · Q = R');
+    const type = document.createElement('span'); type.className = 'row-type'; type.textContent = typeLabel(n);
+    button.append(label,type); button.onclick = () => navigate(n.row); $('row-list').append(button);
+  }
+  $('match-count').textContent = matches.length + ' of 204 rows'; $('empty').hidden = matches.length !== 0;
+}
+function ancestors(key, result = new Set()) {
+  if (result.has(key)) return result;
+  result.add(key);
+  for (const edge of incoming.get(key)) ancestors(edge.source,result);
+  return result;
+}
+function choose(number) {
+  selected = rows[number - 1] || rows[129]; rootChoice = ''; zoom = 1;
+  $('row-title').textContent = 'Row ' + selected.row + (selected.row === 130 || selected.row === 134 ? ' *' : '');
+  $('type').textContent = typeLabel(selected);
+  $('metadata').replaceChildren();
+  for (const text of ['N = '+selected.N, 'f = '+(19-selected.N), 's = '+selected.depth, 'b = '+(10-selected.depth), 'κ = '+selected.kappa, 'R = '+fmt(selected.R), 'Q = '+fmt(selected.Q)]) {
+    const span = document.createElement('span'); span.textContent = text; $('metadata').append(span);
+  }
+  $('disposition').textContent = selected.R === '0' ? 'Recorded R = 0: this empty type remains in the complete inventory.' : selected.Q === '0' ? 'Recorded Q = 0: ' + (selected.type.includes('3O') ? 'clearing an oriented 3-cycle and applying the known diameter discharges this row through TD(16) reuse.' : 'the checked TD(16) successor search discharges this row.') : (selected.row === 130 || selected.row === 134) ? 'Starred row: the TD(16) search retained '+(selected.row === 130 ? '495' : '1,541')+' obstructions. The full row retains Q = R.' : 'Q = R: every recorded realizable class remains a class generation and sorting obligation.';
+  const rootNodes = Array.from(ancestors(selected.key)).map(k => nodes.get(k)).filter(n => n.depth === 0);
+  $('root-filter').replaceChildren(new Option('All ' + rootNodes.length + ' annotated roots',''));
+  rootNodes.sort((a,b) => a.type.localeCompare(b.type, 'en', {numeric:true}));
+  for (const n of rootNodes) $('root-filter').add(new Option(typeLabel(n), n.key));
+  $('previous').disabled = selected.row === 1; $('next').disabled = selected.row === 204;
+  renderList(); draw(); fitWidth();
+}
+function shownPaths() {
+  const result = [];
+  function walk(key, path) {
+    if (nodes.get(key).depth === 0) { if (!rootChoice || key === rootChoice) result.push(path); return; }
+    for (const edge of incoming.get(key)) walk(edge.source,[edge,...path]);
+  }
+  walk(selected.key,[]);
+  return result;
+}
+function wrap(text, limit = 43) {
+  const pieces = text.split(', '), lines = []; let line = '';
+  for (const piece of pieces) {
+    if (line && line.length + piece.length + 2 > limit) { lines.push(line+','); line = piece; }
+    else line += (line ? ', ' : '') + piece;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+function draw() {
+  const paths = shownPaths(), keys = new Set([selected.key]), edgeSet = new Set();
+  for (const path of paths) for (const edge of path) { keys.add(edge.source); keys.add(edge.target); edgeSet.add(edge); }
+  const columns = [0,1,2].map(d => Array.from(keys).map(k => nodes.get(k)).filter(n => n.depth === d).sort((a,b) => a.type.localeCompare(b.type,'en',{numeric:true})));
+  const width = selected.depth === 0 ? 470 : selected.depth === 1 ? 920 : 1370;
+  const height = Math.max(330, 205 + Math.max(...columns.map(c => c.length))*148), positions = new Map();
+  const svg = el('svg',{xmlns:NS,width,height,viewBox:'0 0 '+width+' '+height,role:'img','aria-label':'All displayed type-level paths to Table 2 row '+selected.row});
+  svg.append(el('title',{},'Table 2 row '+selected.row+' · '+typeLabel(selected)));
+  svg.append(el('desc',{},'O = oriented, U = unoriented. Every arrow spends one transposition and lowers the 3-norm by one. All orientations are enumerated afresh. This is type-level provenance under the local reduction hypothesis.'));
+  svg.append(el('rect',{width,height,fill:'#ffffff'}));
+  svg.append(el('text',{x:24,y:27,fill:'#233547','font-family':'system-ui,sans-serif','font-size':18,'font-weight':600},'Table 2 · row '+selected.row+' · provenance'));
+  svg.append(el('text',{x:24,y:51,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':12},columns[0].length+' annotated roots · '+paths.length+' ordered paths · one transposition per arrow'));
+  svg.append(el('text',{x:24,y:72,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':11},'O = oriented; U = unoriented. All annotations are enumerated afresh.'));
+  svg.append(el('text',{x:24,y:height-33,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':11},'Type recursion under the local reduction hypothesis.'));
+  svg.append(el('text',{x:24,y:height-18,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':11},'Class generation and sorting verification remain pending.'));
+  const defs = el('defs');
+  for (const [kind,color] of Object.entries(colors)) {
+    const marker = el('marker',{id:'arrow-'+kind,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto'});
+    marker.append(el('path',{d:'M0 0L10 5L0 10Z',fill:color})); defs.append(marker);
+  }
+  svg.append(defs);
+  columns.forEach((column,d) => {
+    if (!column.length) return;
+    const x = 24+d*450;
+    svg.append(el('text',{x,y:108,fill:'#233547','font-family':'system-ui,sans-serif','font-size':16,'font-weight':600},'Depth '+d+' · budget '+(10-d)));
+    svg.append(el('text',{x,y:130,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':12},d === 0 ? column.length+' annotated root'+(column.length === 1 ? '' : 's') : d === selected.depth ? 'Table 2 row '+selected.row : column.length+' intermediate types'));
+    column.forEach((n,i) => positions.set(n.key,{x,y:151+i*148}));
+  });
+  for (const edge of edgeSet) {
+    const a = positions.get(edge.source), b = positions.get(edge.target), x = a.x+350, y = a.y+48, endY = b.y+48;
+    const path = el('path',{d:'M'+x+' '+y+' C'+(x+48)+' '+y+' '+(b.x-48)+' '+endY+' '+(b.x-4)+' '+endY,fill:'none',stroke:colors[edge.kind],'stroke-width':1.5,opacity:.68,'marker-end':'url(#arrow-'+edge.kind+')'});
+    path.append(el('title',{},edge.label+' · contract '+edge.fixed+' fixed symbol'+(edge.fixed === 1 ? '' : 's')+' · 1 transposition · κ −1'));
+    svg.append(path);
+  }
+  for (const key of keys) {
+    const n = nodes.get(key), p = positions.get(key), group = el('g');
+    group.append(el('rect',{x:p.x,y:p.y,width:350,height:128,rx:7,fill:n.row ? '#fff1de' : n.depth === 0 ? '#eff5f1' : '#eef4fa',stroke:n.row ? '#cda062' : '#b5c5d3'}));
+    group.append(el('title',{},typeLabel(n)+' · N='+n.N+' · s='+n.depth+' · b='+(10-n.depth)+' · κ='+n.kappa));
+    wrap(typeLabel(n)).forEach((line,i) => group.append(el('text',{x:p.x+11,y:p.y+22+i*17,fill:'#233547','font-family':'ui-monospace,monospace','font-size':12.5,'font-weight':600},line)));
+    group.append(el('text',{x:p.x+11,y:p.y+65,fill:'#596b7b','font-family':'system-ui,sans-serif','font-size':12},'N = '+n.N+'   f = '+(19-n.N)+'   κ = '+n.kappa+(n.row ? '   row '+n.row : '')));
+    const labels = Array.from(new Set(Array.from(edgeSet).filter(e => e.source === key).map(e => e.label+' [+'+e.fixed+' fixed]')));
+    (labels.length ? labels : [n.depth < 2 ? 'Retained: no selected reduction available' : 'Retained: two-reduction limit reached']).forEach((label,i) => group.append(el('text',{x:p.x+11,y:p.y+87+i*14,fill:'#415d75','font-family':'system-ui,sans-serif','font-size':11},label)));
+    svg.append(group);
+  }
+  $('graph').replaceChildren(svg); scale();
+  const roots = columns[0].length, intermediate = columns[1].filter(n => !n.row).length;
+  $('graph-summary').textContent = roots+' root'+(roots === 1 ? '' : 's')+' · '+intermediate+' intermediate type'+(intermediate === 1 ? '' : 's')+' · '+paths.length+' ordered path'+(paths.length === 1 ? '' : 's')+' · '+edgeSet.size+' arrows';
+  $('paths-title').textContent = 'All '+paths.length+' ordered reduction paths';
+  $('paths').replaceChildren();
+  for (const path of paths) {
+    const tr = document.createElement('tr');
+    const values = [typeLabel(nodes.get(path.length ? path[0].source : selected.key)), path[0] ? path[0].label+'; contract '+path[0].fixed+' fixed' : 'No reductions', path.length > 1 ? typeLabel(nodes.get(path[0].target)) : '—', path[1] ? path[1].label+'; contract '+path[1].fixed+' fixed' : '—'];
+    values.forEach((value,i) => { const td = document.createElement('td'), content = document.createElement(i % 2 === 0 ? 'code' : 'span'); content.textContent = value; td.append(content); tr.append(td); });
+    $('paths').append(tr);
+  }
+}
+function scale() {
+  const svg = $('graph').firstElementChild; if (!svg) return;
+  svg.style.width = svg.viewBox.baseVal.width*zoom+'px'; svg.style.height = svg.viewBox.baseVal.height*zoom+'px';
+}
+function fitWidth() {
+  const svg = $('graph').firstElementChild;
+  zoom = Math.max(.4,Math.min(1,($('graph').parentElement.clientWidth-16)/svg.viewBox.baseVal.width)); scale();
+}
+function exportSvg() {
+  const svg = $('graph').firstElementChild.cloneNode(true); svg.removeAttribute('style');
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));
+  const link = document.createElement('a'); link.href = url; link.download = 'table2-row-'+selected.row+'-provenance.svg'; link.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
+}
+start();
+</script>
+</html>

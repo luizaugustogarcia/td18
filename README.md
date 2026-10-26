@@ -101,6 +101,28 @@ mvn -pl emitter compile exec:java \
 The validation reports 53 admissible partitions, 360 annotated roots, and 204
 distinct obligations with depth distribution 8, 8, and 188.
 
+Open [the Table 2 provenance graph](docs/table2-provenance.html) in a browser
+to trace any row through every selected reduction and intermediate annotated
+type back to its roots. Search by row or annotation, filter by root, inspect
+the complete ordered path list, or save the displayed graph as a standalone
+SVG. The graph includes empty and TD(16)-discharged rows in table order.
+Arrows describe type-level branches with fresh annotations under the local
+reduction hypothesis; class realizability and sorting are separate checks.
+
+Regenerate the standalone HTML from Table 2 and the Java reduction policy:
+
+~~~bash
+mvn -pl emitter compile exec:exec \
+  -Dexec.mainClass=br.unb.cic.td18.Table2ProvenanceGraph
+~~~
+
+Generation rejects incomplete or mismatched Table 2 inventories. The embedded
+format has deterministic state and edge keys, counts, a completion flag, and
+SHA-256 fingerprints of the source document and graph payload. The browser
+checks its structure and payload checksum when Web Crypto is available. The
+graph is a documentation artifact; it does not supply any pending proof
+certificate or recount the recorded R and Q values.
+
 ## Emit the oriented 19-cycle survivor certificates
 
 On a configured CUDA machine, search the two oriented 19-cycle survivor
