@@ -1,10 +1,7 @@
 package br.unb.cic.td18.base;
 
 import br.unb.cic.td18.permutation.OneLinePermutation;
-import lombok.Getter;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import br.unb.cic.td18.search.CpuPrefixSearchStats;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,6 +14,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import lombok.Getter;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 public class GPUSortingSearch {

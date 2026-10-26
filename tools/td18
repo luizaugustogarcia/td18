@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    cat <<'USAGE'
+Usage: tools/td18 [--dry-run] COMMAND [Maven options]
+
+CPU checks:
+  test              Run both modules' CPU tests (CUDA smoke tests stay opt-in)
+  test-emitter      Run emitter CPU tests
+  test-checker      Run checker CPU tests
+  inventory         Validate 53 partitions, 360 roots, and all 204 Table 2 types
+  structure         Independently check inventory, Q mapping, and 19-cycle DFS
+
+Computation:
+  count             Recount Table 2 R values on CPU; writes a local count log
+  emit              Generate Table 2 classes and discharge/search them (CUDA)
+  avoidance         Resume obstruction reconstruction and root searches (CUDA)
+  survivors         Search the two exceptional oriented 19-cycle classes (CUDA)
+  import-survivors   Import and replay existing survivor witnesses on CPU
+  verify            Run the CPU development checker against certificates
+
+Documentation and build:
+  provenance        Regenerate the Table 2 documentation graph
+  build-gpu         Build the native CUDA library and package both modules
+  help              Show this help
+
+Examples:
+  tools/td18 count -Dexec.args=--rows=130-134
+  tools/td18 emit -Dtd18.args=--rows=130-134 -Dtd18.gpuDevices=0
+  tools/td18 verify '-Dexec.args=--phase=avoidance --rows=130-134'
+  tools/td18 --dry-run emit
+
+Defaults preserve the existing Maven commands and artifact paths.
+Verification currently omits sidecar integrity/completion enforcement.
+See docs/WORKFLOW.md and docs/RESEARCH_PLAN.md for the proof obligations.
+USAGE
+}
+
+dry_run=false
+if [[ ${1:-} == --dry-run ]]; then
+    dry_run=true
+    shift
+fi
+command=${1:-help}
+if (( $# > 0 )); then
+    shift
+fi
+
+case "$command" in
+    help|--help|-h) usage; exit 0 ;;
+    test)          args=(-pl emitter,checker -am test) ;;
+    test-emitter)  args=(-pl emitter -am test) ;;
+    test-checker)  args=(-pl checker -am test) ;;
+    inventory)    args=(-pl emitter compile exec:java@cpu-cli
+                       -Dexec.mainClass=br.unb.cic.td18.ReductionTypeEnumerator
+                       -Dexec.args=--validate) ;;
+    structure)    args=(-pl checker compile exec:java
+                       -Dexec.args=--structural-only) ;;
+    count)        args=(-pl emitter compile exec:java@cpu-cli
+                       -Dexec.mainClass=br.unb.cic.td18.CountTD18Bracelets) ;;
+    emit)         args=(-pl emitter -Pgpu compile exec:exec) ;;
+    avoidance)    args=(-pl emitter -Pgpu compile exec:exec
+                       -Dexec.mainClass=br.unb.cic.td18.ObstructionAvoidanceRunner) ;;
+    survivors)    args=(-pl emitter -Pgpu compile exec:exec
+                       -Dexec.mainClass=br.unb.cic.td18.OrientedNineteenCycleEmitter) ;;
+    import-survivors)
+                  has_witnesses=false
+                  for option in "$@"; do
+                      if [[ "$option" == -Dtd18.args=*--witnesses=* ]]; then
+                          has_witnesses=true
+                      fi
+                  done
+                  if ! "$has_witnesses"; then
+                      printf '%s\n' 'import-survivors requires -Dtd18.args=--witnesses=/path/to/witnesses.txt' >&2
+                      exit 2
+                  fi
+                  args=(-pl emitter compile exec:exec
+                       -Dexec.mainClass=br.unb.cic.td18.OrientedNineteenCycleEmitter) ;;
+    verify)       args=(-pl checker compile exec:java) ;;
+    provenance)   args=(-pl emitter compile exec:exec
+                       -Dexec.mainClass=br.unb.cic.td18.Table2ProvenanceGraph) ;;
+    build-gpu)    args=(-Pgpu package) ;;
+    *) printf 'Unknown command: %s\n' "$command" >&2; usage >&2; exit 2 ;;
+esac
+
+td18_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+cd -- "$td18_root"
+if "$dry_run"; then
+    printf '%q ' mvn "${args[@]}" "$@"
+    printf '\n'
+else
+    exec mvn "${args[@]}" "$@"
+fi

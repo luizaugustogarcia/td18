@@ -13,6 +13,12 @@ still requiring a sorting witness after checked TD(16) reuse. Every `Q` class
 must be discharged within its displayed budget, subject to the local reduction
 hypothesis.
 
+Use [WORKFLOW.md](WORKFLOW.md) to map these stages to runnable commands and
+output paths, [KNOWLEDGE.md](KNOWLEDGE.md) for framework references, and
+[OPERATIONS.md](OPERATIONS.md) for run/resume configuration. This plan remains
+the authority for completion criteria; reorganizing code or tooling does not
+complete a stage.
+
 ## Stage 0 — certify the mathematical reduction
 
 Produce proofs or precise citations for every nontrivial premise used by the

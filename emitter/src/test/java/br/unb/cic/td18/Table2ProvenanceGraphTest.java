@@ -1,6 +1,6 @@
 package br.unb.cic.td18;
 
-import org.junit.jupiter.api.Test;
+import br.unb.cic.td18.runtime.ProjectPaths;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -8,13 +8,15 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class Table2ProvenanceGraphTest {
     private static String source() throws Exception {
-        return Files.readString(CountTD18Bracelets.projectRoot(Path.of(""))
+        return Files.readString(ProjectPaths.root(Path.of(""))
                 .resolve("docs/td18-reduction-count.tex"));
     }
 

@@ -1,0 +1,106 @@
+package br.unb.cic.td18.certificate;
+
+import br.unb.cic.td18.avoidance.ResidualObligation;
+import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.permutation.Cycle;
+import br.unb.cic.td18.permutation.MulticyclePermutation;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.DBOptions;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class CertificateStoreTest {
+    private static final byte[] OBSTRUCTIONS =
+            "obstructions".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] INTERMEDIATE_WITNESSES =
+            "avoidance-intermediate-witnesses"
+                    .getBytes(StandardCharsets.UTF_8);
+
+    @Test
+    void readsRawWitnessesWithoutSidecarManifests(
+            @TempDir final Path directory
+    ) throws Exception {
+        final var pair = CyclicTargetPair.of(
+                new MulticyclePermutation(Cycle.of(0, 1, 2)),
+                Cycle.of(0, 1, 2)).canonicalRepresentative();
+        final var moves = List.of(Cycle.of(0, 1, 2));
+        writeDatabase(directory, pair, moves);
+
+        System.setProperty(
+                "td18.certificateStatsPeriodSeconds", "0");
+        try (final var store = new CertificateStore(directory)) {
+            assertEquals(moves, store.require(pair, 1));
+            final var batch = store.find(
+                    new CyclicTargetPair[]{pair}, 1);
+            assertEquals(1, batch.size());
+            assertTrue(batch.getFirst().isPresent());
+            assertEquals(moves, batch.getFirst().orElseThrow());
+            assertEquals(moves,
+                    store.findIntermediate(pair, 9).orElseThrow());
+            assertTrue(store.findIntermediate(pair, 8).isEmpty());
+            assertFalse(store.findResidual(new ResidualObligation(
+                    1, 1, pair)).isPresent());
+        } finally {
+            System.clearProperty(
+                    "td18.certificateStatsPeriodSeconds");
+        }
+    }
+
+    private static void writeDatabase(
+            final Path directory,
+            final CyclicTargetPair pair,
+            final List<Cycle> moves
+    ) {
+        RocksDB.loadLibrary();
+        final var handles = new ArrayList<ColumnFamilyHandle>();
+        final var options = new DBOptions()
+                .setCreateIfMissing(true)
+                .setCreateMissingColumnFamilies(true);
+        final var witnessOptions = new ColumnFamilyOptions();
+        final var obstructionOptions = new ColumnFamilyOptions();
+        final var intermediateOptions = new ColumnFamilyOptions();
+        RocksDB database = null;
+        try {
+            database = RocksDB.open(options, directory.toString(), List.of(
+                    new ColumnFamilyDescriptor(
+                            RocksDB.DEFAULT_COLUMN_FAMILY, witnessOptions),
+                    new ColumnFamilyDescriptor(
+                            OBSTRUCTIONS, obstructionOptions),
+                    new ColumnFamilyDescriptor(
+                            INTERMEDIATE_WITNESSES,
+                            intermediateOptions)), handles);
+            database.put(handles.get(0), CertificateCodec.keyFor(pair),
+                    CertificateCodec.valueFor(moves));
+            database.put(handles.get(2),
+                    CertificateCodec.intermediateKeyFor(pair, 9),
+                    CertificateCodec.valueFor(moves));
+        } catch (final RocksDBException failure) {
+            throw new IllegalStateException(
+                    "Cannot create test certificate database", failure);
+        } finally {
+            handles.forEach(ColumnFamilyHandle::close);
+            if (database != null) {
+                database.close();
+            }
+            obstructionOptions.close();
+            intermediateOptions.close();
+            witnessOptions.close();
+            options.close();
+        }
+    }
+
+}

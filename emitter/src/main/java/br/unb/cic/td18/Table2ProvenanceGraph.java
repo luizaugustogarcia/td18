@@ -1,5 +1,12 @@
 package br.unb.cic.td18;
 
+import br.unb.cic.td18.reduction.AnnotatedPartitions;
+import br.unb.cic.td18.reduction.Partitions;
+import br.unb.cic.td18.reduction.ReductionTypeEnumerator;
+import br.unb.cic.td18.runtime.ProjectPaths;
+import br.unb.cic.td18.table.Table2;
+import br.unb.cic.td18.table.TableEntry;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -42,12 +49,12 @@ public final class Table2ProvenanceGraph {
 
     /** Preserve all incoming edges while expanding each (type, depth) only once. */
     static Graph build(final String latex) {
-        final var rows = CountTD18Bracelets.readTableEntries(latex);
+        final var rows = Table2.parse(latex);
         final var inventory = ReductionTypeEnumerator.enumerate();
         if (rows.size() != 204 || inventory.size() != rows.size()) {
             throw new IllegalArgumentException("Expected the complete 204-row Table 2 inventory");
         }
-        final var byState = new TreeMap<String, CountTD18Bracelets.TableEntry>();
+        final var byState = new TreeMap<String, TableEntry>();
         for (var index = 0; index < rows.size(); index++) {
             final var row = rows.get(index);
             final var entry = inventory.get(index);
@@ -223,7 +230,7 @@ public final class Table2ProvenanceGraph {
         if (args.length != 0) {
             throw new IllegalArgumentException("Table2ProvenanceGraph takes no arguments; run from this repository");
         }
-        final var root = CountTD18Bracelets.projectRoot(Path.of(""));
+        final var root = ProjectPaths.root(Path.of(""));
         final var source = Files.readString(root.resolve("docs/td18-reduction-count.tex"), StandardCharsets.UTF_8);
         final var graph = build(source);
         final var payload = payload(graph);
