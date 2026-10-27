@@ -349,7 +349,7 @@ are separate from that table's class totals; the seven intermediate classes
 are now discharged by their checked prefixes. This separation asserts a
 complete conditional proof route, not a completed sorting proof.
 
-\section{Closing a state and the risk principle}
+\section{Closing a state and the retention policy}
 
 Let $D(N)$ be the known transposition-diameter bound for a contracted
 cyclic domain of $N=n+1$ symbols, with $D(N)=\TD(N-1)$ for
@@ -375,7 +375,8 @@ alternative is assessed by applying the same bound after its full sequence
 cost; that alternative does not discharge the qualifying-move branch.
 No approximation guarantee is used to close a state.
 
-Retention is justified by the $3$-norm lower bound. A transposition
+The $3$-norm lower bound gives a necessary budget condition for retained
+states. A transposition
 changes the $3$-norm by at most one, so $\kappa(T)$ is a lower bound on
 the number of moves needed to sort any instance of type $T$, and sorting
 within the remaining budget $b=10-s$ is possible only if $\kappa(T)\leq
@@ -385,9 +386,13 @@ $\kappa(T)-b$ is invariant along every path. A fixed-point-free root on
 $19$ symbols has an odd number of odd-length cycles, hence at least one,
 so $\kappa\leq(19-1)/2=9<10=b$ at every root. Therefore $\kappa(T)<b$ at
 every state the recursion reaches, and the budget never falls below the
-$3$-norm lower bound. Whenever a known diameter does not close a state,
-the budget still leaves sorting within reach, and we take the risk of
-searching for a sorting sequence. Obstruction closure must account for every
+$3$-norm lower bound. Whenever a known diameter does not close a retained
+state, the lower bound does not exclude sorting within the remaining
+budget. The existence of such a sorting sequence remains to be established.
+Each retained instance requires a checked closure within its budget or
+resolution through complete obstruction avoidance.
+
+Obstruction closure must account for every
 full reduction path that can produce the obstructing instance from a
 fixed-point-free root on $19$ symbols. The database has three column families.
 The default family maps the raw five-bit key of a Table~\ref{tab:complete}
