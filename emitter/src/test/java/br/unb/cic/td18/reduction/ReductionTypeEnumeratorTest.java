@@ -113,20 +113,6 @@ class ReductionTypeEnumeratorTest {
     }
 
     @Test
-    void packedReconstructionPolicyContainsNoTotallyUnorientedParent() {
-        for (var depth = 0; depth <= 2; depth++) {
-          for (final var transition : ReductionTypeEnumerator.reconstructionTransitions(depth)) {
-            final long packed = transition.parentType();
-            var hasOrientedCycle = false;
-            for (var index = 0; index < (packed & 15); index++) {
-                hasOrientedCycle |= ((packed >>> (4 + 6 * index)) & 32) != 0;
-            }
-            assertTrue(hasOrientedCycle, "A CPU/CUDA inverse must not reconstruct an all-U reduction parent");
-          }
-        }
-    }
-
-    @Test
     void checkedTd16ComputationReducesTheClassObligations() {
         final var obligations = ReductionTypeEnumerator.enumerate();
         assertEquals(Map.of(

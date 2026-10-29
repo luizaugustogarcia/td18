@@ -32,7 +32,6 @@ import java.util.Comparator;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -294,10 +293,6 @@ public final class ObstructionAvoidanceRunner {
             final int maximumMoves,
             final long expectedInputs
     ) {
-        if (Boolean.parseBoolean(System.getProperty(
-                "td18.avoidanceGpu", "false"))) {
-            return reconstructWaveOnGpu(store, maximumMoves, expectedInputs);
-        }
         final int availableProcessors = Math.max(
                 1, Runtime.getRuntime().availableProcessors());
         final int parallelism = (int) Math.min(availableProcessors,
@@ -319,190 +314,6 @@ public final class ObstructionAvoidanceRunner {
                     "Avoidance wave input changed during its snapshot");
         }
         return result;
-    }
-
-    private static WaveResult reconstructWaveOnGpu(
-            final AvoidancePreimageStore store,
-            final int maximumMoves,
-            final long expectedInputs
-    ) {
-        final int[] devices = GpuDeviceLayout.parseDevices(
-                System.getProperty("td18.gpuDevices", "0"));
-        final long budgetMiB = Long.parseLong(System.getProperty(
-                "td18.avoidanceGpuBudgetMB", "1024"));
-        final int batchSize = Integer.parseInt(System.getProperty(
-                "td18.avoidanceGpuBatchSize",
-                Integer.toString(ROCKS_SCAN_BATCH_SIZE)));
-        final int verifyBatches = Integer.parseInt(System.getProperty(
-                "td18.avoidanceGpuVerifyBatches", "1"));
-        if (budgetMiB <= 0 || batchSize <= 0 || verifyBatches <= 0) {
-            throw new IllegalArgumentException(
-                    "GPU avoidance budget, batch size, and verification count must be positive");
-        }
-        final long budgetBytes = Math.multiplyExact(
-                budgetMiB, 1024L * 1024L);
-        final var reconstructors = Arrays.stream(devices)
-                .mapToObj(device -> new GpuAvoidanceReconstructor(
-                        device, budgetBytes))
-                .toList();
-        final var processed = new AtomicLong();
-        final var applications = new LongAdder();
-        final var accepted = new LongAdder();
-        final var unique = new LongAdder();
-        final var gpuNanos = new LongAdder();
-        final var batches = new AtomicLong();
-        final var nextProgress = new AtomicLong(10_000);
-        log.info("Avoidance reconstruction wave {} starting on CUDA devices {}: "
-                        + "inputs={}, batchSize={}, budgetMiB={}, verifyBatches={}, "
-                        + "heapUsedMiB={}",
-                maximumMoves, Arrays.toString(devices), expectedInputs,
-                batchSize, budgetMiB, verifyBatches, usedHeapMiB());
-
-        final Consumer<CompletedGpuBatch> persist = completedBatch -> {
-            for (final var batch : completedBatch.batches()) {
-                store.putCanonicalKeyRecords(
-                        maximumMoves + 1, batch.keyRecords());
-                applications.add(batch.applications());
-                accepted.add(batch.acceptedBeforeDeduplication());
-                unique.add(batch.uniqueKeys());
-                gpuNanos.add(batch.pipelineNanos());
-            }
-            final long completed = processed.addAndGet(completedBatch.inputs());
-            long threshold = nextProgress.get();
-            if (completed >= threshold || completed == expectedInputs) {
-                while (threshold <= completed
-                        && !nextProgress.compareAndSet(
-                        threshold, threshold + 10_000)) {
-                    threshold = nextProgress.get();
-                }
-                log.info("Avoidance reconstruction wave {} progress: "
-                                + "processed={}/{}, backend=CUDA, devices={}, "
-                                + "applications={}, acceptedKeys={}, "
-                                + "batchUniqueKeys={}, gpuSeconds={}, heapUsedMiB={}",
-                        maximumMoves, completed, expectedInputs,
-                        Arrays.toString(devices), applications.sum(),
-                        accepted.sum(), unique.sum(),
-                        gpuNanos.sum() / 1_000_000_000.0, usedHeapMiB());
-            }
-        };
-
-        final long scanned;
-        try (final var executor = Executors.newFixedThreadPool(devices.length)) {
-            final var completion =
-                    new ExecutorCompletionService<CompletedGpuBatch>(executor);
-            final var inFlight = new AtomicLong();
-            scanned = store.scanHardBatches(
-                    maximumMoves, batchSize, ROCKS_SCAN_BATCH_SIZE, pairs -> {
-                        final long batchIndex = batches.getAndIncrement();
-                        if (batchIndex < verifyBatches) {
-                            final var batch = reconstructors.getFirst()
-                                    .reconstruct(pairs, maximumMoves);
-                            final var reference =
-                                    GpuAvoidanceReconstructor.cpuReference(
-                                            pairs, maximumMoves);
-                            if (batch.applications() != reference.applications()
-                                    || !Arrays.equals(batch.keyRecords(),
-                                    reference.keyRecords())) {
-                                throw new IllegalStateException(
-                                        "CUDA avoidance reconstruction disagrees with the CPU reference");
-                            }
-                            log.info("Avoidance CUDA batch {} verified against CPU: "
-                                            + "device={}, inputs={}, applications={}, "
-                                            + "uniqueKeys={}",
-                                    batchIndex + 1, devices[0], pairs.size(),
-                                    batch.applications(), batch.uniqueKeys());
-                            persist.accept(new CompletedGpuBatch(
-                                    pairs.size(), devices[0], List.of(batch)));
-                            return;
-                        }
-                        final int deviceIndex = Math.toIntExact(
-                                (batchIndex - verifyBatches) % devices.length);
-                        completion.submit(() -> new CompletedGpuBatch(
-                                pairs.size(), devices[deviceIndex],
-                                reconstructAdaptively(
-                                        reconstructors.get(deviceIndex), pairs,
-                                        maximumMoves, devices[deviceIndex])));
-                        if (inFlight.incrementAndGet() == devices.length) {
-                            for (var completed = 0; completed < devices.length;
-                                 completed++) {
-                                persist.accept(awaitGpuBatch(completion));
-                            }
-                            inFlight.set(0);
-                        }
-                    });
-            while (inFlight.get() > 0) {
-                persist.accept(awaitGpuBatch(completion));
-                inFlight.decrementAndGet();
-            }
-        }
-        if (scanned != expectedInputs || processed.get() != expectedInputs) {
-            throw new IllegalStateException(
-                    "Avoidance wave input changed during its CUDA snapshot");
-        }
-        log.info("Avoidance reconstruction wave {} CUDA generation complete: "
-                        + "inputs={}, applications={}, acceptedKeys={}, "
-                        + "batchUniqueKeys={}, gpuSeconds={}",
-                maximumMoves, processed.get(), applications.sum(),
-                accepted.sum(), unique.sum(),
-                gpuNanos.sum() / 1_000_000_000.0);
-        return new WaveResult(
-                processed.get(), applications.sum(), devices.length);
-    }
-
-    private static CompletedGpuBatch awaitGpuBatch(
-            final ExecutorCompletionService<CompletedGpuBatch> completion
-    ) {
-        try {
-            return completion.take().get();
-        } catch (final InterruptedException interruption) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(
-                    "Interrupted while waiting for CUDA avoidance reconstruction",
-                    interruption);
-        } catch (final ExecutionException execution) {
-            throw new IllegalStateException(
-                    "CUDA avoidance reconstruction worker failed",
-                    execution.getCause());
-        }
-    }
-
-    private static List<GpuAvoidanceReconstructor.Batch> reconstructAdaptively(
-            final GpuAvoidanceReconstructor reconstructor,
-            final List<CyclicTargetPair> pairs,
-            final int maximumMoves,
-            final int device
-    ) {
-        try {
-            return List.of(reconstructor.reconstruct(pairs, maximumMoves));
-        } catch (final RuntimeException failure) {
-            final String message = failure.getMessage();
-            final boolean capacityFailure = message != null
-                    && (message.contains(
-                    "batch exceeds td18.avoidanceGpuBudgetMB")
-                    || message.contains(
-                    "does not fit available device memory"));
-            if (!capacityFailure || pairs.size() <= 1) {
-                throw failure;
-            }
-            final int middle = pairs.size() / 2;
-            log.info("Splitting CUDA avoidance batch on device {}: "
-                            + "inputs={} into {}+{} after memory-cap check",
-                    device, pairs.size(), middle, pairs.size() - middle);
-            final var batches = new ArrayList<GpuAvoidanceReconstructor.Batch>();
-            batches.addAll(reconstructAdaptively(
-                    reconstructor, pairs.subList(0, middle),
-                    maximumMoves, device));
-            batches.addAll(reconstructAdaptively(
-                    reconstructor, pairs.subList(middle, pairs.size()),
-                    maximumMoves, device));
-            return List.copyOf(batches);
-        }
-    }
-
-    private record CompletedGpuBatch(
-            int inputs, int device,
-            List<GpuAvoidanceReconstructor.Batch> batches
-    ) {
     }
 
     record WaveResult(long processed, long applications, int parallelism) {

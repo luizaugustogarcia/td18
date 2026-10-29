@@ -854,17 +854,11 @@ path within ten moves. Such a predecessor therefore needs no further inverse
 construction. A prefix miss is not treated as a lower bound: retain it
 conservatively and reconstruct all of its compatible full-domain parents.
 
-The emitter accelerates this finite enumeration in CUDA batches.  One device
-thread evaluates one inverse-support application: it constructs the parent,
-checks the forward replay and fixed-point-free condition, applies a packed
-transition table derived from the same Java reduction enumerator, and computes
-the twisted-bracelet canonical key, including rank inversion under twisted
-reflection.  A device sort removes repeated keys within the batch before they
-enter the work database.  At least the first batch of each wave is regenerated
-by the CPU reference implementation; the emitter rejects any disagreement in
-the pre-filter inverse-application count or the complete canonical-key set.
-Thus the CUDA path changes neither the set being generated nor the counting
-convention recorded below.
+The emitter performs this finite enumeration in parallel CPU workers. Each
+worker reconstructs and checks predecessors, canonicalizes the valid pairs,
+and sends their class keys to the shared work store for deduplication. Each
+wave checks that both the scanned and processed input counts match the
+recorded input inventory. The counting convention recorded below is unchanged.
 
 Continue inverse construction from every intermediate prefix miss until
 reaching the full

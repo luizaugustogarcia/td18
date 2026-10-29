@@ -17,10 +17,6 @@
         <td18.gpuBudgetMB>1024</td18.gpuBudgetMB>
         <td18.gpuQueueCapacity></td18.gpuQueueCapacity>
         <td18.gpuStatsPeriodSeconds>60</td18.gpuStatsPeriodSeconds>
-        <td18.avoidanceGpu>true</td18.avoidanceGpu>
-        <td18.avoidanceGpuBudgetMB>1024</td18.avoidanceGpuBudgetMB>
-        <td18.avoidanceGpuBatchSize>1024</td18.avoidanceGpuBatchSize>
-        <td18.avoidanceGpuVerifyBatches>1</td18.avoidanceGpuVerifyBatches>
         <td18.avoidanceTrustWaveManifest>false</td18.avoidanceTrustWaveManifest>
         <td18.avoidanceBufferKeys>5000000</td18.avoidanceBufferKeys>
         <td18.avoidanceRocksWriteBatchKeys>100000</td18.avoidanceRocksWriteBatchKeys>
@@ -57,7 +53,7 @@
                         <goals><goal>exec</goal></goals>
                         <configuration>
                             <executable>java</executable>
-                            <commandlineArgs>-classpath %classpath -Djava.library.path=${project.build.directory}/native -Dtd18.gpuDevices=${td18.gpuDevices} -Dtd18.gpuSlots=${td18.gpuSlots} -Dtd18.gpuBudgetMB=${td18.gpuBudgetMB} -Dtd18.gpuQueueCapacity=${td18.gpuQueueCapacity} -Dtd18.gpuStatsPeriodSeconds=${td18.gpuStatsPeriodSeconds} -Dtd18.avoidanceGpu=${td18.avoidanceGpu} -Dtd18.avoidanceGpuBudgetMB=${td18.avoidanceGpuBudgetMB} -Dtd18.avoidanceGpuBatchSize=${td18.avoidanceGpuBatchSize} -Dtd18.avoidanceGpuVerifyBatches=${td18.avoidanceGpuVerifyBatches} -Dtd18.avoidanceTrustWaveManifest=${td18.avoidanceTrustWaveManifest} -Dtd18.avoidanceBufferKeys=${td18.avoidanceBufferKeys} -Dtd18.avoidanceRocksWriteBatchKeys=${td18.avoidanceRocksWriteBatchKeys} -Dtd18.avoidanceRocksWriteBufferMB=${td18.avoidanceRocksWriteBufferMB} -Dtd18.avoidanceRocksMaxWriteBuffers=${td18.avoidanceRocksMaxWriteBuffers} -Dtd18.avoidanceRocksBackgroundJobs=${td18.avoidanceRocksBackgroundJobs} -Dtd18.avoidanceRocksSubcompactions=${td18.avoidanceRocksSubcompactions} -Dtd18.twistedBraceletWorkers=${td18.twistedBraceletWorkers} -Dtd18.certificateDb=${td18.certificateDb} -Dtd18.certificateFlushSeconds=${td18.certificateFlushSeconds} ${exec.mainClass} ${td18.args}</commandlineArgs>
+                            <commandlineArgs>-classpath %classpath -Djava.library.path=${project.build.directory}/native -Dtd18.gpuDevices=${td18.gpuDevices} -Dtd18.gpuSlots=${td18.gpuSlots} -Dtd18.gpuBudgetMB=${td18.gpuBudgetMB} -Dtd18.gpuQueueCapacity=${td18.gpuQueueCapacity} -Dtd18.gpuStatsPeriodSeconds=${td18.gpuStatsPeriodSeconds} -Dtd18.avoidanceTrustWaveManifest=${td18.avoidanceTrustWaveManifest} -Dtd18.avoidanceBufferKeys=${td18.avoidanceBufferKeys} -Dtd18.avoidanceRocksWriteBatchKeys=${td18.avoidanceRocksWriteBatchKeys} -Dtd18.avoidanceRocksWriteBufferMB=${td18.avoidanceRocksWriteBufferMB} -Dtd18.avoidanceRocksMaxWriteBuffers=${td18.avoidanceRocksMaxWriteBuffers} -Dtd18.avoidanceRocksBackgroundJobs=${td18.avoidanceRocksBackgroundJobs} -Dtd18.avoidanceRocksSubcompactions=${td18.avoidanceRocksSubcompactions} -Dtd18.twistedBraceletWorkers=${td18.twistedBraceletWorkers} -Dtd18.certificateDb=${td18.certificateDb} -Dtd18.certificateFlushSeconds=${td18.certificateFlushSeconds} ${exec.mainClass} ${td18.args}</commandlineArgs>
                         </configuration>
                     </execution>
                 </executions>

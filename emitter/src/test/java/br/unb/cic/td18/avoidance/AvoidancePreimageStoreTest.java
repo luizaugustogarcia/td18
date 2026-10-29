@@ -112,25 +112,6 @@ class AvoidancePreimageStoreTest {
     }
 
     @Test
-    void persistsPackedCanonicalGpuKeysWithoutRecanonicalizingThem() {
-        final var pair = smallPair();
-        final byte[] encoded = CertificateCodec.keyFor(pair);
-        final byte[] record = new byte[
-                GpuAvoidanceReconstructor.KEY_RECORD_BYTES];
-        record[0] = (byte) pair.getBeta().size();
-        System.arraycopy(encoded, 0, record, 1, encoded.length);
-        final var recovered = new ArrayList<CyclicTargetPair>();
-
-        try (final var store = new AvoidancePreimageStore(
-                temporaryDirectory.resolve("gpu-keys"))) {
-            store.putCanonicalKeyRecords(9, record);
-            assertEquals(1, store.inventory(9).count());
-            assertEquals(1, store.scanBatches(9, 1, recovered::addAll));
-        }
-        assertEquals(List.of(pair), recovered);
-    }
-
-    @Test
     void clearsOnlyTheUncommittedWaveOutputRange() {
         final var pair = smallPair();
         final var directory = temporaryDirectory.resolve("clear-wave");

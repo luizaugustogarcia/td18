@@ -72,10 +72,6 @@ public final class ReductionTypeEnumerator {
         }
     }
 
-    /** Packed transition accepted by the checked reduction policy. */
-    public record ReconstructionTransition(long parentType, long childAndKind) {
-    }
-
     private static volatile Set<String> reachableOpenStates;
 
     private ReductionTypeEnumerator() {
@@ -486,80 +482,6 @@ public final class ReductionTypeEnumerator {
             }
         }
         return states.contains(key(lengths, oriented) + '@' + movesUsed);
-    }
-
-    /**
-     * Returns the complete transition table used to check inverse
-     * reconstruction on the GPU. The table is derived from the same finite
-     * enumerator as the CPU predicate; it is not a second implementation of
-     * the reduction policy.
-     */
-    public static List<ReconstructionTransition> reconstructionTransitions(
-            final int movesUsed
-    ) {
-        if (movesUsed < 0 || movesUsed > DEPTH_CAP) {
-            throw new IllegalArgumentException(
-                    "Reconstruction depth lies outside the two-reduction computation");
-        }
-        final var transitions = new java.util.HashSet<ReconstructionTransition>();
-        for (var symbols = 2; symbols <= ROOT_SYMBOLS; symbols++) {
-            for (final var partition : Partitions.generateValidPartitions(symbols)) {
-                for (final var annotated : AnnotatedPartitions.of(partition)) {
-                    final int[] lengths = annotated.partition();
-                    final boolean[] oriented = annotated.oriented();
-                    if (!isReachableOpenState(lengths, oriented, movesUsed)) {
-                        continue;
-                    }
-                    final long parentType = packAnnotatedType(lengths, oriented);
-                    for (final var option : reductionOptions(lengths, oriented, movesUsed)) {
-                        transitions.add(new ReconstructionTransition(parentType,
-                                (packPartition(option.childLengths()) << 2) | option.kind().ordinal()));
-                    }
-                }
-            }
-        }
-        return transitions.stream()
-                .sorted(Comparator.comparingLong(
-                                ReconstructionTransition::parentType)
-                        .thenComparingLong(
-                                ReconstructionTransition::childAndKind))
-                .toList();
-    }
-
-    static long packAnnotatedType(
-            final int[] lengths,
-            final boolean[] oriented
-    ) {
-        if (lengths.length != oriented.length || lengths.length > 9) {
-            throw new IllegalArgumentException(
-                    "Annotated reconstruction type does not fit its packed form");
-        }
-        long packed = lengths.length;
-        for (var index = 0; index < lengths.length; index++) {
-            if (lengths[index] < 2 || lengths[index] > ROOT_SYMBOLS) {
-                throw new IllegalArgumentException(
-                        "Reconstruction cycle length lies outside 2..19");
-            }
-            final long entry = lengths[index] | (oriented[index] ? 0x20L : 0L);
-            packed |= entry << (4 + 6 * index);
-        }
-        return packed;
-    }
-
-    static long packPartition(final int[] lengths) {
-        if (lengths.length > 9) {
-            throw new IllegalArgumentException(
-                    "Reconstruction partition does not fit its packed form");
-        }
-        long packed = lengths.length;
-        for (var index = 0; index < lengths.length; index++) {
-            if (lengths[index] < 2 || lengths[index] > ROOT_SYMBOLS) {
-                throw new IllegalArgumentException(
-                        "Reconstruction partition length lies outside 2..19");
-            }
-            packed |= (long) lengths[index] << (4 + 5 * index);
-        }
-        return packed;
     }
 
     private static void collectReachableOpenStates(

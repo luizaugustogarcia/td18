@@ -342,16 +342,12 @@ writes. The certificate writer flushes every `td18.certificateFlushSeconds`
 seconds and at manifest boundaries.
 
 The work database records candidate and prefix-miss inventories, checksums, and
-completed reconstruction/screening waves. By default the inverse-support
-applications, predecessor checks, twisted-bracelet canonicalization, and
-per-batch key deduplication run in parallel across the configured CUDA devices.
-The first batch of each wave is regenerated on the CPU; its application count
-and full canonical key set must agree before the run continues. Set
-`-Dtd18.avoidanceGpu=false` for the CPU backend,
-`-Dtd18.avoidanceGpuBudgetMB=...` for the reconstruction memory cap,
-`-Dtd18.avoidanceGpuBatchSize=...` for the number of inputs in one CUDA
-sort/unique operation, or
-`-Dtd18.avoidanceGpuVerifyBatches=...` for additional checked batches.
+completed reconstruction/screening waves. Reconstruction runs on the CPU,
+with one worker per available processor, capped by the number of inputs.
+Workers enumerate inverse supports, check and canonicalize predecessors, and
+send their class keys to the shared work store for deduplication. Each wave
+checks that its scanned and processed input counts match the recorded input
+inventory. CUDA is used for full-domain witness searches after CPU screening.
 
 The standalone runner independently regenerates all 1,884 restricted odd-pair
 seeds even if their key-only obstruction records are absent. Source budgets

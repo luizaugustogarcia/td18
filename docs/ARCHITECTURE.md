@@ -37,10 +37,10 @@ implementation moved. CountTD18Bracelets and Table2ProvenanceGraph are
 command-line tools. Reusable code reads Table2 directly and uses ProjectPaths
 for paths rather than depending on a counting command.
 
-The emitter retains base/GPUSortingSearch.java and its GPU scheduling helpers,
-plus the root GpuAvoidanceReconstructor JNI entry point, to preserve the native
-class names and method descriptors. The avoidance implementation delegates to
-that bridge. Native source and persisted formats are unaffected by package
+The emitter retains base/GPUSortingSearch.java and its GPU scheduling helpers
+to preserve the native class names and method descriptors for sorting searches.
+Avoidance reconstruction runs in parallel CPU workers and deduplicates canonical
+class keys in the shared work store. Persisted formats are unaffected by package
 organization.
 
 ## Independence is specific

@@ -49,7 +49,6 @@ find_package(JNI)
 if(JNI_FOUND)
     add_library(td18_jni SHARED
         jni/jni_sorter.cu
-        jni/jni_avoidance.cu
         backtracking/slot_manager.cu
         backtracking/sorting_search.cu
     )
