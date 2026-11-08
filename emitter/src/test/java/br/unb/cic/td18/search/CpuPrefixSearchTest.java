@@ -101,6 +101,20 @@ class CpuPrefixSearchTest {
         CertificateValidator.validate(input, result, 7);
     }
 
+    @Test void positiveGainPrefixesReachClosureBeforeTheCubicScanConsumesTheBudget() {
+        var input = CyclicTargetPair.of(new MulticyclePermutation(
+                "(0 4 2)(1 5 3)(6 10 8)(7 14 9)(11 17 13)(12 15)(16 18)"),
+                Cycle.of(java.util.stream.IntStream.range(0, 19).toArray()));
+        assertTrue(br.unb.cic.td18.joint.JointReductionAnalysis.isTotallyUnoriented(
+                java.util.stream.IntStream.range(0, 19).map(input.getOmega()::image).toArray(),
+                input.getBeta().getSymbols()));
+        var result = CpuPrefixSearch.search(input, 10, 3, 8192).orElseThrow();
+        assertEquals(3, result.moves().size());
+        assertEquals(SortingCertificate.Kind.DIAMETER_CLOSURE, result.kind());
+        check(input, result);
+        CertificateValidator.validate(input, result, 10);
+    }
+
     private static void check(CyclicTargetPair input, SortingCertificate result) {
         int[] omega = new int[input.getBeta().size()];
         Arrays.setAll(omega, input.getOmega()::image);

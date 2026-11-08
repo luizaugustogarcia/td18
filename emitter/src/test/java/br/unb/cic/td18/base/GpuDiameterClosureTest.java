@@ -39,6 +39,18 @@ class GpuDiameterClosureTest {
             });
         }
     }
+    @Test void largeUnorientedRootClosesWithRotatedBetaAndReplayedMoves() {
+        var permutation = new br.unb.cic.td18.permutation.MulticyclePermutation(
+                "(0 4 2)(1 5 3)(6 10 8)(7 14 9)(11 17 13)(12 15)(16 18)");
+        byte[] omega = new byte[19], beta = new byte[19];
+        for (int i = 0; i < 19; i++) {
+            omega[i] = (byte) permutation.image(i);
+            beta[i] = (byte) ((i + 2) % 19);
+        }
+        var result = gpu().search(beta, new OneLinePermutation(omega), 10, true);
+        assertNotEquals(GPUSortingSearch.Disposition.RESIDUAL, result.disposition());
+        check(omega, beta, result, 10);
+    }
     private static void check(byte[] input,byte[] beta,GPUSortingSearch.SearchOutcome result,int budget) {
         if(result.disposition()==GPUSortingSearch.Disposition.RESIDUAL) { assertTrue(result.moves().isEmpty()); return; }
         byte[] omega=input.clone();

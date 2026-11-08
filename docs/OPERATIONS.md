@@ -117,11 +117,28 @@ The GPU search checks identity and the known-diameter bound at every depth
 up to the obligation budget. It permits odd-length-cycle gains zero and two.
 A CPU prefix first tries the same exits, using actual applicable transpositions
 with odd-length-cycle gains zero and two. Its defaults are depth three and
-8,192 examined supports per obligation. Set td18.cpuPrefixDepth=0 or
+a shared support budget of 8,192 per obligation. Set td18.cpuPrefixDepth=0 or
 td18.cpuPrefixMaxTriples=0 to disable prefix expansion; initial identity and
 diameter checks still apply. Neither fixed-point gain ordering nor the prefix
 limits remove any full GPU obligation. Totally unoriented states receive no
 structural reduction. Every successful prefix is replayed and persisted.
+
+The prefix follows positive-gain moves before general gain-zero setup moves.
+After virtual contraction of fixed symbols, the paper's consecutive-triple
+lemma lists every gain-at-least-two support as
+(a, omega(a), omega squared(a)), using O(N) support tests. These moves are
+followed even when further prefix moves are needed. Each gain-one support
+has a unique agreeing algebraic edge and can be listed as
+(a, omega(a), c), using O(N^2) support tests. Only gain-zero moves need the
+general cubic scan. These are bounds on support enumeration at a node, not
+on the full search. The search visits children as it finds them, rather than
+spending its shared support budget collecting an entire candidate list.
+The budget counts applicable consecutive supports and examined candidates
+in the other scans; linear consecutive-support screening runs at each node.
+It also rejects prefixes whose 3-norm exceeds the remaining move budget.
+The GPU checks the O(N) consecutive supports for an immediate complete or
+known-diameter exit before expanding general children. These search choices
+add no structural reductions, including on totally unoriented states.
 
 Every 10 seconds, GPU statistics report searches per second, complete
 witnesses, diameter closures, misses, slot occupancy, pending work, and
@@ -132,6 +149,31 @@ GPU fallthroughs, closure rate, and average search time and prefix depth.
 td18.cpuStatsPeriodSeconds controls their period and defaults to the GPU period;
 zero disables a reporter. GPU throughput counts only fallthroughs once CPU
 prefixes are enabled, so use both counters when comparing runs.
+
+For a deterministic sample comparison of the search algorithm, build the
+classes and a dependency classpath, then run the audit benchmark:
+
+~~~bash
+mvn -pl emitter compile dependency:build-classpath \
+  -Dmdep.outputFile=target/benchmark-classpath.txt
+java -Dtd18.cpuStatsPeriodSeconds=0 \
+  --class-path "emitter/target/classes:$(cat emitter/target/benchmark-classpath.txt)" \
+  tools/audit/BenchmarkWitnessSearch.java 4,3,3,3,2,2,2 10000 1 unoriented prefix
+~~~
+
+Arguments are PARTITION SAMPLES THREADS, followed by optional
+joint|unoriented and pipeline|prefix (defaults: joint and pipeline).
+The prefix mode replays every successful result and reports misses without
+loading CUDA or writing a database. The pipeline mode searches and persists
+to a fresh temporary database; it requires the native library on the Java
+library path if any prefix misses. Add
+-Djava.library.path=emitter/target/native on a configured CUDA machine.
+Sampling and canonicalization are timed separately from search. Up to 2,000
+sampled classes are used for warmup and excluded from the timed result.
+Compare identical partitions, sample sizes, worker counts and VM properties.
+Use both unoriented and joint scopes: 214,474,050 of the 248,082,611 direct
+roots are totally unoriented. A deterministic prefix is not a random sample
+or an exhaustive sorting check; its rate cannot predict the full run.
 
 To monitor a complete run through a log file:
 

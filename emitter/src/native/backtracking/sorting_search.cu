@@ -572,6 +572,44 @@ namespace {
             __syncwarp(0xFFFFFFFF);
 
             const int childDepth = node.depth + 1;
+            // The consecutive-triple lemma lists every move gaining at least
+            // two fixed points in O(N) supports. Seek a one-move exit before
+            // generating and queueing general children. Fixed symbols are
+            // virtually contracted: their deletion preserves support order.
+            if (solution_kind(ctx, parentOddCycles + 2,
+                              min(ctx.n, static_cast<int>(node.fixedPoints) + 3), childDepth) != 0) {
+                if (lane < ctx.n) sh_tmp[sh_parent_beta[lane]] = static_cast<uint8_t>(lane);
+                __syncwarp(0xFFFFFFFF);
+                int fastKind = 0;
+                short first = 0, second = 0, third = 0;
+                if (lane < ctx.n) {
+                    const int a = lane;
+                    const int b = sh_parent_omega[a];
+                    const int c = sh_parent_omega[b];
+                    if (a != b && b != c && c != a) {
+                        const int gain = 2 + (sh_parent_omega[c] == a);
+                        const int pa = sh_tmp[a], pb = sh_tmp[b], pc = sh_tmp[c];
+                        if ((pa < pb && pb < pc) || (pb < pc && pc < pa) || (pc < pa && pa < pb)) {
+                            fastKind = solution_kind(ctx, parentOddCycles + 2,
+                                                     node.fixedPoints + gain, childDepth);
+                            first = static_cast<short>(min(pa, min(pb, pc)));
+                            third = static_cast<short>(max(pa, max(pb, pc)));
+                            second = static_cast<short>(pa + pb + pc - first - third);
+                        }
+                    }
+                }
+                const unsigned fastBallot = __ballot_sync(0xFFFFFFFF, fastKind != 0);
+                if (fastBallot != 0) {
+                    const int solutionLane = __ffs(fastBallot) - 1;
+                    if (lane == solutionLane && atomicCAS(ctx.foundFlag, 0, 1) == 0) {
+                        *ctx.solutionDepth = childDepth;
+                        *ctx.solutionKind = fastKind;
+                        for (int d = 0; d < node.depth; ++d) ctx.solutionMoves[d] = node.moves[d];
+                        ctx.solutionMoves[node.depth] = pack_move(first, second, third);
+                    }
+                    return;
+                }
+            }
             for (int tBase = 0; tBase < ctx.tripleCount; tBase += WARP_SIZE) {
                 if (warp_should_stop(ctx)) return;
 
