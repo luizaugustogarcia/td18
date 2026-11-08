@@ -10,6 +10,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -50,6 +56,84 @@ public final class JointRootGenerator {
                 Objects.requireNonNull(consumer)).run();
     }
 
+    /** Generates disjoint prefix subtrees on every CPU available to the JVM. The sink must be thread-safe. */
+    public static Counts generateResidualsConcurrently(final int[] partition,
+                                                       final Runnable cancellationCheck,
+                                                       final Consumer<CyclicTargetPair> consumer) {
+        return generateResidualsConcurrently(partition, Runtime.getRuntime().availableProcessors(),
+                cancellationCheck, consumer);
+    }
+
+    static Counts generateResidualsConcurrently(final int[] partition, final int workers,
+                                                final Runnable cancellationCheck,
+                                                final Consumer<CyclicTargetPair> consumer) {
+        if (workers < 1) throw new IllegalArgumentException("Positive CPU worker count required");
+        Objects.requireNonNull(cancellationCheck);
+        Objects.requireNonNull(consumer);
+        final var failure = new AtomicReference<Throwable>();
+        final Runnable cancel = () -> {
+            if (failure.get() != null) throw propagate(failure.get());
+            cancellationCheck.run();
+        };
+        final var template = new Generator(partition, cancel, consumer);
+        final var pool = new ThreadPoolExecutor(workers, workers, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(256),
+                Thread.ofPlatform().daemon(true).name("joint-generation-", 0).factory(),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        // At depth three there are at most (N-1)(N-2) disjoint jobs, with N <= 19.
+        final List<Future<Counts>> jobs = new ArrayList<>();
+        try {
+            template.frontierDepth = Math.min(3, template.n - 1);
+            template.frontier = branch -> jobs.add(pool.submit(() -> {
+                try {
+                    final var generator = new Generator(template, branch);
+                    generator.checkCancellation();
+                    generator.visit(branch.depth, branch.used);
+                    generator.checkCancellation();
+                    return generator.result();
+                } catch (RuntimeException | Error error) {
+                    failure.compareAndSet(null, error);
+                    throw error;
+                }
+            }));
+            template.checkCancellation();
+            template.position[0] = 0;
+            template.visit(1, 1);
+            Counts result = template.result();
+            for (final var job : jobs) result = add(result, job.get());
+            cancel.run();
+            return result;
+        } catch (ExecutionException error) {
+            throw propagate(failure.get() == null ? error.getCause() : failure.get());
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException("Joint generation interrupted");
+        } finally {
+            pool.shutdownNow();
+            boolean interrupted = Thread.interrupted();
+            for (;;) {
+                try {
+                    if (pool.awaitTermination(1, TimeUnit.SECONDS)) break;
+                } catch (InterruptedException error) { interrupted = true; }
+            }
+            if (interrupted) Thread.currentThread().interrupt();
+        }
+    }
+
+    private static RuntimeException propagate(final Throwable failure) {
+        if (failure instanceof Error error) throw error;
+        if (failure instanceof RuntimeException error) return error;
+        return new IllegalStateException("Joint generation failed", failure);
+    }
+
+    private static Counts add(final Counts a, final Counts b) {
+        return new Counts(Math.addExact(a.jointResidualClasses, b.jointResidualClasses),
+                Math.addExact(a.supportClearingClasses, b.supportClearingClasses),
+                Math.addExact(a.orientedClasses, b.orientedClasses),
+                Math.addExact(a.noQualifyingFirstMoveClasses, b.noQualifyingFirstMoveClasses),
+                Math.addExact(a.prefixNodes, b.prefixNodes), Math.addExact(a.realizableLeaves, b.realizableLeaves));
+    }
+
     /** Count mode avoids decoding pair objects and retains no representative set. */
     public static Counts count(final int[] partition) {
         return count(partition, NO_CANCELLATION);
@@ -65,6 +149,8 @@ public final class JointRootGenerator {
 
     private record Triple(int a, int b, int c) { }
     private record ConstraintGroup(Triple first, Triple[] seconds) { }
+    private record Branch(int depth, int used, int[] position, int[] target,
+                          int[] partialInverse, int targetEdges) { }
 
     private static final class Generator {
         private final int n;
@@ -93,6 +179,19 @@ public final class JointRootGenerator {
         private long classes;
         private long cleared;
         private long noQualifying;
+        private Consumer<Branch> frontier;
+        private int frontierDepth;
+
+        private Generator(final Generator template, final Branch branch) {
+            n = template.n; parts = template.parts; omega = template.omega; inverse = template.inverse;
+            cycleStart = template.cycleStart; cycleLength = template.cycleLength; previousEqual = template.previousEqual;
+            fast = template.fast; pairs = template.pairs; firsts = template.firsts;
+            cyclicOrder = template.cyclicOrder; afterPositions = template.afterPositions;
+            cancellationCheck = template.cancellationCheck; consumer = template.consumer;
+            position = branch.position.clone(); target = branch.target.clone();
+            partialInverse = branch.partialInverse.clone(); targetEdges = branch.targetEdges;
+            images = new int[n]; inverseImages = new int[n]; anchors = new boolean[n];
+        }
 
         @SuppressWarnings("unchecked")
         private Generator(final int[] partition, final Runnable cancellationCheck,
@@ -214,6 +313,10 @@ public final class JointRootGenerator {
             position[0] = 0;
             visit(1, 1);
             checkCancellation();
+            return result();
+        }
+
+        private Counts result() {
             return new Counts(classes, cleared, classes - cleared, noQualifying, nodes, leaves);
         }
 
@@ -224,6 +327,12 @@ public final class JointRootGenerator {
         }
 
         private void visit(final int depth, final int used) {
+            if (frontier != null && depth == frontierDepth) {
+                checkCancellation();
+                frontier.accept(new Branch(depth, used, position.clone(), target.clone(),
+                        partialInverse.clone(), targetEdges));
+                return;
+            }
             if ((++nodes & 1023) == 0) checkCancellation();
             if (depth == n) {
                 leaf();

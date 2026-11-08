@@ -1,7 +1,6 @@
 package br.unb.cic.td18.base;
 
 import br.unb.cic.td18.permutation.OneLinePermutation;
-import br.unb.cic.td18.search.CpuPrefixSearchStats;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -172,7 +171,6 @@ public class GPUSortingSearch {
 
     private void logWindowStats() {
         final var snapshot = stats.snapshot(System.nanoTime());
-        final var cpuSnapshot = CpuPrefixSearchStats.instance().snapshot();
         final double elapsedSeconds = snapshot.elapsedNanos() / 1_000_000_000.0;
         final double throughput = snapshot.completed() / elapsedSeconds;
         final double occupancy = snapshot.busyNanos()
@@ -186,21 +184,6 @@ public class GPUSortingSearch {
                 format(throughput), formatPercent(occupancy), format(averageWaitMillis),
                 pendingSearches.size(), pendingCapacity,
                 snapshot.failed());
-
-        final long cpuAttempts = cpuSnapshot.completed() + cpuSnapshot.failed();
-        final double averageCpuMillis = cpuAttempts == 0
-                ? 0
-                : cpuSnapshot.elapsedNanos() / 1_000_000.0
-                / cpuAttempts;
-        final double averagePrefixDepth = cpuSnapshot.qualified() == 0
-                ? 0
-                : cpuSnapshot.prefixMoves() / (double) cpuSnapshot.qualified();
-        log.info("CPU prefix stats (last {}s): completed={}, trivially settled={}, "
-                        + "GPU fallthroughs={}, avg search={} ms, avg prefix depth={}, failures={}",
-                format(elapsedSeconds), cpuSnapshot.completed(),
-                cpuSnapshot.qualified(), cpuSnapshot.misses(),
-                format(averageCpuMillis), format(averagePrefixDepth),
-                cpuSnapshot.failed());
 
         for (final var device : snapshot.devices()) {
             final double deviceThroughput = device.completed() / elapsedSeconds;

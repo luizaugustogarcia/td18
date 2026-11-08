@@ -11,10 +11,12 @@ import br.unb.cic.td18.joint.SupportClearing;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.runtime.ProjectPaths;
 import br.unb.cic.td18.search.WitnessSearch;
+import br.unb.cic.td18.search.CpuPrefixSearchStats;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -97,8 +99,8 @@ public final class WitnessEmitter {
         }
         if (!completeWitness && WitnessSearch.closesByCpuPrefix(pair, budget)) return true;
         if (!search) return false;
-        var result = completeWitness ? WitnessSearch.searchCompleteWitness(pair, minimumRate(pair,budget), budget)
-                : WitnessSearch.search(pair, minimumRate(pair,budget), budget);
+        // The optional CPU screen has already run above; every fallthrough needs a complete witness.
+        var result = WitnessSearch.searchCompleteWitness(pair, minimumRate(pair,budget), budget);
         if (result.disposition() != WitnessSearch.Disposition.RESIDUAL) return true;
         writer.enqueueObstruction(pair, budget);
         return false;
@@ -115,7 +117,9 @@ public final class WitnessEmitter {
                     if (!discharge.apply(pair.canonicalRepresentative(), 10, true)) unresolved.increment();
                 });
         try (var tasks = new BoundedTasks()) {
-            JointRootGenerator.generateResiduals(row.partition(), tasks::check, pair -> {
+            log.info("Root partition {}: joint generation uses {} available CPU cores",
+                    row.number(), Runtime.getRuntime().availableProcessors());
+            JointRootGenerator.generateResidualsConcurrently(row.partition(), tasks::check, pair -> {
                 joint.increment();
                 if (SupportClearing.closes(pair)) { cleared.increment(); return; }
                 tasks.submit(() -> { if (!discharge.apply(pair.canonicalRepresentative(), 10, false)) unresolved.increment(); });
@@ -158,9 +162,25 @@ public final class WitnessEmitter {
 
     static final class Progress implements AutoCloseable {
         private volatile Supplier<String> current = () -> "initializing";
+        private long lastReport = System.nanoTime();
         private final java.util.concurrent.ScheduledExecutorService reporter = Executors.newSingleThreadScheduledExecutor(
                 Thread.ofPlatform().daemon(true).name("emission-progress").factory());
-        Progress() { reporter.scheduleWithFixedDelay(() -> log.info("Emission progress: {}", current.get()), 60, 60, TimeUnit.SECONDS); }
+        Progress() { reporter.scheduleWithFixedDelay(this::report, 60, 60, TimeUnit.SECONDS); }
+        private void report() {
+            long now = System.nanoTime();
+            double seconds = Math.max(1, now - lastReport) / 1_000_000_000.0;
+            lastReport = now;
+            var cpu = CpuPrefixSearchStats.instance().snapshot();
+            long attempts = cpu.completed() + cpu.failed();
+            double averageMillis = attempts == 0 ? 0 : cpu.elapsedNanos() / 1_000_000.0 / attempts;
+            log.info("CPU prefix stats (last {}s): checks={}, throughput={}/s, closures={}, closureThroughput={}/s, "
+                            + "misses={}, avg search={} ms, failures={}",
+                    number(seconds), cpu.completed(), number(cpu.completed() / seconds),
+                    cpu.qualified(), number(cpu.qualified() / seconds), cpu.misses(),
+                    number(averageMillis), cpu.failed());
+            log.info("Emission progress: {}", current.get());
+        }
+        private static String number(double value) { return String.format(Locale.ROOT, "%.3f", value); }
         void phase(Supplier<String> value) { current = value; }
         @Override public void close() { reporter.shutdownNow(); }
     }

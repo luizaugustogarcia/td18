@@ -103,6 +103,29 @@ nine moves and sends remaining full roots to budget-ten search.
 Missing endpoint witnesses generate final obligations even if no obstruction
 marker exists. No list of expected endpoint failures is required.
 
+Joint root generation and root witness screening each use
+Runtime.getRuntime().availableProcessors() workers automatically. The joint
+generator divides disjoint prefix subtrees among those workers. Unoriented
+root and endpoint generation use td18.twistedBraceletWorkers=auto by default,
+which adds the configured GPU slots to the available CPU count so that waiting
+for CUDA does not leave CPU workers idle. No server-specific CPU count is
+required. Joint-generation and root-witness queues each hold at most 256
+tasks; a full queue makes the submitting thread process work itself.
+
+Every 60 seconds, the emission log reports CPU prefix checks, checks per
+second, successful closures, closures per second, misses, average search time,
+and failures. GPU statistics separately report completed searches per second,
+slot occupancy, pending work, and failures. All throughput values are individual
+checks or searches per second: 55.727/s means about 56 per second.
+
+To monitor a complete run through a log file:
+
+~~~bash
+mkdir -p logs
+tools/td18 emit '-Dtd18.args=--phase=all' > logs/emission.log 2>&1 &
+tail -f logs/emission.log
+~~~
+
 Rerun the same phase and ranges to regenerate work and reuse valid stored
 witnesses. A partial range is not a completed proof. All inverse gap and support
 choices must be retained; class deduplication is disk-backed. A root miss
