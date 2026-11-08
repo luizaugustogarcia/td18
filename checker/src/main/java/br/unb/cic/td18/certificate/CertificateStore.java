@@ -18,9 +18,9 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-/** Read-only version-1 witness/obstruction schema, with independent replay. */
+/** Read-only version-2 witness/obstruction schema, with independent replay. */
 public final class CertificateStore implements AutoCloseable {
-    public static final int FORMAT_VERSION = 1;
+    public static final int FORMAT_VERSION = 2;
     private static final byte[] OBSTRUCTIONS = "obstructions".getBytes(StandardCharsets.UTF_8);
     static { RocksDB.loadLibrary(); }
     private final DBOptions options = new DBOptions().setMaxOpenFiles(256);
@@ -36,13 +36,13 @@ public final class CertificateStore implements AutoCloseable {
             final var families = RocksDB.listColumnFamilies(listing, directory.toString());
             if (families.size() != 2 || families.stream().noneMatch(x -> Arrays.equals(x, RocksDB.DEFAULT_COLUMN_FAMILY))
                     || families.stream().noneMatch(x -> Arrays.equals(x, OBSTRUCTIONS)))
-                throw new IllegalStateException("Unsupported certificate format: expected version-1 two-family schema");
+                throw new IllegalStateException("Unsupported certificate format: expected version-2 two-family schema");
             opened = RocksDB.openReadOnly(options, directory.toString(), List.of(
                     new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, witnessOptions),
                     new ColumnFamilyDescriptor(OBSTRUCTIONS, obstructionOptions)), handles);
             database = opened;
             final var marker = database.get(handles.get(0), "td18-schema".getBytes(StandardCharsets.UTF_8));
-            if (!Arrays.equals(marker, "joint-selection-v1".getBytes(StandardCharsets.UTF_8)))
+            if (!Arrays.equals(marker, "joint-selection-v2".getBytes(StandardCharsets.UTF_8)))
                 throw new IllegalStateException("Missing or unsupported certificate format marker");
         } catch (final RocksDBException | RuntimeException failure) {
             handles.forEach(ColumnFamilyHandle::close);
@@ -56,11 +56,10 @@ public final class CertificateStore implements AutoCloseable {
         final var canonical = pair.canonicalRepresentative();
         final byte[] value = get(handles.get(0), CertificateCodec.keyFor(canonical));
         if (value == null) return Optional.empty();
-        final var moves = CertificateCodec.decodeValue(value);
-        // A longer valid witness is unavailable for this budget. Corruption is
-        // rejected even when the witness would not satisfy the smaller budget.
-        CertificateValidator.validate(canonical, moves, moves.size());
-        return moves.size() <= maximumMoves ? Optional.of(moves) : Optional.empty();
+        final var result = CertificateCodec.decodeResult(value);
+        // Replay stored data even when the derived bound exceeds the requested budget.
+        CertificateValidator.validate(canonical, result, canonical.getBeta().size() == 16 ? 8 : canonical.getBeta().size() == 18 ? 9 : 10);
+        return CertificateValidator.requiredBudget(canonical, result) <= maximumMoves ? Optional.of(result.moves()) : Optional.empty();
     }
     public List<Optional<List<Cycle>>> find(final CyclicTargetPair[] pairs, final int maximumMoves) {
         final var result = new ArrayList<Optional<List<Cycle>>>(pairs.length);

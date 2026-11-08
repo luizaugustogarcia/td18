@@ -110,9 +110,9 @@ it and two original symbols. Every remaining valid oriented root requires
 budget-ten closure or a complete witness. Labeling restored symbols in current
 traversal order loses no classes because relabeling transports all supports.
 
-A regenerated prefix plus a known diameter is a closure, not a complete
-sorting certificate. The verifier replays the prefix and checks contraction
-and budget. A complete certificate must sort its pair within its budget.
+A stored prefix plus a known diameter certifies an upper bound. The verifier
+replays the prefix and checks contraction and budget. A complete witness
+must sort its pair within its budget.
 Exhaustive reconstruction, disk deduplication, and regeneration of missing
 endpoint obligations prevent a partial database from hiding work.
 
@@ -122,7 +122,7 @@ endpoint obligations prevent a partial database from hiding work.
 | Fixed-content generation and Burnside counting | bracelet/ |
 | Diameter premises and joint inventories | joint/ |
 | Joint root constraints and support clearing | emitter joint/; checker independent verification code |
-| CPU closures and CUDA dispatch | search/; emitter base/ |
+| GPU diameter exits and CUDA dispatch | search/; emitter base/ |
 | Certificate encoding, storage, and replay | certificate/ |
 | Complete inverse waves | avoidance/ |
 

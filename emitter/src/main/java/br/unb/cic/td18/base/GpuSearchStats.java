@@ -13,6 +13,9 @@ final class GpuSearchStats {
             long started,
             long completed,
             long failed,
+            long completeWitnesses,
+            long diameterClosures,
+            long misses,
             long queueWaitNanos,
             long busyNanos
     ) {
@@ -23,6 +26,9 @@ final class GpuSearchStats {
             long started,
             long completed,
             long failed,
+            long completeWitnesses,
+            long diameterClosures,
+            long misses,
             long queueWaitNanos,
             long busyNanos,
             int totalSlots,
@@ -43,6 +49,7 @@ final class GpuSearchStats {
     private final long[] deviceStarted;
     private final long[] deviceCompleted;
     private final long[] deviceFailed;
+    private final long[] deviceCompleteWitnesses, deviceDiameterClosures, deviceMisses;
     private final long[] deviceQueueWaitNanos;
     private final long[] deviceBusyNanos;
 
@@ -55,6 +62,9 @@ final class GpuSearchStats {
         this.deviceStarted = new long[layout.deviceCount()];
         this.deviceCompleted = new long[layout.deviceCount()];
         this.deviceFailed = new long[layout.deviceCount()];
+        this.deviceCompleteWitnesses = new long[layout.deviceCount()];
+        this.deviceDiameterClosures = new long[layout.deviceCount()];
+        this.deviceMisses = new long[layout.deviceCount()];
         this.deviceQueueWaitNanos = new long[layout.deviceCount()];
         this.deviceBusyNanos = new long[layout.deviceCount()];
         Arrays.fill(slotActiveSinceNanos, -1L);
@@ -71,6 +81,10 @@ final class GpuSearchStats {
     }
 
     synchronized void released(final int slot, final long releasedAtNanos, final boolean failed) {
+        released(slot, releasedAtNanos, failed, 0);
+    }
+
+    synchronized void released(final int slot, final long releasedAtNanos, final boolean failed, final int kind) {
         final long activeSince = slotActiveSinceNanos[slot];
         if (activeSince < 0) {
             throw new IllegalStateException("GPU slot " + slot + " was released while inactive");
@@ -80,6 +94,11 @@ final class GpuSearchStats {
         deviceCompleted[deviceIndex]++;
         if (failed) {
             deviceFailed[deviceIndex]++;
+        }
+        if (!failed) {
+            if (kind == 1) deviceCompleteWitnesses[deviceIndex]++;
+            else if (kind == 2) deviceDiameterClosures[deviceIndex]++;
+            else deviceMisses[deviceIndex]++;
         }
         slotActiveSinceNanos[slot] = -1L;
     }
@@ -99,6 +118,7 @@ final class GpuSearchStats {
         long started = 0;
         long completed = 0;
         long failed = 0;
+        long completeWitnesses = 0, diameterClosures = 0, misses = 0;
         long queueWaitNanos = 0;
         long busyNanos = 0;
         final int[] devices = layout.devices();
@@ -108,6 +128,9 @@ final class GpuSearchStats {
             started += deviceStarted[deviceIndex];
             completed += deviceCompleted[deviceIndex];
             failed += deviceFailed[deviceIndex];
+            completeWitnesses += deviceCompleteWitnesses[deviceIndex];
+            diameterClosures += deviceDiameterClosures[deviceIndex];
+            misses += deviceMisses[deviceIndex];
             queueWaitNanos += deviceQueueWaitNanos[deviceIndex];
             busyNanos += deviceBusyNanos[deviceIndex];
             deviceSnapshots[deviceIndex] = new DeviceSnapshot(
@@ -115,6 +138,7 @@ final class GpuSearchStats {
                     deviceStarted[deviceIndex],
                     deviceCompleted[deviceIndex],
                     deviceFailed[deviceIndex],
+                    deviceCompleteWitnesses[deviceIndex], deviceDiameterClosures[deviceIndex], deviceMisses[deviceIndex],
                     deviceQueueWaitNanos[deviceIndex],
                     deviceBusyNanos[deviceIndex]);
         }
@@ -122,11 +146,12 @@ final class GpuSearchStats {
         Arrays.fill(deviceStarted, 0);
         Arrays.fill(deviceCompleted, 0);
         Arrays.fill(deviceFailed, 0);
+        Arrays.fill(deviceCompleteWitnesses, 0); Arrays.fill(deviceDiameterClosures, 0); Arrays.fill(deviceMisses, 0);
         Arrays.fill(deviceQueueWaitNanos, 0);
         Arrays.fill(deviceBusyNanos, 0);
         windowStartedNanos = nowNanos;
 
-        return new Snapshot(elapsedNanos, started, completed, failed, queueWaitNanos,
+        return new Snapshot(elapsedNanos, started, completed, failed, completeWitnesses, diameterClosures, misses, queueWaitNanos,
                 busyNanos, layout.totalSlots(), deviceSnapshots);
     }
 }

@@ -42,7 +42,7 @@ needs it. Counting uses all available CPU cores by default.
 
 | Path | Responsibility |
 | --- | --- |
-| emitter/ | Direct class generation, CPU/CUDA search, and certificate emission. |
+| emitter/ | Direct class generation, GPU sorting, and certificate emission. |
 | checker/ | Independent CPU regeneration, reconstruction, and witness replay. |
 | docs/ | Source specification, mathematics, completion criteria, and operations. |
 | tools/ | Workflow launcher and independent counting audits. |

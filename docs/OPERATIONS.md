@@ -98,12 +98,12 @@ tools/td18 avoidance -Dtd18.certificateDb="$PWD/certificates"
 
 The optional TD(16) database is read-only. Only valid complete witnesses
 within the requested budget are reused. Roots use ten moves; endpoints use
-eight. Final reconstruction screens 18-symbol predecessors on CPU within
+eight. Final reconstruction searches 18-symbol predecessors on GPU within
 nine moves and sends remaining full roots to budget-ten search.
 Missing endpoint witnesses generate final obligations even if no obstruction
 marker exists. No list of expected endpoint failures is required.
 
-Joint root generation and root witness screening each use
+Joint root generation and root witness submission each use
 Runtime.getRuntime().availableProcessors() workers automatically. The joint
 generator divides disjoint prefix subtrees among those workers. Unoriented
 root and endpoint generation use td18.twistedBraceletWorkers=auto by default,
@@ -112,11 +112,14 @@ for CUDA does not leave CPU workers idle. No server-specific CPU count is
 required. Joint-generation and root-witness queues each hold at most 256
 tasks; a full queue makes the submitting thread process work itself.
 
-Every 60 seconds, the emission log reports CPU prefix checks, checks per
-second, successful closures, closures per second, misses, average search time,
-and failures. GPU statistics separately report completed searches per second,
-slot occupancy, pending work, and failures. All throughput values are individual
-checks or searches per second: 55.727/s means about 56 per second.
+The GPU search checks identity and the known-diameter bound at every depth
+up to the obligation budget. It permits odd-length-cycle gains zero and two.
+CPU work consists of class generation and result replay.
+
+Every 10 seconds, GPU statistics report searches per second, complete
+witnesses, diameter closures, misses, slot occupancy, pending work, and
+failures. Phase progress is logged separately. A throughput of 55.727/s means
+about 56 searches per second.
 
 To monitor a complete run through a log file:
 
@@ -146,14 +149,22 @@ certificate replay does not initialize a sorting device.
 ## Certificate format and independent checking
 
 The RocksDB schema has two column families. The default family reserves the
-UTF-8 entry td18-schema = joint-selection-v1. Other entries map raw canonical
-instance keys to complete witnesses. The obstructions family stores raw keys
+UTF-8 entry td18-schema = joint-selection-v2. Other entries map raw canonical
+instance keys to complete witnesses or known-diameter closures. The obstructions family stores raw keys
 with empty values. Keys encode symbols with five bits and implicitly use
 the standard current cycle; each move is encoded by three five-bit symbols.
-Pairs must be canonicalized before persistence.
+Pairs must be canonicalized before persistence. Result values start with a
+kind byte (0 complete, 1 diameter closure) and an exact move-count byte,
+followed by fifteen-bit symbol triples with zero padding. Zero-move results
+have a two-byte value; counts above ten, unknown kinds and malformed payloads
+are rejected. Existing databases with a different schema marker are rejected.
+Use a fresh database path for this format; independently supplied TD(16)
+complete witnesses remain readable through --td16-db.
 
-Every complete witness is replayed before acceptance. A valid witness longer
-than a requested budget is a miss at that budget; an invalid witness rejects.
+Every result is replayed before acceptance. Complete records must reach
+identity. Closure records must satisfy the actual move count plus the known
+diameter after contraction. A valid result needing a larger budget is a miss
+at a smaller budget; malformed or incorrect records reject.
 The queues and disk buffer have these defaults:
 
 | Buffer | Capacity | Configuration |
@@ -181,8 +192,8 @@ CertificateChecker accepts matching phases and ranges, --paper, --database,
 --work, and --structural-only. Its work directory is also fresh and outside
 the certificate database. Endpoint-only verification reports residuals for
 final reconstruction; a complete all-phase check must cover them. Full checking regenerates classes and inverse waves, checks counts, replays
-witnesses, and independently regenerates CPU closures. It rejects missing
-required witnesses or unresolved roots. Selected phases and ranges establish
+stored complete witnesses and diameter closures. It rejects missing
+required discharges or unresolved roots. Selected phases and ranges establish
 only their selected scope. See the research plan before making a TD(18) claim.
 
 ## Build the paper

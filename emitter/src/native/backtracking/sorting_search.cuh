@@ -13,12 +13,16 @@ void allocateGpuSortingSearchSlot(int slot,
                                   int slotsOnDevice,
                                   int slotOrdinalOnDevice);
 
-std::vector<Move> performGpuSortingSearch(std::vector<short> beta,
+struct GpuSortingResult {
+    int kind = 0; // 0: miss, 1: complete witness, 2: known-diameter closure
+    std::vector<Move> moves;
+};
+
+GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
                                           std::vector<short> omega,
-                                          int initialEvenCycles,
-                                          double minRate,
                                           int maximumDepth,
-                                          bool fullSorting,
+                                          bool allowDiameterClosure,
+                                          const std::vector<int> &knownDiameters,
                                           cudaStream_t stream,
                                           int slot,
                                           int maxWarps = -1);

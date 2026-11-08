@@ -52,6 +52,19 @@ class AsyncCertificateWriterTest {
             assertTrue(writer.find(pair(),2).isEmpty()); assertEquals(moves,writer.find(pair(),3).orElseThrow());
         }
     }
+    @Test void closureRemovesObstructionAndReopensWithItsActualBudget(@TempDir Path directory) {
+        try (var writer = new AsyncCertificateWriter(directory,60)) {
+            writer.enqueueObstruction(pair(),10); writer.flush();
+            writer.enqueueClosure(pair(),List.of(),1); writer.flush();
+            assertTrue(writer.find(pair(),0).isEmpty());
+            assertTrue(writer.find(pair(),1).isPresent());
+            var keys = new ArrayList<byte[]>(); writer.forEachObstruction(keys::add); assertTrue(keys.isEmpty());
+        }
+        try (var writer = new AsyncCertificateWriter(directory,60)) {
+            assertEquals(SortingCertificate.Kind.DIAMETER_CLOSURE,writer.findResult(pair(),1).orElseThrow().kind());
+            assertTrue(writer.find(pair(),1).orElseThrow().isEmpty());
+        }
+    }
     @Test void rejectsUnversionedDatabaseAndInvalidWitness(@TempDir Path directory) throws Exception {
         RocksDB.loadLibrary();
         try (var options = new Options().setCreateIfMissing(true); var ignored = RocksDB.open(options,directory.resolve("source").toString())) { }

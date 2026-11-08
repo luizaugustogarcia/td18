@@ -11,12 +11,10 @@ import br.unb.cic.td18.joint.SupportClearing;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.runtime.ProjectPaths;
 import br.unb.cic.td18.search.WitnessSearch;
-import br.unb.cic.td18.search.CpuPrefixSearchStats;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -52,7 +50,7 @@ public final class WitnessEmitter {
             WitnessSearch.installWriter(writer);
             try {
                 if (options.roots()) for (var row : inventory) if (options.includesPartition(row.number())) {
-                    var result = emitRoot(row, (pair, budget, complete) -> settle(pair, budget, complete, writer, null, true), progress);
+                    var result = emitRoot(row, (pair, budget) -> settle(pair, budget, writer, null, true), progress);
                     writer.flush();
                     log.info("Root partition {}: unoriented={}, jointResiduals={}, supportCleared={}, directOriented={}, unresolved={}",
                             row.number(), result.unoriented, result.jointResiduals, result.supportCleared,
@@ -64,15 +62,15 @@ public final class WitnessEmitter {
                         // Avoidance regenerates misses from the witness database. It
                         // never starts from a persisted obstruction list alone.
                         boolean search = !options.phase.equals("avoidance");
-                        emitEndpoint(endpoint, (pair, budget, complete) -> settle(pair, budget, complete, writer, source, search),
+                        emitEndpoint(endpoint, (pair, budget) -> settle(pair, budget, writer, source, search),
                                 endpoints, progress);
                         writer.flush();
                     }
                 if (options.avoidance()) {
                     progress.phase(() -> "final inverse reconstruction");
                     var result = JointAvoidance.resolve(endpoints, work,
-                            pair -> WitnessSearch.closesByCpuPrefix(pair, 9),
-                            pair -> settle(pair, 10, false, writer, null, true));
+                            pair -> settle(pair, 9, writer, null, true),
+                            pair -> settle(pair, 10, writer, null, true));
                     writer.flush();
                     log.info("Final reconstruction: {}", result);
                     if (result.unresolved() != 0) throw new IllegalStateException("Unresolved reconstructed roots: " + result.unresolved());
@@ -88,8 +86,8 @@ public final class WitnessEmitter {
         }
     }
 
-    /** Returns true only for a replayed witness or a regenerated CPU closure. */
-    private static boolean settle(CyclicTargetPair input, int budget, boolean completeWitness,
+    /** Returns true only for a replayed complete witness or a persisted known-diameter closure. */
+    private static boolean settle(CyclicTargetPair input, int budget,
                                   AsyncCertificateWriter writer, ReadOnlyWitnessSource source, boolean search) {
         var pair = input.canonicalRepresentative();
         if (writer.find(pair, budget).isPresent()) return true;
@@ -97,10 +95,8 @@ public final class WitnessEmitter {
             var imported = source.find(pair, budget);
             if (imported.isPresent()) { writer.enqueue(pair, imported.orElseThrow()); return true; }
         }
-        if (!completeWitness && WitnessSearch.closesByCpuPrefix(pair, budget)) return true;
         if (!search) return false;
-        // The optional CPU screen has already run above; every fallthrough needs a complete witness.
-        var result = WitnessSearch.searchCompleteWitness(pair, minimumRate(pair,budget), budget);
+        var result = WitnessSearch.search(pair, budget);
         if (result.disposition() != WitnessSearch.Disposition.RESIDUAL) return true;
         writer.enqueueObstruction(pair, budget);
         return false;
@@ -114,7 +110,7 @@ public final class WitnessEmitter {
         DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(row.partition(), new boolean[row.partition().length],
                 () -> { }, pair -> {
                     unoriented.increment();
-                    if (!discharge.apply(pair.canonicalRepresentative(), 10, true)) unresolved.increment();
+                    if (!discharge.apply(pair.canonicalRepresentative(), 10)) unresolved.increment();
                 });
         try (var tasks = new BoundedTasks()) {
             log.info("Root partition {}: joint generation uses {} available CPU cores",
@@ -122,7 +118,7 @@ public final class WitnessEmitter {
             JointRootGenerator.generateResidualsConcurrently(row.partition(), tasks::check, pair -> {
                 joint.increment();
                 if (SupportClearing.closes(pair)) { cleared.increment(); return; }
-                tasks.submit(() -> { if (!discharge.apply(pair.canonicalRepresentative(), 10, false)) unresolved.increment(); });
+                tasks.submit(() -> { if (!discharge.apply(pair.canonicalRepresentative(), 10)) unresolved.increment(); });
             });
         }
         if (unoriented.sum() != row.unorientedClasses() || joint.sum() != row.jointResidualClasses()
@@ -142,7 +138,7 @@ public final class WitnessEmitter {
         DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(endpoint.partition(), endpoint.orientedByPart(),
                 () -> { }, pair -> {
                     generated.increment();
-                    if (!discharge.apply(pair.canonicalRepresentative(), 8, false)) {
+                    if (!discharge.apply(pair.canonicalRepresentative(), 8)) {
                         residuals.add(pair, 8); misses.increment();
                     }
                 });
@@ -151,36 +147,14 @@ public final class WitnessEmitter {
         log.info("Endpoint {}: generated={}, missingEightMoveDischarges={}", endpoint.number(), generated.sum(), misses.sum());
     }
 
-    private static float minimumRate(CyclicTargetPair pair, int budget) {
-        int norm = pair.getOmega().stream().mapToInt(c -> c.size()/2).sum();
-        if (norm == 0) throw new IllegalArgumentException("Expected an unsorted obligation");
-        return budget / (2.0f * norm);
-    }
-
-    @FunctionalInterface interface PairDischarge { boolean apply(CyclicTargetPair pair, int budget, boolean completeWitness); }
+    @FunctionalInterface interface PairDischarge { boolean apply(CyclicTargetPair pair, int budget); }
     record RootResult(long unoriented, long jointResiduals, long supportCleared, long unresolved) { }
 
     static final class Progress implements AutoCloseable {
         private volatile Supplier<String> current = () -> "initializing";
-        private long lastReport = System.nanoTime();
         private final java.util.concurrent.ScheduledExecutorService reporter = Executors.newSingleThreadScheduledExecutor(
                 Thread.ofPlatform().daemon(true).name("emission-progress").factory());
-        Progress() { reporter.scheduleWithFixedDelay(this::report, 60, 60, TimeUnit.SECONDS); }
-        private void report() {
-            long now = System.nanoTime();
-            double seconds = Math.max(1, now - lastReport) / 1_000_000_000.0;
-            lastReport = now;
-            var cpu = CpuPrefixSearchStats.instance().snapshot();
-            long attempts = cpu.completed() + cpu.failed();
-            double averageMillis = attempts == 0 ? 0 : cpu.elapsedNanos() / 1_000_000.0 / attempts;
-            log.info("CPU prefix stats (last {}s): checks={}, throughput={}/s, closures={}, closureThroughput={}/s, "
-                            + "misses={}, avg search={} ms, failures={}",
-                    number(seconds), cpu.completed(), number(cpu.completed() / seconds),
-                    cpu.qualified(), number(cpu.qualified() / seconds), cpu.misses(),
-                    number(averageMillis), cpu.failed());
-            log.info("Emission progress: {}", current.get());
-        }
-        private static String number(double value) { return String.format(Locale.ROOT, "%.3f", value); }
+        Progress() { reporter.scheduleWithFixedDelay(() -> log.info("Emission progress: {}", current.get()), 10, 10, TimeUnit.SECONDS); }
         void phase(Supplier<String> value) { current = value; }
         @Override public void close() { reporter.shutdownNow(); }
     }

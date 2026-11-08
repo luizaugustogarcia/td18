@@ -40,11 +40,11 @@ tools/td18 emit -Dtd18.args=--phase=roots
 tools/td18 emit -Dtd18.args=--phase=endpoints
 ~~~
 
-Totally unoriented roots require complete ten-move witnesses. Retained
-oriented roots use budget ten and may also close by a regenerated CPU prefix
-and known diameter. Endpoint types with an oriented 3-cycle close by
+All direct roots use budget ten and require a persisted complete witness or
+known-diameter closure. Endpoint types with an oriented 3-cycle close by
 1 + TD(12) = 8. For the other types, the emitter replays available witnesses,
-tries permitted CPU closures, and searches within eight moves. Valid TD(16)
+then searches on GPU within eight moves, checking the known-diameter exit at
+every depth. Valid TD(16)
 witnesses may be imported through --td16-db=PATH; every reused witness is
 replayed. An endpoint search miss becomes a residual for final reconstruction,
 not a proved lower bound. A missing ten-move root result remains unresolved.
@@ -56,8 +56,8 @@ tools/td18 avoidance
 ~~~
 
 Regenerate endpoint classes without an eight-move discharge. Restore two
-fixed points and reverse the second move, screen deduplicated 18-symbol
-predecessors within budget nine, then restore one fixed point and reverse
+fixed points and reverse the second move, search deduplicated 18-symbol
+predecessors on GPU within budget nine and persist successful discharges, then restore one fixed point and reverse
 the first move. Each remaining deduplicated root needs a ten-move closure
 or complete witness. All gap distributions and admissible supports are
 covered, including moves within even-length cycles. Missing obstruction
@@ -73,7 +73,7 @@ tools/td18 verify
 ~~~
 
 The CPU checker independently regenerates all required classes and inverse
-waves, checks counts, replays complete witnesses, and regenerates closures.
+waves, checks counts, replays stored complete witnesses and diameter closures.
 An absent, malformed, over-budget, or unresolved required result prevents
 completion. Sidecar files and checksums are not proof inputs.
 A phase or range selection proves only its selected scope. Only the complete

@@ -50,10 +50,9 @@ extern "C" JNIEXPORT jobjectArray JNICALL
 Java_br_unb_cic_td18_base_GPUSortingSearch_searchForSortingSeq(JNIEnv *env, jclass,
                                                                jbyteArray javaBeta,
                                                                jbyteArray javaOmega,
-                                                               jint initialEvenCycles,
-                                                               jfloat minRate,
                                                                jint maxMoves,
-                                                               jboolean fullSorting,
+                                                               jboolean allowDiameterClosure,
+                                                               jintArray javaDiameters,
                                                                jint slot) {
     try {
         clearCudaRuntimePoisoned();
@@ -89,21 +88,28 @@ Java_br_unb_cic_td18_base_GPUSortingSearch_searchForSortingSeq(JNIEnv *env, jcla
         }
         cudaStream_t rawStream = getGpuSortSlotStream(slotIndex);
 
-        const auto moves = performGpuSortingSearch(
-                std::move(beta), std::move(omega),
-                static_cast<int>(initialEvenCycles),
-                static_cast<double>(minRate),
-                static_cast<int>(maxMoves),
-                static_cast<bool>(fullSorting),
-                rawStream, slotIndex);
+        if (javaDiameters == nullptr || env->GetArrayLength(javaDiameters) != MAX_N + 1)
+            throw std::invalid_argument("Invalid diameter table");
+        std::vector<jint> rawDiameters(MAX_N + 1);
+        env->GetIntArrayRegion(javaDiameters, 0, MAX_N + 1, rawDiameters.data());
+        const std::vector<int> diameters(rawDiameters.begin(), rawDiameters.end());
+        const auto result = performGpuSortingSearch(
+                std::move(beta), std::move(omega), static_cast<int>(maxMoves),
+                static_cast<bool>(allowDiameterClosure), diameters, rawStream, slotIndex);
+        const auto &moves = result.moves;
 
         jclass intArrayClass = env->FindClass("[I");
-        jobjectArray outer = env->NewObjectArray(static_cast<jsize>(moves.size()), intArrayClass, nullptr);
+        jobjectArray outer = env->NewObjectArray(static_cast<jsize>(moves.size() + 1), intArrayClass, nullptr);
+        jint kind = result.kind;
+        jintArray header = env->NewIntArray(1);
+        env->SetIntArrayRegion(header, 0, 1, &kind);
+        env->SetObjectArrayElement(outer, 0, header);
+        env->DeleteLocalRef(header);
         for (jsize idx = 0; idx < static_cast<jsize>(moves.size()); ++idx) {
             jint move[3] = {moves[idx].firstIndex, moves[idx].secondIndex, moves[idx].thirdIndex};
             jintArray inner = env->NewIntArray(3);
             env->SetIntArrayRegion(inner, 0, 3, move);
-            env->SetObjectArrayElement(outer, idx, inner);
+            env->SetObjectArrayElement(outer, idx + 1, inner);
             env->DeleteLocalRef(inner);
         }
         env->DeleteLocalRef(intArrayClass);

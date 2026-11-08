@@ -17,7 +17,8 @@ namespace {
 
     struct BacktrackingNode {
         uint8_t depth;
-        uint8_t evenCycles;
+        uint8_t oddCycles;
+        uint8_t fixedPoints;
         PackedMove moves[MAX_DEPTH];
         uint8_t omega[MAX_N];
         uint8_t betaStart;  // first element of beta cycle (reconstructed via rho invariant)
@@ -35,6 +36,7 @@ namespace {
     struct BacktrackingResult {
         int found;
         int solutionDepth;
+        int solutionKind;
         int overflowed;
         PackedMove solutionMoves[MAX_DEPTH];
         alignas(8) unsigned long long outstandingWork;
@@ -48,11 +50,8 @@ namespace {
         const short *omega0;
         const short *beta0;
         int n;
-        int initialEvenCycles;
         int maxDepth;
-        int requiredGainByDepth[MAX_DEPTH + 1];
-        int requiredGainAtMaxDepth;
-        float minRate;
+        int knownDiameters[MAX_N + 1];
 
         int queueCount;
         BacktrackingQueue *queues;
@@ -60,12 +59,13 @@ namespace {
 
         int *foundFlag;
         int *solutionDepth;
+        int *solutionKind;
         PackedMove *solutionMoves;
         int *overflowFlag;
         unsigned long long *outstandingWork;
 
         int reverseTripleOrder;
-        int fullSorting;
+        int allowDiameterClosure;
         uint8_t rhoInv[MAX_N];  // precomputed rho^{-1} for beta reconstruction
     };
 
@@ -206,9 +206,9 @@ namespace {
         return __shfl_sync(0xFFFFFFFF, shouldStop, 0) != 0;
     }
 
-    // ─── Even-cycle counting ─────────────────────────────────────────────────────
+    // ─── Odd-cycle counting ─────────────────────────────────────────────────────
 
-    __device__ __forceinline__ int count_even_cycles(const uint8_t *omega, const int n) {
+    __host__ __device__ __forceinline__ int count_odd_cycles(const uint8_t *omega, const int n) {
         uint64_t visited = 0;
         int count = 0;
         for (int s = 0; s < n; ++s) {
@@ -225,10 +225,10 @@ namespace {
         return count;
     }
 
-    // Incremental even-cycle delta when applying 3-cycle (a b c) to omega.
+    // Incremental odd-cycle delta when applying 3-cycle (a b c) to omega.
     // The move sets: childOmega[a]=omega[c], childOmega[b]=omega[a], childOmega[c]=omega[b].
     //
-    // Returns the delta in odd-cycle count (childEvenCycles - parentEvenCycles),
+    // Returns the delta in odd-cycle count (childOddCycles - parentOddCycles),
     // or INT_MIN if a, b, c span 3 different cycles (move should be skipped).
     //
     // Cases:
@@ -237,7 +237,7 @@ namespace {
     //   All in same cycle, order a→...→c→...→b→...→a: cycle stays intact. Delta = 0.
     //   Two in one cycle, one in another: 2 cycles remain 2 cycles with new sizes.
     //   Three different cycles: skipped (returns INT_MIN).
-    __device__ __forceinline__ int delta_even_cycles(const uint8_t *omega,
+    __device__ __forceinline__ int delta_odd_cycles(const uint8_t *omega,
                                                      const uint8_t a,
                                                      const uint8_t b,
                                                      const uint8_t c) {
@@ -333,43 +333,27 @@ namespace {
 
     // ─── Pruning logic ───────────────────────────────────────────────────────────
 
-    __device__ __forceinline__ bool satisfies_rate(const DeviceSearchContext &ctx,
-                                                   const int evenCycles,
-                                                   const int depth) {
-        if (depth <= 0) return false;
-        if (ctx.fullSorting) {
-            if (evenCycles != ctx.n) return false;
-        }
-        const int gained = evenCycles - ctx.initialEvenCycles;
-        const float achievedRatio = static_cast<float>(gained) / static_cast<float>(depth);
-        return gained > 0 && achievedRatio >= ctx.minRate;
+    __host__ __device__ __forceinline__ int count_fixed_points(const uint8_t *omega, const int n) {
+        int count = 0;
+        for (int s = 0; s < n; ++s) count += omega[s] == s;
+        return count;
+    }
+
+    __device__ __forceinline__ int solution_kind(const DeviceSearchContext &ctx,
+                                                  const int oddCycles,
+                                                  const int fixedPoints,
+                                                  const int depth) {
+        if (oddCycles == ctx.n) return 1;
+        const int diameter = ctx.knownDiameters[ctx.n - fixedPoints];
+        if (ctx.allowDiameterClosure && diameter != INT_MAX && diameter <= ctx.maxDepth - depth) return 2;
+        return 0;
     }
 
     __device__ __forceinline__ bool can_still_reach(const DeviceSearchContext &ctx,
-                                                    const int evenCycles,
+                                                    const int oddCycles,
                                                     const int depth) {
-        const int maxPossibleEvenCycles = ctx.n - evenCycles;
-
-        if (ctx.fullSorting) {
-            const int lowerBound = (maxPossibleEvenCycles + 1) / 2;
-            if (depth + lowerBound > ctx.maxDepth) return false;
-        } else {
-            const int gained = evenCycles - ctx.initialEvenCycles;
-            const int movesLeft = ctx.maxDepth - depth;
-
-            const int optimisticGain = gained + 2 * movesLeft;
-            const int requiredGainAtMaxDepth = static_cast<int>(
-                    floorf(ctx.minRate * static_cast<float>(ctx.maxDepth)));
-            if (optimisticGain < requiredGainAtMaxDepth) return false;
-
-            const int lowerBound = (maxPossibleEvenCycles + 1) / 2;
-            const int bestCaseDepth = depth + lowerBound;
-            if (bestCaseDepth > 0) {
-                const float bestCaseRatio = (float)(gained + maxPossibleEvenCycles) / (float)bestCaseDepth;
-                if (bestCaseRatio < ctx.minRate) return false;
-            }
-        }
-        return true;
+        // Every permitted transposition increases the odd-length-cycle count by at most two.
+        return depth + (ctx.n - oddCycles + 1) / 2 <= ctx.maxDepth;
     }
 
     __device__ __forceinline__ bool contains_fixed_symbol(const uint8_t *omega,
@@ -397,7 +381,7 @@ namespace {
                                              const short *omega0,
                                              const short *beta0,
                                              const int n,
-                                             const int initialEvenCycles,
+                                             const int initialFixedPoints,
                                              const int reverseTripleOrder) {
         const int queueIndex = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
         if (queueIndex < queueCount) {
@@ -437,14 +421,16 @@ namespace {
                     // In particular, do not seed the search with a move that
                     // merges three distinct cycles.
                     if (contains_fixed_symbol(node.omega, a, b, c)) continue;
-                    const int delta = delta_even_cycles(node.omega, a, b, c);
+                    const int delta = delta_odd_cycles(node.omega, a, b, c);
                     if (delta != 0 && delta != 2) continue;
 
                     node.omega[a] = static_cast<uint8_t>(omega0[c]);
                     node.omega[b] = static_cast<uint8_t>(omega0[a]);
                     node.omega[c] = static_cast<uint8_t>(omega0[b]);
 
-                    node.evenCycles = static_cast<uint8_t>(count_even_cycles(node.omega, n));
+                    node.oddCycles = static_cast<uint8_t>(count_odd_cycles(node.omega, n));
+                    node.fixedPoints = static_cast<uint8_t>(initialFixedPoints
+                            + (omega0[c] == a) + (omega0[a] == b) + (omega0[b] == c));
                     // betaStart: first element of beta cycle after block transposition
                     // transposed_src_index(0, i, j, k) = j when i==0, else 0
                     node.betaStart = (moveFirst == 0)
@@ -533,7 +519,8 @@ namespace {
 #endif
 
             node.depth = (uint8_t)__shfl_sync(0xFFFFFFFF, node.depth, 0);
-            node.evenCycles = (uint8_t)__shfl_sync(0xFFFFFFFF, static_cast<int>(node.evenCycles), 0);
+            node.oddCycles = (uint8_t)__shfl_sync(0xFFFFFFFF, static_cast<int>(node.oddCycles), 0);
+            node.fixedPoints = (uint8_t)__shfl_sync(0xFFFFFFFF, static_cast<int>(node.fixedPoints), 0);
             node.betaStart = (uint8_t)__shfl_sync(0xFFFFFFFF, static_cast<int>(node.betaStart), 0);
             for (int d = 0; d < ctx.maxDepth; ++d) {
                 node.moves[d] = static_cast<PackedMove>(__shfl_sync(0xFFFFFFFF, node.moves[d], 0));
@@ -566,17 +553,19 @@ namespace {
                 continue;
             }
 
-            const int parentEvenCycles = node.evenCycles;
+            const int parentOddCycles = node.oddCycles;
 
-            if (satisfies_rate(ctx, parentEvenCycles, node.depth)) {
+            const int parentKind = solution_kind(ctx, parentOddCycles, node.fixedPoints, node.depth);
+            if (parentKind != 0) {
                 if (atomicCAS(ctx.foundFlag, 0, 1) == 0) {
                     *ctx.solutionDepth = node.depth;
+                    *ctx.solutionKind = parentKind;
                     for (int d = 0; d < node.depth; ++d) ctx.solutionMoves[d] = node.moves[d];
                 }
                 return;
             }
 
-            if (node.depth >= ctx.maxDepth || !can_still_reach(ctx, parentEvenCycles, node.depth)) {
+            if (node.depth >= ctx.maxDepth || !can_still_reach(ctx, parentOddCycles, node.depth)) {
                 if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
                 continue;
             }
@@ -591,7 +580,9 @@ namespace {
                 bool foundChild = false;
                 bool wantsPush = false;
                 short solutionFirst{}, solutionSecond{}, solutionThird{};
-                int childEvenCycles = 0;
+                int childOddCycles = 0;
+                int childFixedPoints = 0;
+                int childKind = 0;
                 uint8_t childBetaStart = 0;
                 uint8_t child_a = 0, child_b = 0, child_c = 0;
                 short moveFirst = 0, moveSecond = 0, moveThird = 0;
@@ -605,17 +596,20 @@ namespace {
                     const uint8_t c = sh_parent_beta[moveThird];
 
                     if (!contains_fixed_symbol(sh_parent_omega, a, b, c)) {
-                        const int delta = delta_even_cycles(sh_parent_omega, a, b, c);
+                        const int delta = delta_odd_cycles(sh_parent_omega, a, b, c);
 
                         if (delta == 0 || delta == 2) {
-                            childEvenCycles = parentEvenCycles + delta;
+                            childOddCycles = parentOddCycles + delta;
 
-                            if (satisfies_rate(ctx, childEvenCycles, childDepth)) {
+                            childFixedPoints = node.fixedPoints + (sh_parent_omega[c] == a)
+                                    + (sh_parent_omega[a] == b) + (sh_parent_omega[b] == c);
+                            childKind = solution_kind(ctx, childOddCycles, childFixedPoints, childDepth);
+                            if (childKind != 0) {
                                 foundChild = true;
                                 solutionFirst = moveFirst;
                                 solutionSecond = moveSecond;
                                 solutionThird = moveThird;
-                            } else if (childDepth < ctx.maxDepth && can_still_reach(ctx, childEvenCycles, childDepth)) {
+                            } else if (childDepth < ctx.maxDepth && can_still_reach(ctx, childOddCycles, childDepth)) {
                                 child_a = a;
                                 child_b = b;
                                 child_c = c;
@@ -634,6 +628,7 @@ namespace {
                     const int solutionLane = __ffs(foundBallot) - 1;
                     if (lane == solutionLane && atomicCAS(ctx.foundFlag, 0, 1) == 0) {
                         *ctx.solutionDepth = childDepth;
+                        *ctx.solutionKind = childKind;
                         for (int d = 0; d < node.depth; ++d) ctx.solutionMoves[d] = node.moves[d];
                         ctx.solutionMoves[node.depth] = pack_move(
                                 solutionFirst, solutionSecond, solutionThird);
@@ -649,7 +644,8 @@ namespace {
                         const unsigned mask_below = (1u << lane) - 1u;
                         const int mySlot = __popc(pushBallot & mask_below);
                         sh_children[mySlot].depth = static_cast<uint8_t>(childDepth);
-                        sh_children[mySlot].evenCycles = static_cast<uint8_t>(childEvenCycles);
+                        sh_children[mySlot].oddCycles = static_cast<uint8_t>(childOddCycles);
+                        sh_children[mySlot].fixedPoints = static_cast<uint8_t>(childFixedPoints);
                         for (int d = 0; d < node.depth; ++d)
                             sh_children[mySlot].moves[d] = node.moves[d];
                         sh_children[mySlot].moves[node.depth] = pack_move(moveFirst, moveSecond, moveThird);
@@ -808,12 +804,11 @@ void destroyGpuSortingSearchSlots() {
     if (originalDevice >= 0) CHECK_CUDA(cudaSetDevice(originalDevice));
 }
 
-std::vector<Move> performGpuSortingSearch(std::vector<short> beta,
+GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
                                           std::vector<short> omega,
-                                          const int initialEvenCycles,
-                                          const double minRate,
                                           const int maximumDepth,
-                                          const bool fullSorting,
+                                          const bool allowDiameterClosure,
+                                          const std::vector<int> &knownDiameters,
                                           const cudaStream_t stream,
                                           const int slot,
                                           const int maxWarps) {
@@ -823,6 +818,16 @@ std::vector<Move> performGpuSortingSearch(std::vector<short> beta,
     const int n = static_cast<int>(omega.size());
     if (n > MAX_N) throw std::invalid_argument("performGpuSortingSearch: n exceeds MAX_N");
     if (maximumDepth <= 0 || maximumDepth > MAX_DEPTH) throw std::invalid_argument("performGpuSortingSearch: invalid maximumDepth");
+    if (knownDiameters.size() != MAX_N + 1) throw std::invalid_argument("Invalid diameter table size");
+    uint8_t initialOmega[MAX_N];
+    for (int i = 0; i < n; ++i) initialOmega[i] = static_cast<uint8_t>(omega[i]);
+    const int initialFixedPoints = count_fixed_points(initialOmega, n);
+    if (initialFixedPoints == n) return GpuSortingResult{1, {}};
+    const int initialDiameter = knownDiameters[n - initialFixedPoints];
+    if (allowDiameterClosure && initialDiameter != INT_MAX && initialDiameter <= maximumDepth)
+        return GpuSortingResult{2, {}};
+    const int initialOddCycles = count_odd_cycles(initialOmega, n);
+    if ((n - initialOddCycles + 1) / 2 > maximumDepth) return {};
     const int tripleCount = combinations_of_three(n);
     if (tripleCount == 0) return {};
 
@@ -882,6 +887,7 @@ std::vector<Move> performGpuSortingSearch(std::vector<short> beta,
     auto *resultBytes = reinterpret_cast<char *>(slotView.result);
     auto *dFound = reinterpret_cast<int *>(resultBytes + offsetof(BacktrackingResult, found));
     auto *dSolutionDepth = reinterpret_cast<int *>(resultBytes + offsetof(BacktrackingResult, solutionDepth));
+    auto *dSolutionKind = reinterpret_cast<int *>(resultBytes + offsetof(BacktrackingResult, solutionKind));
     auto *dOverflow = reinterpret_cast<int *>(resultBytes + offsetof(BacktrackingResult, overflowed));
     auto *dSolutionMoves = reinterpret_cast<PackedMove *>(resultBytes + offsetof(BacktrackingResult, solutionMoves));
     auto *dOutstandingWork = reinterpret_cast<unsigned long long *>(
@@ -892,9 +898,8 @@ std::vector<Move> performGpuSortingSearch(std::vector<short> beta,
     host.n = n;
     host.maxDepth = maximumDepth;
     host.queueCount = queueCount;
-    host.initialEvenCycles = initialEvenCycles;
-    host.minRate = static_cast<float>(minRate);
-    host.fullSorting = fullSorting ? 1 : 0;
+    host.allowDiameterClosure = allowDiameterClosure ? 1 : 0;
+    std::copy(knownDiameters.begin(), knownDiameters.end(), host.knownDiameters);
 
     // Compute rho_inv for beta reconstruction via the invariant:
     // rho = omega0 ∘ beta_func, where beta_func is the function form of the cycle beta0.
@@ -920,7 +925,7 @@ std::vector<Move> performGpuSortingSearch(std::vector<short> beta,
             slotView.queues, queueCount,
             slotView.nodes, localCapacity,
             slotView.overflow, slotView.overflowNodes, overflowCapacity,
-            dOverflow, dOutstandingWork, dOmega0, dBeta0, n, initialEvenCycles,
+            dOverflow, dOutstandingWork, dOmega0, dBeta0, n, initialFixedPoints,
             (queueCount == 1) ? 1 : 0);
     CHECK_CUDA(cudaGetLastError());
 
@@ -933,6 +938,7 @@ std::vector<Move> performGpuSortingSearch(std::vector<short> beta,
     host.overflow = slotView.overflow;
     host.foundFlag = dFound;
     host.solutionDepth = dSolutionDepth;
+    host.solutionKind = dSolutionKind;
     host.solutionMoves = dSolutionMoves;
     host.overflowFlag = dOverflow;
     host.outstandingWork = dOutstandingWork;
@@ -968,5 +974,5 @@ std::vector<Move> performGpuSortingSearch(std::vector<short> beta,
         unpack_move(resultSnapshot.solutionMoves[d], i, j, k);
         result.push_back(Move{i, j, k});
     }
-    return result;
+    return GpuSortingResult{resultSnapshot.solutionKind, std::move(result)};
 }

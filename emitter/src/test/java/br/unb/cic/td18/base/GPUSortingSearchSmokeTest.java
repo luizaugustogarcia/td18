@@ -27,11 +27,12 @@ class GPUSortingSearchSmokeTest {
                     final var moves = GPUSortingSearch.getInstance().search(
                             new byte[]{0, 1, 2},
                             new OneLinePermutation(new byte[]{1, 2, 0}),
-                            1, 2.0f, 1, true);
+                            1, false);
 
-                    assertEquals(1, moves.size());
+                    assertEquals(GPUSortingSearch.Disposition.COMPLETE, moves.disposition());
+                    assertEquals(1, moves.moves().size());
                     assertArrayEquals(
-                            new int[]{0, 1, 2}, moves.getFirst());
+                            new int[]{0, 1, 2}, moves.moves().getFirst());
                 }));
             }
             for (final var future : futures) {

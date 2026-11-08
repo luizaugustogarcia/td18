@@ -84,9 +84,12 @@ The independently established diameters used here, for $n=0,\ldots,17$, are
 The values through $15$ are established in \cite{eriksson};
 $\TD(16)=9$ is the separately certified result in \cite{framework};
 $\TD(17)=10$ follows from the bounds discussed in \cite{korchmaros}.
-At a state with $N$ nonfixed symbols and $s$ moves already used, a
-known-diameter closure is valid if $s+\TD(N-1)\leq10$. For $N\leq1$,
-the remaining distance is zero.
+Let $B$ be the move budget of a sorting obligation. At a state with $N$
+nonfixed symbols and $s$ moves already used, a known-diameter closure is valid
+if $s+\TD(N-1)\leq B$. For $N\leq1$, the remaining distance is zero.
+This follows by replaying the $s$ transpositions, contracting the fixed points
+using the cited distance-preservation result, and applying the established
+diameter of the remaining domain.
 
 \section{The joint selection rule}
 \label{sec:selection}
@@ -410,20 +413,21 @@ current-cycle traversal order. Reverse every transposition supported on
 both restored symbols and one original symbol. Retain valid, fixed-point-free,
 non-totally-unoriented predecessors whose exact forward replay creates those
 two fixed points and increases the odd-length-cycle count by two.
-\item Deduplicate predecessors by extended-toric class. A regenerated CPU
-prefix closing within nine moves also closes every root path reaching
-that predecessor after one move. Propagate every other class.
+\item Deduplicate predecessors by extended-toric class. A checked GPU sorting
+result within nine moves, including a persisted known-diameter closure,
+also closes every root path reaching that predecessor after one move.
+Propagate every other class.
 \item Restore one fixed point in every cyclic gap of each propagated
 $18$-symbol predecessor. Reverse every support containing that symbol and
 any two original symbols. Retain valid fixed-point-free roots that are not
 totally unoriented and whose exact forward replay is qualifying with gain one.
-\item Deduplicate roots by extended-toric class. Each needs a regenerated
-closure or a complete sorting witness within ten transpositions. Such a
+\item Deduplicate roots by extended-toric class. Each needs a persisted
+known-diameter closure or a complete sorting witness within ten transpositions. Such a
 root witness starts at the root and uses the full root budget.
 \end{enumerate}
 Deduplication uses a disk set with deterministic class keys. Multiple
 constructions impose one obligation per class and budget. Intermediate
-budget-nine screening does not require persisted intermediate witnesses.
+budget-nine discharges are persisted and independently replayed.
 
 \begin{proposition}[Inverse coverage]
 Every root selected for a $16$-symbol endpoint is discharged by a checked
@@ -450,31 +454,50 @@ budget. Its completeness does not depend on a predicted obstruction set.
 
 \section{Certificates and completion criteria}
 The workflow separates exhaustive generation, sorting, and independent
-verification. The Java emitter uses CPU/CUDA search primitives. The checker
-has no emitter dependency and independently regenerates roots, endpoints,
-and inverse waves. The certificate format is their interface. Totally unoriented direct roots
-require complete ten-move witnesses. Other retained roots may also use
-regenerated CPU closures within ten moves.
+verification. The Java emitter generates classes on CPU and searches on CUDA.
+The checker has no emitter dependency and independently regenerates roots,
+endpoints, and inverse waves. The certificate format is their interface.
+Every direct root requires a checked budget-ten result, either a complete
+sorting witness or a known-diameter closure. The same alternatives apply to
+endpoints with budget eight and reconstructed intermediates with budget nine.
+
+The GPU sorter permits only transpositions whose change in
+$c_{\mathrm{odd}}$ is zero or two. At every search depth, including depth
+zero and states with existing fixed points, it accepts identity or exits when
+the established diameter of the contracted remainder fits the unused budget.
+Its search depth is bounded by the full obligation budget.
+A search miss under these restrictions is not a lower bound.
 
 The database has two column families. In the default family, the reserved
-UTF-8 key \nolinkurl{td18-schema} has value \nolinkurl{joint-selection-v1};
-other entries map raw canonical instance keys to complete witnesses.
+UTF-8 key \nolinkurl{td18-schema} has value \nolinkurl{joint-selection-v2};
+other entries map raw canonical instance keys to sorting-result records.
 The \nolinkurl{obstructions} family maps raw keys to empty values. Instance
-symbols use five bits and a move uses three such symbols. The standard
-current cycle is implicit in the raw key, so canonicalization precedes
-persistence. Every witness used for a discharge is replayed for
-applicability, target preservation, final identity, and budget. A valid witness longer than a
-requested budget is a miss for that budget; a malformed or incorrect
-witness is rejected. Optional external witnesses are opened read-only and
+symbols use five bits, and the standard current cycle is implicit in the raw
+key, so canonicalization precedes persistence. A sorting-result value starts
+with one kind byte (zero for complete, one for diameter closure) and one
+move-count byte, followed by exactly that many fifteen-bit symbol triples,
+with zero padding to a byte boundary. A zero-move record is permitted when
+identity or the initial known diameter already closes the budget. Records
+contain at most ten transpositions. Unknown kinds, inconsistent lengths,
+nonzero padding, and missing required records are rejected.
+
+Every result is replayed for applicability and target preservation. Complete
+witnesses must reach identity. For a diameter closure, the checker counts the
+actual remaining nonfixed symbols, uses the independent diameter table, and
+checks the replayed move count plus that diameter against the requested budget.
+The GPU's stopping flag is not a proof input. A valid result with a larger
+required budget is a miss for a smaller budget; malformed or incorrect data
+is rejected. Optional external complete witnesses are opened read-only and
 replayed. A partial imported database never establishes completeness.
 
 An obstruction marker is not proof of a lower bound. Missing markers cannot
 reduce the regenerated obligation set. Checksums and sidecar manifests are
-not proof inputs. A CPU prefix plus a known diameter is a closure argument,
-not a complete certificate: the checker regenerates and replays the prefix,
-contracts its fixed points, and checks the remaining diameter against the
-global budget. Every prefix miss retains the corresponding witness or
-inverse-coverage obligation.
+not proof inputs. A diameter-closure record is a checked upper-bound argument,
+not a complete sorting witness. The checker replays its stored transpositions
+and verifies contraction and the remaining diameter directly from the
+database. Every missing endpoint discharge retains its inverse-coverage
+obligation; every missing direct-root or required reconstructed-root discharge
+prevents completion.
 
 \begin{theorem}[Conditional completion]
 Assume the independent diameter, framework, and support-clearing premises

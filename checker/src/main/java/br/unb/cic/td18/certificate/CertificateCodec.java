@@ -147,6 +147,31 @@ public final class CertificateCodec {
         return List.copyOf(moves);
     }
 
+    /** Version-2 values start with a kind byte and an exact move-count byte. */
+    public static byte[] resultFor(final SortingCertificate result) {
+        if (result.moves().size() > 10) throw new IllegalArgumentException("Certificate exceeds ten moves");
+        final byte[] payload = result.moves().isEmpty() ? new byte[0] : valueFor(result.moves());
+        final byte[] encoded = new byte[payload.length + 2];
+        encoded[0] = (byte) result.kind().ordinal();
+        encoded[1] = (byte) result.moves().size();
+        System.arraycopy(payload, 0, encoded, 2, payload.length);
+        return encoded;
+    }
+
+    /** Rejects unknown kinds, truncated records, inconsistent counts and nonzero padding. */
+    public static SortingCertificate decodeResult(final byte[] encoded) {
+        if (encoded == null || encoded.length < 2) throw new IllegalArgumentException("Truncated sorting result");
+        final int kind = Byte.toUnsignedInt(encoded[0]);
+        final int count = Byte.toUnsignedInt(encoded[1]);
+        if (kind >= SortingCertificate.Kind.values().length || count > 10)
+            throw new IllegalArgumentException("Unsupported sorting result kind or move count");
+        final byte[] payload = java.util.Arrays.copyOfRange(encoded, 2, encoded.length);
+        requirePayload(payload, (long) TRIPLE_BITS * count, "result");
+        final var moves = count == 0 ? List.<Cycle>of() : decodeValue(payload);
+        if (moves.size() != count) throw new IllegalArgumentException("Sorting result count mismatch");
+        return new SortingCertificate(SortingCertificate.Kind.values()[kind], moves);
+    }
+
     private static int writeSymbol(final byte[] encoded, final int bitOffset, final int symbol) {
         requireSymbol(symbol);
         for (var bit = 0; bit < SYMBOL_BITS; bit++) {

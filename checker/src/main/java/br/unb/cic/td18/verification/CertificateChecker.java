@@ -2,7 +2,6 @@ package br.unb.cic.td18.verification;
 
 import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
 import br.unb.cic.td18.certificate.CertificateStore;
-import br.unb.cic.td18.joint.CpuClosure;
 import br.unb.cic.td18.joint.IndependentJointRootGenerator;
 import br.unb.cic.td18.joint.JointInventory;
 import br.unb.cic.td18.joint.JointInverseReconstruction;
@@ -54,7 +53,7 @@ public final class CertificateChecker {
         IndependentJointRootGenerator.generateResiduals(row.partition(),pair -> {
             oriented[0]++;
             if (SupportClearing.closes(pair)) { cleared[0]++; return; }
-            if (!CpuClosure.closes(pair,10)) certificates.require(pair,10);
+            certificates.require(pair,10);
         });
         if (oriented[0] != row.jointResidualClasses() || cleared[0] != row.supportClearingClasses()
                 || oriented[0]-cleared[0] != row.orientedClasses())
@@ -84,7 +83,7 @@ public final class CertificateChecker {
     /** Missing witnesses become regenerated obligations even without a stored marker. */
     static boolean checkEndpointPair(final CyclicTargetPair pair, final CertificateStore certificates,
                                      final CheckerStateSet residuals) {
-        if (CpuClosure.closes(pair,8) || certificates.find(pair,8).isPresent()) return false;
+        if (certificates.find(pair,8).isPresent()) return false;
         residuals.add(new JointInverseReconstruction.SearchState(8,pair));
         return true;
     }
@@ -99,14 +98,14 @@ public final class CertificateChecker {
             final long[] closed = {0};
             progress.phase("screening " + intermediateCount + " intermediate classes and regenerating gain-one inverse supports");
             intermediate.forEachBatch(batch -> batch.forEach(state -> {
-                if (CpuClosure.closes(state.pair(),9)) { closed[0]++; return; }
+                if (certificates.find(state.pair(),9).isPresent()) { closed[0]++; return; }
                 JointInverseReconstruction.roots(state.pair(),parent -> roots.add(new JointInverseReconstruction.SearchState(10,parent)));
             }));
             final long rootCount = roots.seal().count();
             final long[] checked = {0};
             progress.phase(() -> "avoidance roots: verified=" + checked[0] + "/" + rootCount);
             roots.forEachBatch(batch -> batch.forEach(state -> {
-                if (!CpuClosure.closes(state.pair(),10)) certificates.require(state.pair(),10);
+                certificates.require(state.pair(),10);
                 checked[0]++;
             }));
             System.out.printf("final avoidance verified: endpointResiduals=%d intermediates=%d intermediateClosures=%d roots=%d%n",

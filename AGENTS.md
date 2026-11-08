@@ -54,7 +54,7 @@
 - Reconstruct every compatible root by restoring two fixed points, reversing
   the second move, restoring one fixed point, and reversing the first move.
   Enumerate all gaps and supports and verify actual forward gains.
-- Direct roots use budget ten; endpoints use eight; intermediate CPU screening
+- Direct roots use budget ten; endpoints use eight; intermediate GPU search
   uses nine. Every remaining reconstructed root needs a ten-move result.
 
 ## Code, documentation, and proof discipline

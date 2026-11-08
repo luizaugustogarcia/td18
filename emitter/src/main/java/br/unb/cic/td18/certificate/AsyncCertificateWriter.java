@@ -24,7 +24,7 @@ import org.rocksdb.*;
 public final class AsyncCertificateWriter implements AutoCloseable {
     private static final byte[] OBSTRUCTIONS = "obstructions".getBytes(StandardCharsets.UTF_8);
     private static final byte[] SCHEMA_KEY = "td18-schema".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] SCHEMA_VALUE = "joint-selection-v1".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] SCHEMA_VALUE = "joint-selection-v2".getBytes(StandardCharsets.UTF_8);
     private static final byte[] EMPTY = {};
     static { RocksDB.loadLibrary(); }
     private final DBOptions options;
@@ -86,7 +86,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     public void enqueue(CyclicTargetPair pair, List<Cycle> moves) {
         CertificateValidator.validate(pair, moves, obligationBudget(pair.getBeta().size()));
-        offer(new Entry(CertificateCodec.keyFor(pair), CertificateCodec.valueFor(moves), pair.getBeta().size(), 0));
+        offer(new Entry(CertificateCodec.keyFor(pair), CertificateCodec.resultFor(SortingCertificate.complete(moves)), pair.getBeta().size(), 0));
     }
 
     public void enqueueObstruction(CyclicTargetPair pair, int maximumMoves) {
@@ -95,19 +95,30 @@ public final class AsyncCertificateWriter implements AutoCloseable {
         offer(new Entry(CertificateCodec.keyFor(pair), null, pair.getBeta().size(), maximumMoves));
     }
 
-    private static int obligationBudget(int domain) { return domain == 16 ? 8 : 10; }
+    private static int obligationBudget(int domain) { return domain == 16 ? 8 : domain == 18 ? 9 : 10; }
+
+    public void enqueueClosure(CyclicTargetPair pair, List<Cycle> moves, int maximumMoves) {
+        var result = SortingCertificate.closure(moves);
+        CertificateValidator.validate(pair, result, maximumMoves);
+        CertificateValidator.validate(pair, result, obligationBudget(pair.getBeta().size()));
+        offer(new Entry(CertificateCodec.keyFor(pair), CertificateCodec.resultFor(result), pair.getBeta().size(), 0));
+    }
 
     public Optional<List<Cycle>> find(CyclicTargetPair pair, int maximumMoves) {
+        return findResult(pair, maximumMoves).map(SortingCertificate::moves);
+    }
+
+    public Optional<SortingCertificate> findResult(CyclicTargetPair pair, int maximumMoves) {
         throwIfFailed();
         if (closed) throw new IllegalStateException("Certificate writer is closed");
-        if (maximumMoves < 1 || maximumMoves > 10) throw new IllegalArgumentException("Budget must be 1..10");
+        if (maximumMoves < 0 || maximumMoves > 10) throw new IllegalArgumentException("Budget must be 0..10");
         try {
             byte[] encoded = database.get(witnesses, CertificateCodec.keyFor(pair));
             if (encoded == null) return Optional.empty();
-            var moves = CertificateCodec.decodeValue(encoded);
-            CertificateValidator.validate(pair, moves, moves.size());
-            return moves.size() <= maximumMoves ? Optional.of(moves) : Optional.empty();
-        } catch (RocksDBException error) { throw new IllegalStateException("Cannot read witness", error); }
+            var result = CertificateCodec.decodeResult(encoded);
+            CertificateValidator.validate(pair, result, obligationBudget(pair.getBeta().size()));
+            return CertificateValidator.requiredBudget(pair, result) <= maximumMoves ? Optional.of(result) : Optional.empty();
+        } catch (RocksDBException error) { throw new IllegalStateException("Cannot read sorting result", error); }
     }
 
     public void forEachObstruction(Consumer<byte[]> consumer) {
@@ -169,9 +180,9 @@ public final class AsyncCertificateWriter implements AutoCloseable {
                             boolean covered = false;
                             if (value != null) {
                                 var pair = CertificateCodec.pairForKey(entry.key, entry.domain);
-                                var moves = CertificateCodec.decodeValue(value);
-                                CertificateValidator.validate(pair, moves, moves.size());
-                                covered = moves.size() <= entry.budget;
+                                var result = CertificateCodec.decodeResult(value);
+                                CertificateValidator.validate(pair, result, obligationBudget(entry.domain));
+                                covered = CertificateValidator.requiredBudget(pair, result) <= entry.budget;
                             }
                             if (!covered) batch.put(obstructions, entry.key, EMPTY);
                         }

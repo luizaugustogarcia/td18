@@ -16,7 +16,7 @@
         <td18.gpuSlots>7</td18.gpuSlots>
         <td18.gpuBudgetMB>1024</td18.gpuBudgetMB>
         <td18.gpuQueueCapacity></td18.gpuQueueCapacity>
-        <td18.gpuStatsPeriodSeconds>60</td18.gpuStatsPeriodSeconds>
+        <td18.gpuStatsPeriodSeconds>10</td18.gpuStatsPeriodSeconds>
         <td18.twistedBraceletWorkers>auto</td18.twistedBraceletWorkers>
         <td18.certificateDb>${project.basedir}/../certificates</td18.certificateDb>
         <td18.certificateFlushSeconds>5</td18.certificateFlushSeconds>

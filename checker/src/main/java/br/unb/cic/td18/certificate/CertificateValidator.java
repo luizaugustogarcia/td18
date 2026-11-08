@@ -5,6 +5,7 @@ import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
 import br.unb.cic.td18.permutation.PermutationGroups;
 import br.unb.cic.td18.search.CommonOperations;
+import br.unb.cic.td18.joint.KnownDiameters;
 
 import java.util.List;
 
@@ -16,11 +17,12 @@ public final class CertificateValidator {
     public static void validate(final CyclicTargetPair pair,
                                 final List<Cycle> moves,
                                 final int maximumMoves) {
-        if (moves.isEmpty() || moves.size() > maximumMoves) {
-            throw new IllegalArgumentException("Certificate has " + moves.size()
-                    + " moves; the required range is 1.." + maximumMoves);
-        }
+        validate(pair, SortingCertificate.complete(moves), maximumMoves);
+    }
 
+    /** Replays every transposition, then derives the required budget from the actual remainder. */
+    public static int requiredBudget(final CyclicTargetPair pair, final SortingCertificate result) {
+        final var moves = result.moves();
         final var target = pair.getRho();
         Cycle beta = pair.getBeta();
         MulticyclePermutation omega = pair.getOmega();
@@ -33,9 +35,20 @@ public final class CertificateValidator {
                 throw new IllegalArgumentException("Certificate move does not preserve the cyclic target: " + move);
             }
         }
-        if (!omega.isIdentity()) {
-            throw new IllegalArgumentException("Certificate does not sort the algebraic permutation");
+        if (result.kind() == SortingCertificate.Kind.COMPLETE) {
+            if (!omega.isIdentity()) throw new IllegalArgumentException("Certificate does not sort the algebraic permutation");
+            return moves.size();
         }
+        int nonfixed = 0;
+        for (int symbol = 0; symbol < beta.size(); symbol++) if (omega.image(symbol) != symbol) nonfixed++;
+        int diameter = KnownDiameters.knownDiameter(nonfixed);
+        if (diameter == Integer.MAX_VALUE) throw new IllegalArgumentException("Closure uses an unknown diameter");
+        return Math.addExact(moves.size(), diameter);
+    }
+
+    public static void validate(final CyclicTargetPair pair, final SortingCertificate result, final int maximumMoves) {
+        if (maximumMoves < 0 || requiredBudget(pair, result) > maximumMoves)
+            throw new IllegalArgumentException("Sorting result does not close the requested move budget");
     }
 
     private static void requireApplicable(final Cycle beta, final Cycle move) {

@@ -26,28 +26,31 @@ realizability before emitting a class.
 
 ## Emitter
 
-WitnessEmitter runs roots, endpoints, avoidance, or all phases. CountTD18Bracelets
-counts roots and endpoints without loading CUDA. Root generation checks all
-four counts against each paper row; support-cleared roots need no database
-witness. Totally unoriented roots require complete ten-move witnesses; other
-retained roots permit regenerated CPU closures or complete ten-move witnesses.
-The 52 elementary endpoint
-types close mathematically; the remaining types need eight-move results or
-final reconstruction.
+The emitter directly generates totally unoriented roots and oriented joint
+residuals, validates the paper counts, and applies the cited support-clearing
+closures. Every other direct root is searched with budget ten. Endpoints use
+eight and reconstructed intermediates use nine.
 
-CPU closure search produces a replayable prefix and a known-diameter bound.
-A complete CPU or CUDA witness is separately validated before persistence.
-CUDA initialization is lazy. The certificate writer uses a bounded queue of
-16,384 entries by default,
-configurable through td18.certificateQueueCapacity. The oriented-root worker
-pool permits 256 pending search tasks. Each disk set buffers at most 16,384
-unique keys before flushing to RocksDB.
+The CUDA sorter allows transpositions with odd-length-cycle gains zero or
+two. It searches up to the complete budget and stops at identity or when
+contraction leaves a domain whose established diameter fits the remaining
+budget. Fixed points are counted as data at the root and updated after each
+transposition. The CPU generates classes and replays results; it performs no
+prefix sorting search.
+
+Complete witnesses and diameter closures are validated and persisted with
+separate kind tags. CUDA initialization is lazy. The certificate writer uses
+a bounded queue of 16,384 entries by default, configurable through
+td18.certificateQueueCapacity. The joint-generation and root-witness task
+queues each permit 256 pending tasks. CPU worker counts are automatic.
+Each disk set buffers at most 16,384 unique keys before flushing to RocksDB.
 
 Avoidance restores two fixed points to each unresolved endpoint and reverses
-every compatible second move. Disk-backed class deduplication precedes
-budget-nine CPU screening. A second inverse wave restores one fixed point
-and reconstructs roots; remaining roots receive full budget-ten searches.
-The emitted root witness is independent of the selected reduction prefix.
+every compatible second move. Disk-backed class deduplication precedes GPU
+search with budget nine. Successful intermediate discharges are persisted.
+The second inverse wave restores one fixed point and reconstructs roots;
+remaining roots receive budget-ten searches. The root result starts at the
+root and is independent of the selected reduction prefix.
 
 ## Checker
 
@@ -67,11 +70,15 @@ budget; an incorrect witness is rejected.
 ## Persistence
 
 The certificate database has two RocksDB column families. The default family
-contains the UTF-8 schema entry td18-schema = joint-selection-v1 and raw
-canonical instance keys mapped to complete witnesses. The obstructions family
+contains the UTF-8 schema entry td18-schema = joint-selection-v2 and raw
+canonical instance keys mapped to complete witnesses or diameter closures. The obstructions family
 maps raw keys to empty values. The standard current cycle is implicit in the
 five-bit key, so pairs are canonicalized before writing. Each transposition
-uses three five-bit symbols. Empty values are never treated as sorting proofs.
+uses three five-bit symbols. Each value starts with a kind byte and an exact
+move-count byte. Zero-move closures have a two-byte record, so empty values
+are never treated as sorting proofs. The checker replays every stored move,
+requires identity for complete records, and derives the remaining diameter
+from the actual nonfixed symbols for closure records.
 
 A separate optional TD(16) source is opened read-only. Only replayed witnesses
 within the requested budget are reused. Operational reconstruction work sets hold deterministic extended-toric

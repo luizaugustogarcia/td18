@@ -58,16 +58,18 @@ Counting alone cannot discharge a sorting obligation.
 
 ## 3. Discharge direct roots and endpoints
 
-The 214,474,050 totally unoriented direct roots require complete witnesses
-within ten moves. Each of the 33,608,561 remaining oriented direct roots
-needs a regenerated valid CPU closure or a complete ten-move witness. Each endpoint outside the 52
+All 248,082,611 direct roots, including the 214,474,050 totally unoriented
+roots and 33,608,561 remaining oriented roots, require a persisted complete
+witness or checked known-diameter closure within ten moves. Each endpoint outside the 52
 elementary types needs a checked result within eight moves or final inverse
 coverage. Reused TD(16) witnesses must be replayed; a partial source database
 never closes an entire type by its reported count.
 
-A prefix closure must replay applicable transpositions, preserve the target,
+A stored diameter closure must replay applicable transpositions, preserve the target,
 contract the resulting fixed points, and satisfy the remaining known-diameter
-bound. It is not a complete sorting certificate. Every complete certificate
+bound. GPU search checks this condition at every depth up to the full budget.
+The GPU permits
+odd-length-cycle gains zero and two. A closure is not a complete witness. Every complete certificate
 must finish at the target within its budget. A valid longer witness is a miss
 for a smaller budget; malformed witnesses are errors.
 
@@ -81,7 +83,7 @@ For every residual endpoint, restore two fixed points in all cyclic gap
 distributions and reverse all supports consisting of both restored symbols
 and one original symbol. Check full validity, fixed-point freedom, orientation,
 exact forward gain two, and odd-length-cycle increase two. Deduplicate valid
-18-symbol predecessor classes and screen with budget-nine CPU closures.
+18-symbol predecessor classes and search within budget nine and persist every successful result.
 
 For every remaining predecessor, restore one fixed point in each gap and
 reverse every support containing it and two original symbols. Check the

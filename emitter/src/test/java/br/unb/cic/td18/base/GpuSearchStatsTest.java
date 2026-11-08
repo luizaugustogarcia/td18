@@ -5,6 +5,15 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GpuSearchStatsTest {
+    @Test void separatesCompleteWitnessesDiameterClosuresMissesAndErrors() {
+        final var stats = new GpuSearchStats(new GpuDeviceLayout(new int[]{0},1),0);
+        for(int kind=0;kind<3;kind++) { stats.acquired(0,kind*10,kind*10); stats.released(0,kind*10+1,false,kind); }
+        stats.acquired(0,30,30); stats.released(0,31,true,0);
+        final var snapshot=stats.snapshot(40);
+        assertEquals(4,snapshot.completed()); assertEquals(1,snapshot.completeWitnesses());
+        assertEquals(1,snapshot.diameterClosures()); assertEquals(1,snapshot.misses()); assertEquals(1,snapshot.failed());
+        assertEquals(0,stats.snapshot(50).diameterClosures());
+    }
 
     @Test
     void attributesQueueWaitBusyTimeAndCompletionsPerDevice() {

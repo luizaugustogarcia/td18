@@ -22,28 +22,42 @@ class CertificateStoreTest {
             try (final var db = RocksDB.open(options,path.toString(),List.of(
                     new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY,first),
                     new ColumnFamilyDescriptor("obstructions".getBytes(StandardCharsets.UTF_8),second)),handles)) {
-                if(marker) db.put(handles.get(0),"td18-schema".getBytes(StandardCharsets.UTF_8),"joint-selection-v1".getBytes(StandardCharsets.UTF_8));
+                if(marker) db.put(handles.get(0),"td18-schema".getBytes(StandardCharsets.UTF_8),"joint-selection-v2".getBytes(StandardCharsets.UTF_8));
                 if(value!=null) db.put(handles.get(0),CertificateCodec.keyFor(PAIR),value);
                 handles.forEach(ColumnFamilyHandle::close);
             }
         }
     }
     @Test void acceptsReplayedWitness(@TempDir final Path path) throws Exception {
-        database(path.resolve("db"),CertificateCodec.valueFor(List.of(Cycle.of(0,1,2))),true);
+        database(path.resolve("db"),CertificateCodec.resultFor(SortingCertificate.complete(List.of(Cycle.of(0,1,2)))),true);
         try(final var store=new CertificateStore(path.resolve("db"))) {
             assertEquals(1,store.require(PAIR,1).size());
             assertFalse(store.hasObstruction(PAIR));
         }
     }
+    @Test void zeroMoveClosureIsPresentAndItsDiameterConsumesBudget(@TempDir final Path path) throws Exception {
+        database(path.resolve("db"),CertificateCodec.resultFor(SortingCertificate.closure(List.of())),true);
+        try(final var store=new CertificateStore(path.resolve("db"))) {
+            assertTrue(store.find(PAIR,0).isEmpty());
+            assertTrue(store.find(PAIR,1).isPresent());
+            assertTrue(store.require(PAIR,1).isEmpty());
+        }
+    }
+    @Test void invalidResultKindIsRejected(@TempDir final Path path) throws Exception {
+        database(path.resolve("db"),new byte[]{2,0},true);
+        try(final var store=new CertificateStore(path.resolve("db"))) {
+            assertThrows(IllegalArgumentException.class,()->store.find(PAIR,10));
+        }
+    }
     @Test void longerValidWitnessIsUnavailableAtSmallerBudget(@TempDir final Path path) throws Exception {
-        database(path.resolve("db"),CertificateCodec.valueFor(List.of(Cycle.of(0,1,2),Cycle.of(1,0,2),Cycle.of(0,1,2))),true);
+        database(path.resolve("db"),CertificateCodec.resultFor(SortingCertificate.complete(List.of(Cycle.of(0,1,2),Cycle.of(1,0,2),Cycle.of(0,1,2)))),true);
         try(final var store=new CertificateStore(path.resolve("db"))) {
             assertTrue(store.find(PAIR,1).isEmpty());
             assertEquals(3,store.require(PAIR,3).size());
         }
     }
     @Test void malformedWitnessFailsEvenAboveRequestedBudget(@TempDir final Path path) throws Exception {
-        database(path.resolve("db"),CertificateCodec.valueFor(List.of(Cycle.of(0,1,2),Cycle.of(1,0,2))),true);
+        database(path.resolve("db"),CertificateCodec.resultFor(SortingCertificate.complete(List.of(Cycle.of(0,1,2),Cycle.of(1,0,2)))),true);
         try(final var store=new CertificateStore(path.resolve("db"))) {
             assertThrows(IllegalArgumentException.class,()->store.find(PAIR,1));
         }
