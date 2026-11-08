@@ -5,7 +5,7 @@ set -euo pipefail
 # All source, certificates, work directories and logs stay on /workspace.
 export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
 export PATH="$JAVA_HOME/bin:/usr/local/cuda/bin:$PATH"
-export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-Xmx24g -XX:+UseG1GC -XX:ActiveProcessorCount=64"
+export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }-Xmx100g -XX:+UseG1GC -XX:ActiveProcessorCount=64"
 
 mkdir -p /workspace
 if [[ ! -d /workspace/td18/.git ]]; then
