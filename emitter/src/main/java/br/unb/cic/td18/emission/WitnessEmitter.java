@@ -1,367 +1,236 @@
 package br.unb.cic.td18.emission;
 
-import br.unb.cic.td18.avoidance.ObstructionAvoidance;
-import br.unb.cic.td18.avoidance.ResidualObligation;
-import br.unb.cic.td18.base.GPUSortingSearch;
-import br.unb.cic.td18.base.GpuDeviceLayout;
+import br.unb.cic.td18.avoidance.DiskStateSet;
+import br.unb.cic.td18.avoidance.JointAvoidance;
 import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
 import br.unb.cic.td18.certificate.AsyncCertificateWriter;
-import br.unb.cic.td18.certificate.AvoidancePhaseManifest;
-import br.unb.cic.td18.certificate.CertificateCodec;
-import br.unb.cic.td18.certificate.CertificateRowManifest;
+import br.unb.cic.td18.certificate.ReadOnlyWitnessSource;
+import br.unb.cic.td18.joint.JointInventory;
+import br.unb.cic.td18.joint.JointRootGenerator;
+import br.unb.cic.td18.joint.SupportClearing;
 import br.unb.cic.td18.model.CyclicTargetPair;
-import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.runtime.ProjectPaths;
-import br.unb.cic.td18.search.SortingSearch;
 import br.unb.cic.td18.search.WitnessSearch;
-import br.unb.cic.td18.table.Table2;
-import br.unb.cic.td18.table.TableEntry;
-
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import lombok.extern.slf4j.Slf4j;
-
-/**
- * Exhaustive obligation emitter for the annotated types in Table 2 of the
- * TD(18) two-reduction document. Its durable output is a three-column-family
- * RocksDB database of independently replayable sorting witnesses and key-only
- * obstruction hits, together with versioned sidecar manifests.
- *
- * <p>For each selected row with {@code Q = R}, direct twisted-bracelet
- * generation emits one cyclic-target pair per remaining extended-toric class.
- * Rows with {@code Q = 0} are already discharged and bypass generation and
- * search. A qualifying CPU prefix closes a generated class through a known
- * diameter and is not persisted as a certificate. Only a CPU miss reaches
- * native search. A successful native result is replayed by
- * {@link br.unb.cic.td18.certificate.CertificateValidator} before persistence; a
- * native miss is persisted for the common final obstruction phase. That phase
- * reconstructs every reachable full-domain root preimage and searches each
- * root independently with the ten-move budget.
- * The three restricted odd-pair rows emit only their simultaneous local
- * failure classes and send every class directly to that root reconstruction,
- * without attempting a nine-transposition successor search.
- * </p>
- */
-@Slf4j
+/** Generates the joint-selection obligations and persists replayed sorting witnesses. */
 public final class WitnessEmitter {
-    private WitnessEmitter() {
-    }
+    private static final Logger log = LoggerFactory.getLogger(WitnessEmitter.class);
+    private WitnessEmitter() { }
 
-    public static void main(final String[] args) throws IOException {
-        final var root = ProjectPaths.root(Path.of(""));
-        final var options = Options.parse(args, root);
-        if (options.help()) {
-            printUsage();
-            return;
-        }
-
-        final List<TableEntry> entries =
-                Table2.read(options.table());
-
-        final var selectedEntries = entries.stream()
-                .filter(entry -> options.includes(entry.number()))
-                .toList();
-        selectedEntries.forEach(WitnessEmitter::validateEmissionEntry);
-        final boolean requiresSearch = selectedEntries.stream()
-                .anyMatch(entry -> entry.remainingClassObligations() > 0);
-        if (requiresSearch) {
-            initializeGpu();
-        }
-        final var database = Path.of(System.getProperty(
-                "td18.certificateDb", "certificates"));
-        final long flushSeconds = Long.parseLong(System.getProperty(
-                "td18.certificateFlushSeconds", "5"));
-
-        long generated = 0;
-        long trivialClosures = 0;
-        long certificates = 0;
-        long residuals = 0;
-        final var terminalResiduals =
-                new ConcurrentLinkedQueue<ResidualObligation>();
-        ObstructionAvoidance.AvoidanceResult avoidanceResult = null;
-        try (final var writer = new AsyncCertificateWriter(database, flushSeconds)) {
-            if (requiresSearch) {
-                WitnessSearch.installWriter(writer);
-            }
-            if (options.firstRow() == 1 && options.lastRow() == Table2.EXPECTED_ENTRIES) {
-                ExceptionalNineCycleEmitter.ensure(writer,
-                        WitnessSearch::searchCompleteWitness);
-                ExceptionalFifteenCycleEmitter.ensure(writer,
-                        WitnessSearch::searchCompleteWitness);
-                OrientedNineteenCycleEmitter.ensure(writer, (pair, rate, budget) ->
-                        SortingSearch.searchForSorting(pair, rate, budget));
-                writer.flush();
-                log.info("Required oriented 19-cycle witnesses are present: 2");
-            }
-            for (final var entry : selectedEntries) {
-                if (entry.remainingClassObligations() == 0) {
-                    log.info("Table 2 row {}: status=already-settled, "
-                                    + "type={}, R={}, Q=0",
-                            entry.number(), entry.type(),
-                            entry.recordedRealizableClasses());
-                } else {
-                    log.info("Table 2 row {}: status=started, type={}, R={}, Q={}, "
-                                    + "budget={}, minimumRate={}, route={}",
-                            entry.number(), entry.type(),
-                            entry.recordedRealizableClasses(),
-                            entry.remainingClassObligations(),
-                            entry.remainingMoves(), minimumRate(entry),
-                            isRestrictedOddPair(entry) ? "direct-root-lifting" : "bounded-search");
+    public static void main(String[] arguments) throws IOException {
+        var options = Options.parse(arguments, ProjectPaths.root(Path.of("")));
+        if (options.help) { usage(); return; }
+        var inventory = JointInventory.read(options.paper);
+        Files.createDirectories(options.database.getParent());
+        Files.createDirectories(options.work.getParent());
+        Path work = options.work.getParent().toRealPath().resolve(options.work.getFileName());
+        Path database = Files.exists(options.database) ? options.database.toRealPath()
+                : options.database.getParent().toRealPath().resolve(options.database.getFileName());
+        if (work.startsWith(database) || database.startsWith(work))
+            throw new IllegalArgumentException("Work directory must be outside the certificate database");
+        Files.createDirectory(work);
+        try (var writer = new AsyncCertificateWriter(database, Long.getLong("td18.certificateFlushSeconds", 5L));
+             var source = options.td16 == null ? null : new ReadOnlyWitnessSource(options.td16);
+             var endpoints = new DiskStateSet(work.resolve("endpoint-residuals"));
+             var progress = new Progress()) {
+            WitnessSearch.installWriter(writer);
+            try {
+                if (options.roots()) for (var row : inventory) if (options.includesPartition(row.number())) {
+                    var result = emitRoot(row, (pair, budget, complete) -> settle(pair, budget, complete, writer, null, true), progress);
+                    writer.flush();
+                    log.info("Root partition {}: unoriented={}, jointResiduals={}, supportCleared={}, directOriented={}, unresolved={}",
+                            row.number(), result.unoriented, result.jointResiduals, result.supportCleared,
+                            result.jointResiduals-result.supportCleared, result.unresolved);
+                    if (result.unresolved != 0) throw new IllegalStateException("Unresolved direct root witnesses: " + result.unresolved);
                 }
-
-                final var result = emitEntry(entry, (pair, rate, maximumMoves) ->
-                                SortingSearch.searchForSorting(
-                                        pair, rate, maximumMoves),
-                        obligation -> {
-                            writer.enqueueResidual(obligation);
-                            terminalResiduals.add(obligation);
-                        });
-                generated = Math.addExact(generated, result.generated());
-                trivialClosures = Math.addExact(
-                        trivialClosures, result.trivialClosures());
-                certificates = Math.addExact(certificates, result.certificates());
-                residuals = Math.addExact(residuals, result.residuals());
-                writer.enqueueManifest(new CertificateRowManifest(
-                        entry.number(), entry.type(), entry.remainingMoves(),
-                        entry.recordedRealizableClasses(),
-                        entry.remainingClassObligations(), result.generated(),
-                        result.trivialClosures(), result.certificates(),
-                        result.residuals(), result.checksum(),
-                        result.residuals() == 0));
-                writer.throwIfFailed();
-
-                log.info("Table 2 row {}: status=emitted, generated={}, "
-                                + "trivially settled={}, certificates={}, residuals={}",
-                        entry.number(), result.generated(),
-                        result.trivialClosures(), result.certificates(),
-                        result.residuals());
-            }
-            avoidanceResult = ObstructionAvoidance.resolve(terminalResiduals,
-                    (pair, rate, maximumMoves, fullDomain) -> fullDomain
-                            ? SortingSearch.searchForSorting(
-                            pair, rate, maximumMoves)
-                            : SortingSearch.screenAvoidanceIntermediate(
-                            pair, maximumMoves),
-                    writer::enqueueAvoidanceMiss);
-            writer.enqueueAvoidanceManifest(new AvoidancePhaseManifest(
-                    options.firstRow(), options.lastRow(),
-                    avoidanceResult.terminalResiduals(),
-                    avoidanceResult.reconstructionApplications(),
-                    avoidanceResult.intermediatePrefixObligations(),
-                    avoidanceResult.propagatedPrefixMisses(),
-                    avoidanceResult.rootSearchObligations(),
-                    avoidanceResult.trivialClosures(),
-                    avoidanceResult.certificates(),
-                    avoidanceResult.unresolved(), avoidanceResult.checksum(),
-                    avoidanceResult.complete()));
-            writer.throwIfFailed();
-        } finally {
-            if (requiresSearch) {
-                GPUSortingSearch.shutdownStatsReporter();
-                DirectTwistedBraceletGenerator.shutdownExecutor();
-            }
-        }
-
-        log.info("TD(18) emission complete: rows={}-{}, generated={}, "
-                        + "trivially settled={}, certificates={}, terminalResiduals={}, "
-                        + "avoidanceRootPreimages={}, "
-                        + "unresolved={}, database={}",
-                options.firstRow(), options.lastRow(), generated,
-                trivialClosures, certificates, residuals,
-                avoidanceResult.screenedObligations(),
-                avoidanceResult.unresolved(), database.toAbsolutePath());
-        if (!avoidanceResult.complete()) {
-            final var first = avoidanceResult.firstUnresolved();
-            throw new IllegalStateException("Avoidance-preimage search left "
-                    + avoidanceResult.unresolved()
-                    + " unresolved root obligations; first: classKey="
-                    + first.extendedToricClassKey()
-                    + ", omega=" + first.getOmega()
-                    + ", beta=" + first.getBeta());
-        }
-    }
-
-    private static void initializeGpu() {
-        final var devices = GpuDeviceLayout.parseDevices(
-                System.getProperty("td18.gpuDevices", "0"));
-        final int slots = Integer.parseInt(
-                System.getProperty("td18.gpuSlots", "7"));
-        final long budgetMiB = Long.parseLong(
-                System.getProperty("td18.gpuBudgetMB", "1024"));
-        GPUSortingSearch.init(devices, slots,
-                Math.multiplyExact(budgetMiB, 1024L * 1024L));
-    }
-
-    static EmissionResult emitEntry(final TableEntry entry,
-                                    final PairSearch search,
-                                    final Consumer<ResidualObligation> residualSink) {
-        validateEmissionEntry(entry);
-        Objects.requireNonNull(search, "search");
-        Objects.requireNonNull(residualSink, "residualSink");
-        if (entry.remainingClassObligations() == 0) {
-            return EmissionResult.empty();
-        }
-        final var generated = new LongAdder();
-        final var trivialClosures = new LongAdder();
-        final var certificates = new LongAdder();
-        final var residuals = new LongAdder();
-        final var checksum = new LongAdder();
-        final var firstResidual = new AtomicReference<CyclicTargetPair>();
-        final float rate = minimumRate(entry);
-        final boolean restrictedOddPair = isRestrictedOddPair(entry);
-
-        final Consumer<CyclicTargetPair> consume = pair -> {
-            generated.increment();
-            final var result = restrictedOddPair
-                    ? WitnessSearch.SearchResult.residual()
-                    : search.search(pair, rate, entry.remainingMoves());
-            switch (result.disposition()) {
-                case TRIVIALLY_SETTLED -> trivialClosures.increment();
-                case CERTIFICATE -> {
-                    certificates.increment();
-                    checksum.add(CertificateCodec.checksumContribution(pair, result.moves()));
-                }
-                case RESIDUAL -> {
-                    final var obligation = new ResidualObligation(
-                            entry.number(), entry.remainingMoves(), pair);
-                    residualSink.accept(obligation);
-                    residuals.increment();
-                    checksum.add(obligation.checksumContribution());
-                    firstResidual.compareAndSet(null, obligation.pair());
-                }
-            }
-        };
-        if (restrictedOddPair) {
-            DirectTwistedBraceletGenerator.generateRestrictedOddPairRepresentatives(
-                    entry.partition(), entry.orientedByPart(), consume);
-        } else {
-            DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(
-                    entry.partition(), entry.orientedByPart(), () -> { }, consume);
-        }
-
-        final long generatedCount = generated.sum();
-        if (generatedCount != entry.remainingClassObligations()) {
-            throw new IllegalStateException("Table 2 row " + entry.number()
-                    + " records Q=" + entry.remainingClassObligations()
-                    + " but direct generation emitted " + generatedCount);
-        }
-        return new EmissionResult(generatedCount, trivialClosures.sum(),
-                certificates.sum(), residuals.sum(), checksum.sum(),
-                firstResidual.get());
-    }
-
-    private static void validateEmissionEntry(
-            final TableEntry entry
-    ) {
-        if (entry.recordedRealizableClasses() == null
-                || entry.remainingClassObligations() == null) {
-            throw new IllegalArgumentException(
-                    "Table row has no checked R/Q counts: " + entry.number());
-        }
-        if (isRestrictedOddPair(entry)) {
-            final long expected = RestrictedOddPair.expectedClasses(
-                    entry.partition(), entry.orientedByPart());
-            if (entry.remainingClassObligations() != expected) {
-                throw new IllegalStateException("Table 2 row " + entry.number()
-                        + " requires restricted odd-pair Q=" + expected
-                        + ", found " + entry.remainingClassObligations());
-            }
-            return;
-        }
-        if (entry.remainingClassObligations() != 0
-                && !entry.remainingClassObligations().equals(
-                entry.recordedRealizableClasses())) {
-            throw new IllegalStateException(
-                    "Table 2 row " + entry.number() + " has R="
-                            + entry.recordedRealizableClasses() + " and Q="
-                            + entry.remainingClassObligations()
-                            + "; outside restricted odd pairs, emission permits only Q=0 or Q=R");
-        }
-    }
-
-    private static boolean isRestrictedOddPair(final TableEntry entry) {
-        return RestrictedOddPair.isObligation(
-                entry.partition(), entry.orientedByPart(), entry.movesUsed());
-    }
-
-    static float minimumRate(final TableEntry entry) {
-        if (entry.remainingMoves() <= 0 || entry.threeNorm() <= 0) {
-            throw new IllegalArgumentException(
-                    "A sorting obligation needs a positive norm and move budget");
-        }
-        return entry.remainingMoves() /  (2 * (float) entry.threeNorm());
-    }
-
-    private static void printUsage() {
-        System.out.println("WitnessEmitter [--table=path] [--rows=first-last]");
-    }
-
-    @FunctionalInterface
-    interface PairSearch {
-        WitnessSearch.SearchResult search(
-                CyclicTargetPair pair, float minimumRate, int maximumMoves);
-    }
-
-    record EmissionResult(long generated, long trivialClosures,
-                          long certificates, long residuals, long checksum,
-                          CyclicTargetPair firstResidual) {
-        EmissionResult {
-            if (generated < 0 || trivialClosures < 0
-                    || certificates < 0 || residuals < 0
-                    || trivialClosures + certificates + residuals != generated
-                    || (residuals == 0) != (firstResidual == null)) {
-                throw new IllegalArgumentException("Inconsistent emission result");
-            }
-        }
-
-        private static EmissionResult empty() {
-            return new EmissionResult(0, 0, 0, 0, 0, null);
-        }
-    }
-
-    private record Options(Path table, int firstRow, int lastRow, boolean help) {
-        private static Options parse(final String[] args, final Path root) {
-            var table = root.resolve("docs/td18-reduction-count.tex");
-            var firstRow = 1;
-            var lastRow = Table2.EXPECTED_ENTRIES;
-            var help = false;
-            for (final var argument : args) {
-                if (argument.equals("--help")) {
-                    help = true;
-                } else if (argument.startsWith("--table=")) {
-                    table = Path.of(argument.substring("--table=".length()))
-                            .toAbsolutePath();
-                } else if (argument.startsWith("--rows=")) {
-                    final var range = argument.substring("--rows=".length())
-                            .split("-", -1);
-                    if (range.length != 2) {
-                        throw new IllegalArgumentException(
-                                "Expected --rows=first-last");
+                if (options.endpoints() || options.avoidance()) for (var endpoint : JointInventory.endpoints())
+                    if (options.includesEndpoint(endpoint.number())) {
+                        // Avoidance regenerates misses from the witness database. It
+                        // never starts from a persisted obstruction list alone.
+                        boolean search = !options.phase.equals("avoidance");
+                        emitEndpoint(endpoint, (pair, budget, complete) -> settle(pair, budget, complete, writer, source, search),
+                                endpoints, progress);
+                        writer.flush();
                     }
-                    firstRow = Integer.parseInt(range[0]);
-                    lastRow = Integer.parseInt(range[1]);
-                } else {
-                    throw new IllegalArgumentException(
-                            "Unknown argument: " + argument);
+                if (options.avoidance()) {
+                    progress.phase(() -> "final inverse reconstruction");
+                    var result = JointAvoidance.resolve(endpoints, work,
+                            pair -> WitnessSearch.closesByCpuPrefix(pair, 9),
+                            pair -> settle(pair, 10, false, writer, null, true));
+                    writer.flush();
+                    log.info("Final reconstruction: {}", result);
+                    if (result.unresolved() != 0) throw new IllegalStateException("Unresolved reconstructed roots: " + result.unresolved());
+                } else if (endpoints.seal() > 0) {
+                    log.info("Endpoint classes requiring final reconstruction: {}", endpoints.seal());
                 }
-            }
-            if (firstRow < 1 || lastRow < firstRow
-                    || lastRow > Table2.EXPECTED_ENTRIES) {
-                throw new IllegalArgumentException("Rows must be in the range 1-"
-                        + Table2.EXPECTED_ENTRIES);
-            }
-            return new Options(table, firstRow, lastRow, help);
+                log.info("Requested emission scope completed: phase={}, partitions={}-{}, endpoints={}-{}, database={}. Independent verification is required.",
+                        options.phase, options.firstPartition, options.lastPartition, options.firstEndpoint, options.lastEndpoint, database);
+            } finally { WitnessSearch.uninstallWriter(writer); }
+        } finally {
+            WitnessSearch.shutdownGpuStats();
+            DirectTwistedBraceletGenerator.shutdownExecutor();
         }
+    }
 
-        private boolean includes(final int row) {
-            return row >= firstRow && row <= lastRow;
+    /** Returns true only for a replayed witness or a regenerated CPU closure. */
+    private static boolean settle(CyclicTargetPair input, int budget, boolean completeWitness,
+                                  AsyncCertificateWriter writer, ReadOnlyWitnessSource source, boolean search) {
+        var pair = input.canonicalRepresentative();
+        if (writer.find(pair, budget).isPresent()) return true;
+        if (source != null) {
+            var imported = source.find(pair, budget);
+            if (imported.isPresent()) { writer.enqueue(pair, imported.orElseThrow()); return true; }
         }
+        if (!completeWitness && WitnessSearch.closesByCpuPrefix(pair, budget)) return true;
+        if (!search) return false;
+        var result = completeWitness ? WitnessSearch.searchCompleteWitness(pair, minimumRate(pair,budget), budget)
+                : WitnessSearch.search(pair, minimumRate(pair,budget), budget);
+        if (result.disposition() != WitnessSearch.Disposition.RESIDUAL) return true;
+        writer.enqueueObstruction(pair, budget);
+        return false;
+    }
+
+    static RootResult emitRoot(JointInventory.Root row, PairDischarge discharge, Progress progress) {
+        var unoriented = new LongAdder(); var joint = new LongAdder(); var cleared = new LongAdder();
+        var unresolved = new LongAdder();
+        progress.phase(() -> "root partition " + row.number() + ": unoriented=" + unoriented.sum()
+                + " jointResiduals=" + joint.sum() + " unresolved=" + unresolved.sum());
+        DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(row.partition(), new boolean[row.partition().length],
+                () -> { }, pair -> {
+                    unoriented.increment();
+                    if (!discharge.apply(pair.canonicalRepresentative(), 10, true)) unresolved.increment();
+                });
+        try (var tasks = new BoundedTasks()) {
+            JointRootGenerator.generateResiduals(row.partition(), tasks::check, pair -> {
+                joint.increment();
+                if (SupportClearing.closes(pair)) { cleared.increment(); return; }
+                tasks.submit(() -> { if (!discharge.apply(pair.canonicalRepresentative(), 10, false)) unresolved.increment(); });
+            });
+        }
+        if (unoriented.sum() != row.unorientedClasses() || joint.sum() != row.jointResidualClasses()
+                || cleared.sum() != row.supportClearingClasses() || joint.sum()-cleared.sum() != row.orientedClasses())
+            throw new IllegalStateException("Generated root counts disagree with paper at partition " + row.number());
+        return new RootResult(unoriented.sum(), joint.sum(), cleared.sum(), unresolved.sum());
+    }
+
+    static void emitEndpoint(JointInventory.Endpoint endpoint, PairDischarge discharge,
+                             DiskStateSet residuals, Progress progress) {
+        if (endpoint.elementaryClosure()) {
+            log.info("Endpoint {}: elementary oriented 3-cycle closure", endpoint.number());
+            return;
+        }
+        var generated = new LongAdder(); var misses = new LongAdder();
+        progress.phase(() -> "endpoint " + endpoint.number() + ": generated=" + generated.sum() + " misses=" + misses.sum());
+        DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(endpoint.partition(), endpoint.orientedByPart(),
+                () -> { }, pair -> {
+                    generated.increment();
+                    if (!discharge.apply(pair.canonicalRepresentative(), 8, false)) {
+                        residuals.add(pair, 8); misses.increment();
+                    }
+                });
+        long expected = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(endpoint.partition(), endpoint.orientedByPart());
+        if (generated.sum() != expected) throw new IllegalStateException("Endpoint generation count mismatch: " + endpoint.number());
+        log.info("Endpoint {}: generated={}, missingEightMoveDischarges={}", endpoint.number(), generated.sum(), misses.sum());
+    }
+
+    private static float minimumRate(CyclicTargetPair pair, int budget) {
+        int norm = pair.getOmega().stream().mapToInt(c -> c.size()/2).sum();
+        if (norm == 0) throw new IllegalArgumentException("Expected an unsorted obligation");
+        return budget / (2.0f * norm);
+    }
+
+    @FunctionalInterface interface PairDischarge { boolean apply(CyclicTargetPair pair, int budget, boolean completeWitness); }
+    record RootResult(long unoriented, long jointResiduals, long supportCleared, long unresolved) { }
+
+    static final class Progress implements AutoCloseable {
+        private volatile Supplier<String> current = () -> "initializing";
+        private final java.util.concurrent.ScheduledExecutorService reporter = Executors.newSingleThreadScheduledExecutor(
+                Thread.ofPlatform().daemon(true).name("emission-progress").factory());
+        Progress() { reporter.scheduleWithFixedDelay(() -> log.info("Emission progress: {}", current.get()), 60, 60, TimeUnit.SECONDS); }
+        void phase(Supplier<String> value) { current = value; }
+        @Override public void close() { reporter.shutdownNow(); }
+    }
+
+    private static final class BoundedTasks implements AutoCloseable {
+        private final AtomicReference<Throwable> failure = new AtomicReference<>();
+        private final ThreadPoolExecutor workers;
+        BoundedTasks() {
+            int count = Runtime.getRuntime().availableProcessors();
+            workers = new ThreadPoolExecutor(count, count, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(256),
+                    Thread.ofPlatform().name("root-witness-", 0).factory(), new ThreadPoolExecutor.CallerRunsPolicy());
+        }
+        void submit(Runnable task) { check(); workers.execute(() -> {
+            if (failure.get() != null) return;
+            try { task.run(); } catch (Throwable error) { failure.compareAndSet(null,error); }
+        }); }
+        void check() {
+            if (failure.get() != null) throw new IllegalStateException("Root witness worker failed", failure.get());
+            if (Thread.currentThread().isInterrupted()) throw new IllegalStateException("Root generation interrupted");
+        }
+        @Override public void close() {
+            workers.shutdown();
+            try { while (!workers.awaitTermination(1, TimeUnit.SECONDS)) {
+                if (failure.get() != null) workers.shutdownNow();
+            } } catch (InterruptedException error) {
+                workers.shutdownNow(); Thread.currentThread().interrupt(); throw new IllegalStateException(error);
+            }
+            check();
+        }
+    }
+
+    private static void usage() {
+        System.out.println("WitnessEmitter [--phase=roots|endpoints|avoidance|all] [--partitions=FIRST-LAST]"
+                + " [--endpoints=FIRST-LAST] [--paper=PATH] [--database=PATH] [--work=PATH] [--td16-db=PATH]");
+    }
+
+    record Options(Path paper, Path database, Path work, Path td16, String phase,
+                   int firstPartition, int lastPartition, int firstEndpoint, int lastEndpoint, boolean help) {
+        static Options parse(String[] args, Path root) {
+            Path paper = root.resolve("docs/td18-reduction-count.tex");
+            Path database = Path.of(System.getProperty("td18.certificateDb", root.resolve("certificates").toString()));
+            Path work = root.resolve("emitter/target/joint-emission-" + ProcessHandle.current().pid() + "-" + System.nanoTime());
+            Path td16 = null; String phase = "all"; boolean help = false;
+            int first = 1, last = 53, endpointFirst = 1, endpointLast = 104;
+            for (String arg : args) {
+                if (arg.equals("--help")) help = true;
+                else if (arg.startsWith("--phase=")) phase = arg.substring(8);
+                else if (arg.startsWith("--paper=")) paper = Path.of(arg.substring(8));
+                else if (arg.startsWith("--database=")) database = Path.of(arg.substring(11));
+                else if (arg.startsWith("--work=")) work = Path.of(arg.substring(7));
+                else if (arg.startsWith("--td16-db=")) td16 = Path.of(arg.substring(10));
+                else if (arg.startsWith("--partitions=")) { int[] r = range(arg.substring(13),53); first = r[0]; last = r[1]; }
+                else if (arg.startsWith("--endpoints=")) { int[] r = range(arg.substring(12),104); endpointFirst = r[0]; endpointLast = r[1]; }
+                else throw new IllegalArgumentException("Unknown argument: " + arg);
+            }
+            if (!List.of("roots", "endpoints", "avoidance", "all").contains(phase)) throw new IllegalArgumentException("Invalid emission phase");
+            return new Options(paper.toAbsolutePath().normalize(), database.toAbsolutePath().normalize(), work.toAbsolutePath().normalize(),
+                    td16 == null ? null : td16.toAbsolutePath().normalize(), phase, first, last, endpointFirst, endpointLast, help);
+        }
+        private static int[] range(String value, int maximum) {
+            String[] fields = value.split("-", -1);
+            if (fields.length != 2) throw new IllegalArgumentException("Expected FIRST-LAST range");
+            int first = Integer.parseInt(fields[0]), last = Integer.parseInt(fields[1]);
+            if (first < 1 || first > last || last > maximum) throw new IllegalArgumentException("Invalid range");
+            return new int[]{first,last};
+        }
+        boolean roots() { return phase.equals("roots") || phase.equals("all"); }
+        boolean endpoints() { return phase.equals("endpoints") || phase.equals("all"); }
+        boolean avoidance() { return phase.equals("avoidance") || phase.equals("all"); }
+        boolean includesPartition(int n) { return firstPartition <= n && n <= lastPartition; }
+        boolean includesEndpoint(int n) { return firstEndpoint <= n && n <= lastEndpoint; }
     }
 }

@@ -1,12 +1,13 @@
 package br.unb.cic.td18.search;
 
 import br.unb.cic.td18.base.GPUSortingSearch;
+import br.unb.cic.td18.base.GpuDeviceLayout;
 import br.unb.cic.td18.certificate.AsyncCertificateWriter;
 import br.unb.cic.td18.certificate.CertificateValidator;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.OneLinePermutation;
-import br.unb.cic.td18.reduction.ReductionTypeEnumerator;
+import br.unb.cic.td18.joint.KnownDiameters;
 
 import java.util.List;
 import java.util.Objects;
@@ -14,16 +15,35 @@ import java.util.Objects;
 /** The only route from a sorting search result to a persisted certificate. */
 public final class WitnessSearch {
     private static volatile AsyncCertificateWriter certificateWriter;
+    private static volatile boolean gpuInitialized;
 
     private WitnessSearch() {
     }
 
-    public static void installWriter(final AsyncCertificateWriter writer) {
+    public static synchronized void installWriter(final AsyncCertificateWriter writer) {
         if (certificateWriter != null) {
             throw new IllegalStateException(
                     "A proof-scoped certificate writer is already installed");
         }
         certificateWriter = Objects.requireNonNull(writer);
+    }
+
+    public static synchronized void uninstallWriter(final AsyncCertificateWriter writer) {
+        if (certificateWriter != writer) throw new IllegalStateException("Writer scope mismatch");
+        certificateWriter = null;
+    }
+
+    public static void shutdownGpuStats() {
+        if (gpuInitialized) GPUSortingSearch.shutdownStatsReporter();
+    }
+
+    private static GPUSortingSearch gpu() {
+        final var devices = GpuDeviceLayout.parseDevices(System.getProperty("td18.gpuDevices", "0"));
+        final int slots = Integer.parseInt(System.getProperty("td18.gpuSlots", "7"));
+        final long budget = Long.parseLong(System.getProperty("td18.gpuBudgetMB", "1024"));
+        GPUSortingSearch.init(devices, slots, Math.multiplyExact(budget, 1024L * 1024L));
+        gpuInitialized = true;
+        return GPUSortingSearch.getInstance();
     }
 
     public static SearchResult search(final CyclicTargetPair pair,
@@ -42,27 +62,10 @@ public final class WitnessSearch {
     /** Regenerates and replays a CPU prefix closure within the remaining budget. */
     public static boolean closesByCpuPrefix(final CyclicTargetPair pair, final int maximumMoves) {
         Objects.requireNonNull(pair, "pair");
-        if (maximumMoves < 1 || maximumMoves > ReductionTypeEnumerator.MAX_BUDGET) {
+        if (maximumMoves < 1 || maximumMoves > KnownDiameters.MAX_BUDGET) {
             throw new IllegalArgumentException("CPU closure budget must lie between 1 and 10");
         }
         return closesByCpuPrefix(input(pair), maximumMoves);
-    }
-
-    /** Screens an avoidance intermediate without dispatching a CUDA search. */
-    public static SearchResult screenIntermediatePrefix(
-            final CyclicTargetPair pair,
-            final int maximumMoves
-    ) {
-        if (maximumMoves >= ReductionTypeEnumerator.MAX_BUDGET
-                || pair.getBeta().size()
-                >= ReductionTypeEnumerator.ROOT_SYMBOLS) {
-            throw new IllegalArgumentException(
-                    "An avoidance intermediate must precede the full-domain root stage");
-        }
-        final var input = input(pair);
-        return closesByCpuPrefix(input, maximumMoves)
-                ? SearchResult.triviallySettled()
-                : SearchResult.residual();
     }
 
     private static SearchResult searchWithGpu(
@@ -83,7 +86,7 @@ public final class WitnessSearch {
         // Reuse complete root witnesses before repeating a native search. Smaller budgets may
         // need a new witness even when a longer full-domain witness exists.
         final var writer = certificateWriter;
-        if (maximumMoves == ReductionTypeEnumerator.MAX_BUDGET && writer != null) {
+        if (writer != null) {
             final var existing = writer.find(pair, maximumMoves);
             if (existing.isPresent()) {
                 return SearchResult.certificate(existing.orElseThrow());
@@ -91,7 +94,7 @@ public final class WitnessSearch {
         }
 
         // CUDA is reached when a complete witness is still required.
-        final var moves = GPUSortingSearch.getInstance().search(
+        final var moves = gpu().search(
                         input.beta(), new OneLinePermutation(input.omega()),
                         omega.getNumberOfEvenCycles(),
                         minimumRate, maximumMoves, true)
@@ -195,7 +198,7 @@ public final class WitnessSearch {
         final int createdFixedPoints = fixedPoints - initialFixedPoints;
         final int remainingSymbols = currentOmega.length - fixedPoints;
         final int remainingDiameter =
-                ReductionTypeEnumerator.knownDiameter(remainingSymbols);
+                KnownDiameters.knownDiameter(remainingSymbols);
         if (!CommonOperations.meetsMinimumRate(
                 createdFixedPoints, prefix.size())
                 || remainingDiameter == Integer.MAX_VALUE

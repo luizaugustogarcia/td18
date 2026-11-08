@@ -1,6 +1,6 @@
 package br.unb.cic.td18.verification;
 
-import br.unb.cic.td18.avoidance.ObstructionAvoidance;
+import br.unb.cic.td18.joint.JointInverseReconstruction;
 import br.unb.cic.td18.certificate.CertificateCodec;
 
 import java.io.IOException;
@@ -61,7 +61,7 @@ final class CheckerStateSet implements AutoCloseable {
         }
     }
 
-    void add(final ObstructionAvoidance.SearchState state) {
+    void add(final JointInverseReconstruction.SearchState state) {
         final var canonical = state.pair().canonicalRepresentative();
         final byte[] raw = CertificateCodec.keyFor(canonical);
         final byte[] key = new byte[3 + raw.length];
@@ -92,7 +92,7 @@ final class CheckerStateSet implements AutoCloseable {
         }
     }
 
-    boolean contains(final ObstructionAvoidance.SearchState state) {
+    boolean contains(final JointInverseReconstruction.SearchState state) {
         if (sealed == null) {
             throw new IllegalStateException("Membership requires a sealed checker set");
         }
@@ -132,17 +132,17 @@ final class CheckerStateSet implements AutoCloseable {
         return sealed;
     }
 
-    void forEachBatch(final Consumer<List<ObstructionAvoidance.SearchState>> consumer) {
+    void forEachBatch(final Consumer<List<JointInverseReconstruction.SearchState>> consumer) {
         final Inventory expected = seal();
         long count = 0;
         try (final var reads = new ReadOptions().setFillCache(false);
              final var iterator = database.newIterator(reads)) {
-            var batch = new ArrayList<ObstructionAvoidance.SearchState>(BATCH_SIZE);
+            var batch = new ArrayList<JointInverseReconstruction.SearchState>(BATCH_SIZE);
             for (iterator.seek(new byte[]{VERSION}); iterator.isValid(); iterator.next()) {
                 final byte[] key = iterator.key();
                 requireKey(key, iterator.value());
                 count++;
-                batch.add(new ObstructionAvoidance.SearchState(
+                batch.add(new JointInverseReconstruction.SearchState(
                         Byte.toUnsignedInt(key[1]), CertificateCodec.pairForKey(
                         Arrays.copyOfRange(key, 3, key.length), Byte.toUnsignedInt(key[2]))));
                 if (batch.size() == BATCH_SIZE) {

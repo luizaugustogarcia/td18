@@ -21,7 +21,7 @@ Here \(I\) counts every realizable permutation of the annotated type;
 \(R_\nu\) counts those commuting with \(\beta^\nu\); and \(S_\nu\)
 counts those satisfying \(f_\nu\omega^{-1}f_\nu=\omega\), where
 \(f_\nu(x)=\nu-x\pmod N\). Computing these terms by enumerating every
-labelled permutation would not improve the existing direct count. The
+labelled permutation would require enumerating the entire labelled family. The
 following constructions avoid that enumeration.
 
 ## Identity term and orientation refinement
@@ -134,43 +134,23 @@ It does not generate or decode encoding words, run a sorting search, or
 read certificates. Some constrained permutations and selected unoriented
 supports are still enumerated; this is not a closed formula for every term.
 
-Every one of the 292 Table 2 entries is counted with Burnside's identity,
-including entirely unoriented types. Each run and completed log entry
-records `method=burnside`.
-Totally unoriented types have no structural reduction children at any
-depth. If a known diameter does not close such a state, its whole type
-remains a direct obligation and receives the same realizability count.
+Totally unoriented root classes are counted for every one of the 53 root
+partitions, with all annotations unoriented. Their total is 214,474,050.
+The same counter applies independently to the 104 annotated endpoint types
+on 16 symbols with 3-norm at most seven. Empty types are checked explicitly.
 
-The resulting `R` column totals 692,894,074,401 realizable extended-toric
-classes. Burnside counting does not itself discharge a sorting obligation.
-Table 2 therefore records a separate `Q` column: after reuse of the checked
-TD(16) successor results and restricted odd-pair retention,
-45,498,334,516 class obligations are emitted. This uses `Q=0` for 102
-fully discharged rows, `Q=391,321,1172` for rows 267, 270, and 274, and
-`Q=R` for the other 187 rows. The three restricted values count directly
-generated seeds for root lifting, not whole-type Burnside counts or
-nine-move sorting requirements. The local classification and independent
-support enumeration are described in [the restricted route](two-cycle-residual-route.md).
-Thirty-five of the full-emission rows have `R=0`, giving
-137 literal zero-`Q` rows. The table contains 46 empty types altogether,
-including 11 of the settled rows. In
-particular, starred rows 130 and 134 are emitted in full and in ordinary table
-order; their bounded-search obstructions join the common final obstruction-avoidance
-phase, which reconstructs and independently sorts their reachable predecessor
-classes on the full S18 root domain.
+Oriented joint residual roots are counted by their constrained direct
+generator: the favorable-prefix predicates do not depend only on an annotated
+type. These contribute 37,858,324 classes before support clearing and
+33,608,561 afterward. The complete direct-root total is 248,082,611.
+See [the paper](td18-reduction-count.tex) for the predicates, generation
+argument, all 53 partition counts, and final reconstruction obligations.
+No sorting-failure count is an input to Burnside counting or joint selection.
 
-The exceptional 15-cycle interleavings are a separate restricted branch,
-outside these Table 2 totals: 360 candidate bracelets give 90 valid root
-classes, and 27 give 7 valid intermediate classes. Independent replay closes
-79 roots and all 7 intermediate classes by CPU prefixes and known diameters.
-The remaining 11 root classes require complete ten-transposition witnesses.
-
-Tests compare the two methods on every annotated partition through nine
-symbols, including empty types and both even-domain reflection classes.
-They also check the independently enumerated example
-\(I=9702\), \(R_\nu=0\) for \(\nu\ne0\), \(S_\nu=76\), and
-\(B=479\) for \((5_O,3_U,3_U)\). A separate initial validation also
-matched the previously generated count \(284235604416\) for
-\((13_O,5_O)\) on 18 symbols. The new calculation took 1.24 seconds
-with 16 threads; the saved direct-count log recorded 53127.916 seconds.
-These timings came from separate runs, rather than a controlled benchmark.
+Tests compare Burnside and direct generation on every annotated partition
+through nine symbols, including empty types and both even-domain reflection
+classes. They also check the independently enumerated example
+I = 9702, all nonidentity rotation terms zero, each reflection term 76,
+and B = 479 for (5 oriented, 3 unoriented, 3 unoriented).
+Counting is independent of sorting certificates: a class count establishes
+neither an eight-move endpoint result nor a ten-move root result.

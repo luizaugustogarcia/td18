@@ -1,7 +1,7 @@
 package br.unb.cic.td18.search;
 
 import br.unb.cic.td18.permutation.Cycle;
-import br.unb.cic.td18.reduction.ReductionTypeEnumerator;
+import br.unb.cic.td18.joint.KnownDiameters;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -216,7 +216,7 @@ public final class CommonOperations {
         final int remainingSymbols =
                 initialNonfixedSymbols - createdFixedPoints;
         final int diameter =
-                ReductionTypeEnumerator.knownDiameter(remainingSymbols);
+                KnownDiameters.knownDiameter(remainingSymbols);
         final boolean closes = depth > 0
                 && meetsMinimumRate(createdFixedPoints, depth)
                 && diameter != Integer.MAX_VALUE

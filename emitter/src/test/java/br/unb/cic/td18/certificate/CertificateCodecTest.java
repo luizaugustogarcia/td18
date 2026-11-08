@@ -39,17 +39,10 @@ class CertificateCodecTest {
     }
 
     @Test
-    void intermediateKeysSeparateFormatDomainAndBudget() {
+    void rejectsImplicitLossOfNonstandardBeta() {
         final var pair = CyclicTargetPair.of(
-                new MulticyclePermutation(Cycle.of(0, 1, 2)),
-                Cycle.of(0, 1, 2));
-
-        assertArrayEquals(new byte[]{1, 3, 9, 0x08, (byte) 0x80},
-                CertificateCodec.intermediateKeyFor(pair, 9));
-        assertArrayEquals(new byte[]{1, 3, 8, 0x08, (byte) 0x80},
-                CertificateCodec.intermediateKeyFor(pair, 8));
-        assertThrows(IllegalArgumentException.class,
-                () -> CertificateCodec.intermediateKeyFor(pair, 0));
+                new MulticyclePermutation(Cycle.of(0, 2, 1)), Cycle.of(0, 2, 1));
+        assertThrows(IllegalArgumentException.class, () -> CertificateCodec.keyFor(pair));
     }
 
     @Test

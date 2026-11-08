@@ -1,23 +1,14 @@
 package br.unb.cic.td18.certificate;
 
-import br.unb.cic.td18.avoidance.AvoidanceSearchMiss;
-import br.unb.cic.td18.avoidance.ResidualObligation;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.permutation.Cycle;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.rocksdb.BlockBasedTableConfig;
+import java.util.function.Consumer;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -27,288 +18,77 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-/** Read-only TD(18) certificate database with separated witness namespaces. */
+/** Read-only version-1 witness/obstruction schema, with independent replay. */
 public final class CertificateStore implements AutoCloseable {
-    private static final byte[] OBSTRUCTIONS_COLUMN_FAMILY =
-            "obstructions".getBytes(StandardCharsets.UTF_8);
-    private static final byte[] INTERMEDIATE_WITNESSES_COLUMN_FAMILY =
-            "avoidance-intermediate-witnesses"
-                    .getBytes(StandardCharsets.UTF_8);
-    private static final String STATS_PROPERTY =
-            "td18.certificateStatsPeriodSeconds";
-
-    static {
-        RocksDB.loadLibrary();
-    }
-
-    private final DBOptions options;
-    private final ColumnFamilyOptions witnessOptions;
-    private final ColumnFamilyOptions intermediateWitnessOptions;
-    private final ColumnFamilyOptions obstructionOptions;
-    private final ReadOptions readOptions;
+    public static final int FORMAT_VERSION = 1;
+    private static final byte[] OBSTRUCTIONS = "obstructions".getBytes(StandardCharsets.UTF_8);
+    static { RocksDB.loadLibrary(); }
+    private final DBOptions options = new DBOptions().setMaxOpenFiles(256);
+    private final ColumnFamilyOptions witnessOptions = new ColumnFamilyOptions();
+    private final ColumnFamilyOptions obstructionOptions = new ColumnFamilyOptions();
+    private final ReadOptions reads = new ReadOptions().setFillCache(false);
+    private final ArrayList<ColumnFamilyHandle> handles = new ArrayList<>();
     private final RocksDB database;
-    private final ColumnFamilyHandle witnesses;
-    private final ColumnFamilyHandle intermediateWitnesses;
-    private final ColumnFamilyHandle obstructions;
-    private final AtomicLong replayed = new AtomicLong();
-    private final ScheduledExecutorService reporter;
-    private volatile long reportStarted = System.nanoTime();
 
     public CertificateStore(final Path directory) {
-        final var absolute = directory.toAbsolutePath();
-        requireCompatibleColumnFamilies(absolute);
-        options = new DBOptions().setMaxOpenFiles(-1);
-        witnessOptions = columnFamilyOptions();
-        intermediateWitnessOptions = columnFamilyOptions();
-        obstructionOptions = columnFamilyOptions();
-        readOptions = new ReadOptions()
-                .setFillCache(false);
-        final var descriptors = List.of(
-                new ColumnFamilyDescriptor(
-                        RocksDB.DEFAULT_COLUMN_FAMILY, witnessOptions),
-                new ColumnFamilyDescriptor(
-                        OBSTRUCTIONS_COLUMN_FAMILY, obstructionOptions),
-                new ColumnFamilyDescriptor(
-                        INTERMEDIATE_WITNESSES_COLUMN_FAMILY,
-                        intermediateWitnessOptions));
-        final var handles = new ArrayList<ColumnFamilyHandle>(3);
         RocksDB opened = null;
-        try {
-            opened = RocksDB.openReadOnly(
-                    options, absolute.toString(), descriptors, handles);
-            if (handles.size() != 3) {
-                throw new IllegalStateException(
-                        "TD(18) database did not open all column families");
-            }
+        try (final var listing = new Options()) {
+            final var families = RocksDB.listColumnFamilies(listing, directory.toString());
+            if (families.size() != 2 || families.stream().noneMatch(x -> Arrays.equals(x, RocksDB.DEFAULT_COLUMN_FAMILY))
+                    || families.stream().noneMatch(x -> Arrays.equals(x, OBSTRUCTIONS)))
+                throw new IllegalStateException("Unsupported certificate format: expected version-1 two-family schema");
+            opened = RocksDB.openReadOnly(options, directory.toString(), List.of(
+                    new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, witnessOptions),
+                    new ColumnFamilyDescriptor(OBSTRUCTIONS, obstructionOptions)), handles);
             database = opened;
-            witnesses = handles.get(0);
-            obstructions = handles.get(1);
-            intermediateWitnesses = handles.get(2);
-        } catch (final RocksDBException failure) {
-            closeHandles(handles);
-            if (opened != null) {
-                opened.close();
-            }
-            closeResources();
-            throw new IllegalStateException(
-                    "Cannot open certificate database " + directory, failure);
-        } catch (final RuntimeException failure) {
-            closeHandles(handles);
-            if (opened != null) {
-                opened.close();
-            }
-            closeResources();
-            throw failure;
-        }
-
-        final long period = parsePeriod();
-        if (period == 0) {
-            reporter = null;
-        } else {
-            reporter = Executors.newSingleThreadScheduledExecutor(
-                    Thread.ofPlatform().daemon(true)
-                            .name("td18-certificate-checker-stats").factory());
-            reporter.scheduleAtFixedRate(this::report, period, period,
-                    TimeUnit.SECONDS);
+            final var marker = database.get(handles.get(0), "td18-schema".getBytes(StandardCharsets.UTF_8));
+            if (!Arrays.equals(marker, "joint-selection-v1".getBytes(StandardCharsets.UTF_8)))
+                throw new IllegalStateException("Missing or unsupported certificate format marker");
+        } catch (final RocksDBException | RuntimeException failure) {
+            handles.forEach(ColumnFamilyHandle::close);
+            if (opened != null) opened.close();
+            closeOptions();
+            throw new IllegalStateException("Cannot open certificate database " + directory, failure);
         }
     }
-
-    private static ColumnFamilyOptions columnFamilyOptions() {
-        return new ColumnFamilyOptions()
-                .setTableFormatConfig(new BlockBasedTableConfig()
-                        .setCacheIndexAndFilterBlocks(false));
-    }
-
-    private static void requireCompatibleColumnFamilies(final Path directory) {
-        try (final var listOptions = new Options()) {
-            final var families = RocksDB.listColumnFamilies(
-                    listOptions, directory.toString());
-            if (families.size() != 3
-                    || families.stream().noneMatch(name -> Arrays.equals(
-                    name, RocksDB.DEFAULT_COLUMN_FAMILY))
-                    || families.stream().noneMatch(name -> Arrays.equals(
-                    name, OBSTRUCTIONS_COLUMN_FAMILY))
-                    || families.stream().noneMatch(name -> Arrays.equals(
-                    name, INTERMEDIATE_WITNESSES_COLUMN_FAMILY))) {
-                throw new IllegalStateException(
-                        "Unsupported TD(18) column-family schema");
-            }
-        } catch (final RocksDBException failure) {
-            throw new IllegalStateException(
-                    "Cannot inspect certificate database " + directory, failure);
-        }
-    }
-
-    public Optional<List<Cycle>> find(final CyclicTargetPair pair,
-                                      final int maximumMoves) {
-        final var value = get(witnesses, CertificateCodec.keyFor(pair));
-        if (value == null) {
-            return Optional.empty();
-        }
+    public Optional<List<Cycle>> find(final CyclicTargetPair pair, final int maximumMoves) {
+        if (maximumMoves < 0) throw new IllegalArgumentException("Negative move budget");
+        final var canonical = pair.canonicalRepresentative();
+        final byte[] value = get(handles.get(0), CertificateCodec.keyFor(canonical));
+        if (value == null) return Optional.empty();
         final var moves = CertificateCodec.decodeValue(value);
-        CertificateValidator.validate(pair, moves, maximumMoves);
-        replayed.incrementAndGet();
-        return Optional.of(moves);
+        // A longer valid witness is unavailable for this budget. Corruption is
+        // rejected even when the witness would not satisfy the smaller budget.
+        CertificateValidator.validate(canonical, moves, moves.size());
+        return moves.size() <= maximumMoves ? Optional.of(moves) : Optional.empty();
     }
-
-    /** Legacy lookup retained for compatibility tests and old artifacts. */
-    public Optional<List<Cycle>> findIntermediate(
-            final CyclicTargetPair pair,
-            final int maximumMoves
-    ) {
-        final var value = get(intermediateWitnesses,
-                CertificateCodec.intermediateKeyFor(pair, maximumMoves));
-        if (value == null) {
-            return Optional.empty();
-        }
-        final var moves = CertificateCodec.decodeValue(value);
-        CertificateValidator.validate(pair, moves, maximumMoves);
-        replayed.incrementAndGet();
-        return Optional.of(moves);
+    public List<Optional<List<Cycle>>> find(final CyclicTargetPair[] pairs, final int maximumMoves) {
+        final var result = new ArrayList<Optional<List<Cycle>>>(pairs.length);
+        for (final var pair : pairs) result.add(find(pair, maximumMoves));
+        return List.copyOf(result);
     }
-
-    /** Looks up and independently replays a position-preserving batch. */
-    public List<Optional<List<Cycle>>> find(
-            final CyclicTargetPair[] pairs,
-            final int maximumMoves
-    ) {
-        final var keys = new ArrayList<byte[]>(pairs.length);
-        final var handles = new ArrayList<ColumnFamilyHandle>(pairs.length);
-        for (final var pair : pairs) {
-            keys.add(CertificateCodec.keyFor(pair));
-            handles.add(witnesses);
-        }
-
-        final List<byte[]> values;
-        try {
-            values = database.multiGetAsList(readOptions, handles, keys);
-        } catch (final RocksDBException failure) {
-            throw new IllegalStateException(
-                    "Cannot read certificate database", failure);
-        }
-
-        final var results =
-                new ArrayList<Optional<List<Cycle>>>(pairs.length);
-        for (var index = 0; index < pairs.length; index++) {
-            final var value = values.get(index);
-            if (value == null) {
-                results.add(Optional.empty());
-                continue;
-            }
-            final var moves = CertificateCodec.decodeValue(value);
-            CertificateValidator.validate(pairs[index], moves, maximumMoves);
-            replayed.incrementAndGet();
-            results.add(Optional.of(moves));
-        }
-        return List.copyOf(results);
+    public List<Cycle> require(final CyclicTargetPair pair, final int maximumMoves) {
+        return find(pair, maximumMoves).orElseThrow(() -> new IllegalStateException(
+                "Missing sorting certificate: classKey=" + pair.extendedToricClassKey() + ", maximumMoves=" + maximumMoves));
     }
-
-    public List<Cycle> require(final CyclicTargetPair pair,
-                               final int maximumMoves) {
-        return find(pair, maximumMoves).orElseThrow(() ->
-                new IllegalStateException(
-                        "Missing sorting certificate: classKey="
-                                + pair.extendedToricClassKey()
-                                + ", maximumMoves=" + maximumMoves));
+    public boolean hasObstruction(final CyclicTargetPair pair) {
+        final byte[] value = get(handles.get(1), CertificateCodec.keyFor(pair.canonicalRepresentative()));
+        if (value != null && value.length != 0) throw new IllegalStateException("An obstruction must have an empty value");
+        return value != null;
     }
-
-    public Optional<ResidualObligation> findResidual(
-            final ResidualObligation expected
-    ) {
-        return hasObstruction(expected.key())
-                ? Optional.of(expected) : Optional.empty();
-    }
-
-    public boolean hasAvoidanceMiss(final AvoidanceSearchMiss expected) {
-        return hasObstruction(expected.key());
-    }
-
-    /** Streams persisted residual keys without consulting emitter checkpoints. */
-    public void forEachObstruction(final java.util.function.Consumer<byte[]> consumer) {
-        try (final var iterator = database.newIterator(obstructions, readOptions)) {
+    public void forEachObstruction(final Consumer<byte[]> consumer) {
+        try (final var iterator = database.newIterator(handles.get(1), reads)) {
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
-                if (iterator.value().length != 0) {
-                    throw new IllegalStateException("An obstruction must have an empty value");
-                }
+                if (iterator.value().length != 0) throw new IllegalStateException("An obstruction must have an empty value");
                 consumer.accept(iterator.key());
             }
             iterator.status();
-        } catch (final RocksDBException failure) {
-            throw new IllegalStateException("Cannot read residual obstruction keys", failure);
-        }
+        } catch (final RocksDBException failure) { throw new IllegalStateException("Cannot read obstruction keys", failure); }
     }
-
-    private boolean hasObstruction(final byte[] key) {
-        final var value = get(obstructions, key);
-        if (value == null) {
-            return false;
-        }
-        if (value.length != 0) {
-            throw new IllegalStateException(
-                    "An obstruction entry must have an empty value");
-        }
-        return true;
+    private byte[] get(final ColumnFamilyHandle family, final byte[] key) {
+        try { return database.get(family, reads, key); }
+        catch (final RocksDBException failure) { throw new IllegalStateException("Cannot read certificate", failure); }
     }
-
-    private byte[] get(final ColumnFamilyHandle handle, final byte[] key) {
-        try {
-            return database.get(handle, readOptions, key);
-        } catch (final RocksDBException failure) {
-            throw new IllegalStateException(
-                    "Cannot read certificate database", failure);
-        }
-    }
-
-    private static long parsePeriod() {
-        final var configured = System.getProperty(STATS_PROPERTY, "0");
-        final long period;
-        try {
-            period = Long.parseLong(configured);
-        } catch (final NumberFormatException failure) {
-            throw new IllegalArgumentException(
-                    STATS_PROPERTY + " must be a nonnegative integer", failure);
-        }
-        if (period < 0) {
-            throw new IllegalArgumentException(
-                    STATS_PROPERTY + " must be a nonnegative integer");
-        }
-        return period;
-    }
-
-    private void report() {
-        final long now = System.nanoTime();
-        final long elapsed = Math.max(1, now - reportStarted);
-        final long count = replayed.getAndSet(0);
-        reportStarted = now;
-        final double seconds = elapsed / 1_000_000_000.0;
-        System.out.printf(Locale.ROOT,
-                "certificate replay: verified=%d elapsed=%.3fs rate=%.3f/s%n",
-                count, seconds, count / seconds);
-    }
-
-    @Override
-    public void close() {
-        if (reporter != null) {
-            reporter.shutdownNow();
-        }
-        intermediateWitnesses.close();
-        obstructions.close();
-        witnesses.close();
-        database.close();
-        closeResources();
-    }
-
-    private void closeResources() {
-        readOptions.close();
-        obstructionOptions.close();
-        intermediateWitnessOptions.close();
-        witnessOptions.close();
-        options.close();
-    }
-
-    private static void closeHandles(
-            final List<ColumnFamilyHandle> handles
-    ) {
-        handles.forEach(ColumnFamilyHandle::close);
-    }
+    @Override public void close() { handles.forEach(ColumnFamilyHandle::close); database.close(); closeOptions(); }
+    private void closeOptions() { reads.close(); witnessOptions.close(); obstructionOptions.close(); options.close(); }
 }

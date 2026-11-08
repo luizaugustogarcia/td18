@@ -1,0 +1,437 @@
+package br.unb.cic.td18.joint;
+
+import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.permutation.Cycle;
+import br.unb.cic.td18.permutation.MulticyclePermutation;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CancellationException;
+import java.util.function.Consumer;
+
+/**
+ * Direct constrained generation of every oriented joint residual class.
+ *
+ * <p>Disjoint algebraic cycles receive consecutive ranks, whose current-cycle
+ * positions are assigned recursively. Cycle origins and equal-cycle ordering
+ * remove auxiliary label choices. A largest algebraic cycle contains position
+ * zero. Twisted dihedral comparisons among these permitted origins select one
+ * numeric image-array representative per orbit; this representative need not
+ * be the least fixed-content encoding used by certificate keys.</p>
+ *
+ * <p>Every gain-two move and every qualifying gain-one/second-gain-two pair is
+ * rejected as soon as its at most six positions are known. Deleting the first
+ * fixed point does not change cyclic order on a second support. Forced proper
+ * target cycles and strict smaller twisted images are rejected on prefixes.
+ * Full leaves pass realizability, orientation and orbit comparisons before
+ * emission. No sorting obstruction information is used.</p>
+ */
+public final class JointRootGenerator {
+    private static final Runnable NO_CANCELLATION = () -> { };
+
+    private JointRootGenerator() { }
+
+    public record Counts(long jointResidualClasses, long supportClearingClasses,
+                         long orientedClasses, long noQualifyingFirstMoveClasses,
+                         long prefixNodes, long realizableLeaves) { }
+
+    public static void generateResiduals(final int[] partition,
+                                         final Consumer<CyclicTargetPair> consumer) {
+        generateResiduals(partition, NO_CANCELLATION, consumer);
+    }
+
+    public static void generateResiduals(final int[] partition,
+                                         final Runnable cancellationCheck,
+                                         final Consumer<CyclicTargetPair> consumer) {
+        new Generator(partition, Objects.requireNonNull(cancellationCheck),
+                Objects.requireNonNull(consumer)).run();
+    }
+
+    /** Count mode avoids decoding pair objects and retains no representative set. */
+    public static Counts count(final int[] partition) {
+        return count(partition, NO_CANCELLATION);
+    }
+
+    public static Counts count(final int[] partition, final Runnable cancellationCheck) {
+        return new Generator(partition, Objects.requireNonNull(cancellationCheck), null).run();
+    }
+
+    public static long countResiduals(final int[] partition) {
+        return count(partition).jointResidualClasses();
+    }
+
+    private record Triple(int a, int b, int c) { }
+    private record ConstraintGroup(Triple first, Triple[] seconds) { }
+
+    private static final class Generator {
+        private final int n;
+        private final int[] parts;
+        private final int[] omega;
+        private final int[] inverse;
+        private final int[] position;
+        private final int[] cycleStart;
+        private final int[] cycleLength;
+        private final int[] previousEqual;
+        private final int[] target;
+        private final int[] partialInverse;
+        private final int[] images;
+        private final int[] inverseImages;
+        private final boolean[] anchors;
+        private final Triple[][] fast;
+        private final ConstraintGroup[][] pairs;
+        private final Triple[] firsts;
+        private final byte[] cyclicOrder;
+        private final byte[] afterPositions;
+        private final Runnable cancellationCheck;
+        private final Consumer<CyclicTargetPair> consumer;
+        private int targetEdges;
+        private long nodes;
+        private long leaves;
+        private long classes;
+        private long cleared;
+        private long noQualifying;
+
+        @SuppressWarnings("unchecked")
+        private Generator(final int[] partition, final Runnable cancellationCheck,
+                          final Consumer<CyclicTargetPair> consumer) {
+            Objects.requireNonNull(partition);
+            parts = partition.clone();
+            Arrays.sort(parts);
+            for (int i = 0; i < parts.length / 2; i++) {
+                final int value = parts[i];
+                parts[i] = parts[parts.length - 1 - i];
+                parts[parts.length - 1 - i] = value;
+            }
+            int symbols = 0;
+            for (final int length : parts) {
+                if (length < 2 || length > KnownDiameters.ROOT_SYMBOLS) {
+                    throw new IllegalArgumentException("Expected a fixed-point-free partition");
+                }
+                symbols = Math.addExact(symbols, length);
+            }
+            n = symbols;
+            if (n < 3 || n > KnownDiameters.ROOT_SYMBOLS) throw new IllegalArgumentException(
+                    "Expected a fixed-point-free partition of 3 through 19 symbols");
+            this.consumer = consumer;
+            this.cancellationCheck = cancellationCheck;
+            omega = new int[n];
+            inverse = new int[n];
+            position = new int[n];
+            cycleStart = new int[n];
+            cycleLength = new int[n];
+            previousEqual = new int[n];
+            target = new int[n];
+            partialInverse = new int[n];
+            images = new int[n];
+            inverseImages = new int[n];
+            anchors = new boolean[n];
+            Arrays.fill(previousEqual, -1);
+            Arrays.fill(target, -1);
+            Arrays.fill(partialInverse, -1);
+            int start = 0;
+            int previous = -1;
+            int previousLength = -1;
+            for (final int length : parts) {
+                if (length == previousLength) previousEqual[start] = previous;
+                for (int j = 0; j < length; j++) {
+                    omega[start + j] = start + (j + 1) % length;
+                    cycleStart[start + j] = start;
+                    cycleLength[start + j] = length;
+                }
+                previous = start;
+                previousLength = length;
+                start += length;
+            }
+            for (int x = 0; x < n; x++) inverse[omega[x]] = x;
+            final List<Triple>[] fastLists = new List[n];
+            final LinkedHashMap<Triple, List<Triple>>[] grouped = new LinkedHashMap[n];
+            for (int d = 0; d < n; d++) {
+                fastLists[d] = new ArrayList<>();
+                grouped[d] = new LinkedHashMap<>();
+            }
+            for (int x = 0; x < n; x++) {
+                final int y = omega[x];
+                final int z = omega[y];
+                if (x == z || omega[z] == x && (x > y || x > z)) continue;
+                fastLists[Math.max(x, Math.max(y, z))].add(new Triple(x, y, z));
+            }
+            final List<Triple> qualifying = new ArrayList<>();
+            final int odd = oddCycles(omega);
+            for (int a = 0; a < n - 2; a++) {
+                for (int b = a + 1; b < n - 1; b++) {
+                    for (int c = b + 1; c < n; c++) {
+                        for (int reverse = 0; reverse < 2; reverse++) {
+                            final Triple first = reverse == 0
+                                    ? new Triple(a, b, c) : new Triple(a, c, b);
+                            if (gain(omega, first) != 1) continue;
+                            final int[] next = apply(omega, first);
+                            if (oddCycles(next) != odd + 2) continue;
+                            qualifying.add(first);
+                            for (int x = 0; x < n; x++) {
+                                final int y = next[x];
+                                final int z = next[y];
+                                if (x == y || x == z || y == z
+                                        || next[z] == x && (x > y || x > z)) continue;
+                                final int depth = Math.max(c, Math.max(x, Math.max(y, z)));
+                                grouped[depth].computeIfAbsent(first, ignored -> new ArrayList<>())
+                                        .add(new Triple(x, y, z));
+                            }
+                        }
+                    }
+                }
+            }
+            firsts = qualifying.toArray(Triple[]::new);
+            fast = new Triple[n][];
+            pairs = new ConstraintGroup[n][];
+            for (int d = 0; d < n; d++) {
+                fast[d] = fastLists[d].toArray(Triple[]::new);
+                pairs[d] = grouped[d].entrySet().stream()
+                        .map(entry -> new ConstraintGroup(entry.getKey(),
+                                entry.getValue().toArray(Triple[]::new)))
+                        .toArray(ConstraintGroup[]::new);
+            }
+            cyclicOrder = new byte[n * n * n];
+            afterPositions = new byte[n * n * n * n];
+            for (int a = 0; a < n; a++) {
+                for (int b = 0; b < n; b++) {
+                    for (int c = 0; c < n; c++) {
+                        final int index = index(a, b, c);
+                        if (a == b || a == c || b == c || !ordered(a, b, c)) continue;
+                        cyclicOrder[index] = 1;
+                        for (int x = 0; x < n; x++) {
+                            afterPositions[index * n + x] = (byte) afterPosition(x, a, b, c);
+                        }
+                    }
+                }
+            }
+        }
+
+        private Counts run() {
+            checkCancellation();
+            position[0] = 0;
+            visit(1, 1);
+            checkCancellation();
+            return new Counts(classes, cleared, classes - cleared, noQualifying, nodes, leaves);
+        }
+
+        private void checkCancellation() {
+            if (Thread.currentThread().isInterrupted()) throw new CancellationException(
+                    "Joint root generation interrupted");
+            cancellationCheck.run();
+        }
+
+        private void visit(final int depth, final int used) {
+            if ((++nodes & 1023) == 0) checkCancellation();
+            if (depth == n) {
+                leaf();
+                return;
+            }
+            int minimum = 1;
+            if (cycleStart[depth] != depth) minimum = position[cycleStart[depth]] + 1;
+            else if (previousEqual[depth] >= 0) minimum = position[previousEqual[depth]] + 1;
+            for (int x = minimum; x < n; x++) {
+                if ((used & (1 << x)) != 0) continue;
+                position[depth] = x;
+                final boolean edgeA = omega[depth] <= depth;
+                final boolean edgeB = inverse[depth] < depth;
+                boolean okay = true;
+                boolean addedB = false;
+                if (edgeA) okay = addTarget(depth);
+                if (okay && edgeB) {
+                    okay = addTarget(inverse[depth]);
+                    addedB = true;
+                }
+                if (okay && canonicalPrefix(depth) && constraints(depth)) {
+                    visit(depth + 1, used | (1 << x));
+                }
+                if (addedB) removeTarget(inverse[depth]);
+                if (edgeA) removeTarget(depth);
+            }
+        }
+
+        private boolean constraints(final int depth) {
+            for (final Triple triple : fast[depth]) {
+                if (cyclicOrder[index(position[triple.a], position[triple.b],
+                        position[triple.c])] != 0) return false;
+            }
+            for (final ConstraintGroup group : pairs[depth]) {
+                final Triple first = group.first;
+                final int index = index(position[first.a], position[first.b], position[first.c]);
+                if (cyclicOrder[index] == 0) continue;
+                final int offset = index * n;
+                for (final Triple second : group.seconds) {
+                    if (cyclicOrder[index(afterPositions[offset + position[second.a]],
+                            afterPositions[offset + position[second.b]],
+                            afterPositions[offset + position[second.c]])] != 0) return false;
+                }
+            }
+            return true;
+        }
+
+        private boolean addTarget(final int rank) {
+            final int source = (position[rank] + n - 1) % n;
+            final int destination = position[omega[rank]];
+            target[source] = destination;
+            partialInverse[destination] = position[rank];
+            targetEdges++;
+            int x = destination;
+            while (x != source && target[x] >= 0) x = target[x];
+            return x != source || targetEdges == n;
+        }
+
+        private void removeTarget(final int rank) {
+            partialInverse[position[omega[rank]]] = -1;
+            target[(position[rank] + n - 1) % n] = -1;
+            targetEdges--;
+        }
+
+        private boolean canonicalPrefix(final int depth) {
+            for (int rank = 0; rank <= depth; rank++) {
+                if (cycleLength[rank] != parts[0]) continue;
+                final int anchor = position[rank];
+                for (int reflection = 0; reflection < 2; reflection++) {
+                    if (reflection == 0 && anchor == 0) continue;
+                    for (int j = 0; j < n; j++) {
+                        final int original = target[(j + n - 1) % n];
+                        if (original < 0) break;
+                        final int image = reflection == 1
+                                ? partialInverse[(anchor - j + n) % n]
+                                : target[(j + anchor + n - 1) % n];
+                        if (image < 0) break;
+                        final int value = reflection == 1
+                                ? (anchor - image + n) % n : (image - anchor + n) % n;
+                        if (value < original) return false;
+                        if (value > original) break;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private void leaf() {
+            leaves++;
+            for (int rank = 0; rank < n; rank++) {
+                images[position[rank]] = position[omega[rank]];
+                anchors[position[rank]] = cycleLength[rank] == parts[0];
+            }
+            if (unoriented(images) || !canonical()) return;
+            classes++;
+            boolean qualifying = false;
+            for (final Triple first : firsts) {
+                if (ordered(position[first.a], position[first.b], position[first.c])) {
+                    qualifying = true;
+                    break;
+                }
+            }
+            if (!qualifying) noQualifying++;
+            if (n == KnownDiameters.ROOT_SYMBOLS
+                    && SupportClearing.closingLengthCanonicalUnchecked(images) != 0) cleared++;
+            if (consumer != null) consumer.accept(decode(images));
+        }
+
+        private boolean canonical() {
+            for (int x = 0; x < n; x++) inverseImages[images[x]] = x;
+            for (int anchor = 0; anchor < n; anchor++) {
+                if (!anchors[anchor]) continue;
+                for (int reflection = 0; reflection < 2; reflection++) {
+                    for (int j = 0; j < n; j++) {
+                        final int value = reflection == 1
+                                ? (anchor - inverseImages[(anchor - j + n) % n] + n) % n
+                                : (images[(j + anchor) % n] - anchor + n) % n;
+                        if (value < images[j]) return false;
+                        if (value > images[j]) break;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private int index(final int a, final int b, final int c) { return (a * n + b) * n + c; }
+
+        private boolean ordered(final int a, final int b, final int c) {
+            return (b - a + n) % n < (c - a + n) % n;
+        }
+
+        private int afterPosition(final int x, final int a, final int b, final int c) {
+            final int d = (x - a + n) % n;
+            final int db = (b - a + n) % n;
+            final int dc = (c - a + n) % n;
+            if (d < db) return d;
+            return d >= dc ? db + d - dc : n - dc + d;
+        }
+    }
+
+    private static int gain(final int[] omega, final Triple triple) {
+        return (omega[triple.a] == triple.b ? 1 : 0)
+                + (omega[triple.b] == triple.c ? 1 : 0)
+                + (omega[triple.c] == triple.a ? 1 : 0);
+    }
+
+    private static int[] apply(final int[] omega, final Triple triple) {
+        final int[] next = omega.clone();
+        next[triple.a] = omega[triple.c];
+        next[triple.b] = omega[triple.a];
+        next[triple.c] = omega[triple.b];
+        return next;
+    }
+
+    private static int oddCycles(final int[] omega) {
+        int seen = 0;
+        int count = 0;
+        for (int first = 0; first < omega.length; first++) {
+            if ((seen & (1 << first)) != 0) continue;
+            int length = 0;
+            int x = first;
+            do {
+                seen |= 1 << x;
+                length++;
+                x = omega[x];
+            } while (x != first);
+            count += length & 1;
+        }
+        return count;
+    }
+
+    private static boolean unoriented(final int[] omega) {
+        int seen = 0;
+        for (int first = 0; first < omega.length; first++) {
+            if ((seen & (1 << first)) != 0) continue;
+            int x = first;
+            int length = 0;
+            int increases = 0;
+            do {
+                seen |= 1 << x;
+                length++;
+                if (omega[x] > x) increases++;
+                x = omega[x];
+            } while (x != first);
+            if (length >= 3 && increases != 1) return false;
+        }
+        return true;
+    }
+
+    private static CyclicTargetPair decode(final int[] images) {
+        final int n = images.length;
+        final MulticyclePermutation omega = new MulticyclePermutation();
+        int seen = 0;
+        for (int first = 0; first < n; first++) {
+            if ((seen & (1 << first)) != 0) continue;
+            int length = 0;
+            int x = first;
+            do { length++; x = images[x]; } while (x != first);
+            final int[] symbols = new int[length];
+            for (int i = 0; i < length; i++) {
+                symbols[i] = x;
+                seen |= 1 << x;
+                x = images[x];
+            }
+            omega.add(Cycle.of(symbols));
+        }
+        final int[] beta = new int[n];
+        for (int x = 0; x < n; x++) beta[x] = x;
+        return CyclicTargetPair.ofOwned(omega, Cycle.of(beta));
+    }
+}

@@ -1,316 +1,130 @@
 # Mathematical knowledge and references
 
-This is a reading guide to existing definitions and results. The shared
-twisted-bracelet framework comes from
-[the sibling td paper](../../td/docs/paper/main.tex), Section
-sec:twisted-bracelets. The present two-reduction policy and Table 2 come from
-[the TD(18) source document](td18-reduction-count.tex). Pending computational
-conclusions are governed by [the research plan](RESEARCH_PLAN.md).
+[The TD(18) paper](td18-reduction-count.tex) specifies joint selection and the
+complete root inventory. The [shared paper](../../td/docs/paper/main.tex),
+Section sec:twisted-bracelets, supplies the bracelet framework and established
+conventions. [The research plan](RESEARCH_PLAN.md) lists pending proof artifacts.
 
-## From a pair to a class
+## Pairs, moves, and fixed points
 
-Let N = n + 1 be the cyclic-domain size for ordinary order n. A cyclic-target
-pair is (omega, beta): beta is the current N-cycle, rho = omega * beta is the
-target N-cycle, and omega = rho * beta inverse is the algebraic permutation.
-The pair condition includes evenness of omega and target realizability.
-CyclicTargetCandidate is unchecked; use asCyclicTargetPair() or
-requireCyclicTargetPair() before treating it as a valid pair.
+Let N = n + 1. A cyclic-target pair is (omega, beta), where beta is the current
+N-cycle, omega is even, and rho = omega * beta is the target N-cycle. Sorting
+means reaching omega = identity and beta = rho. Validate a
+CyclicTargetCandidate using asCyclicTargetPair() or requireCyclicTargetPair().
 
-An annotated type records each algebraic cycle’s length and its orientation
-relative to beta. For the fixed-point-free framework, all parts have length
-at least two. A color identifies a cycle: an unoriented cycle contributes
-repeated unranked beads, and an oriented cycle contributes each cyclic rank
-once. Positions follow beta; colors identify supports and oriented ranks
-identify cyclic order. Ranked orders that decode to the unoriented order are
-excluded. This is the fixed-content encoding of the prescribed annotated type
-(upstream Proposition prop:fixed-content-encoding).
+An applicable transposition is a triple (a,b,c) in cyclic beta order. It acts
+by omega' = omega * tau inverse and beta' = tau * beta, preserving the target.
+A 2-move increases the number of odd-length algebraic cycles by two; it is
+qualifying if it also creates a fixed point. A 2-cycle is an algebraic object,
+not a sorting move. The 3-norm is (N - number of odd-length cycles)/2, including
+fixed points in that count. A qualifying move decreases it by one.
+
+For a cycle gamma with support S, let beta_S be beta restricted to S. The
+cycle is unoriented exactly when gamma = beta_S inverse. All other cyclic
+orders are oriented; every 2-cycle is unoriented. An annotated type records
+lengths and orientations with equal annotations indistinguishable.
+
+Fixed points are explicit data in the general model, including singletons
+omitted from a multicycle writing. Contraction preserves distance and 3-norm
+(shared Propositions prop:adjacency-fixed-point and
+prop:contraction-preserves-distance). The fixed-point-free encoding and
+generator are used only after contraction. They do not assert a generator
+for arbitrary singleton content.
+
+## From fixed content to one representative per class
+
+For a fixed-point-free annotated type, a color identifies an algebraic cycle.
+Unoriented colors contribute repeated unranked beads, and oriented colors
+contribute each cyclic rank once. Positions follow beta. Ranked orders that
+decode to the unoriented order are excluded. This is the fixed-content encoding
+of Proposition prop:fixed-content-encoding in the shared paper.
 
 Auxiliary symmetries rename equal annotated colors and shift oriented rank
-origins without changing the decoded permutation. Auxiliary standardization
-names colors by first occurrence and sets an oriented color’s first rank to
-zero. StandardizedEncodingWord implements that choice. Internally, rank zero
-means unranked and mathematical ranks are stored with an offset of one.
+origins. StandardizedEncodingWord names colors by first occurrence and sets
+the first oriented rank to zero. Internally, zero denotes an unranked bead;
+mathematical cyclic ranks are stored with an offset of one.
 
-Twisted reflection reflects word positions and inverts cyclic ranks on
-oriented beads. Rotation and this reflection form the twisted dihedral action;
-ordinary word reversal is insufficient (upstream Propositions
-prop:twisted-dihedral-action and prop:auxiliary-dihedral-action).
-
-A twisted bracelet is an orbit, not its chosen canonical output word.
+Twisted reflection reverses word positions and inverts oriented ranks.
+Rotation and this reflection define the twisted dihedral action; ordinary
+word reversal is insufficient. A twisted bracelet is the orbit itself.
 Decoder equivariance and realizability invariance identify realizable
-bracelets with extended-toric classes of valid cyclic-target pairs (upstream
-Proposition prop:decoder-equivariance, Corollary cor:realizability-invariance,
-and Theorem thm:bracelet-class-correspondence). Use TwistedBraceletKey to
-deduplicate candidate orbits and ExtendedToricClassKey for valid-pair classes.
+bracelets with extended-toric classes (shared Theorem
+thm:bracelet-class-correspondence). TwistedBraceletKey identifies candidate
+orbits; ExtendedToricClassKey identifies valid-pair classes.
 
-Fixed points of omega are first-class data. The general model represents them
-as singleton colors, including fixed points omitted from a multicycle writing.
-The fixed-point-free generator and counter require their explicit precondition;
-the two-reduction route contracts fixed points before generating terminal
-types. The upstream fixed-point-free theorems do not by themselves assert a
-generator for arbitrary singleton content.
+DirectTwistedBraceletGenerator compares standardized prefixes under these
+symmetries and checks full-target realizability. The shared Theorem
+thm:twisted-generation-correctness gives one representative per realizable
+class. Burnside counting independently averages symmetry-fixed realizable
+objects; [the counting guide](td18-burnside-counting.md) gives its exact
+identity, rotation, and reflection terms. A class count is not a sorting result.
 
-## Count and generate separately
+## Joint selection
 
-Burnside counting averages symmetry-fixed realizable objects to obtain the
-number of classes (upstream Corollary cor:twisted-bracelet-burnside).
-[The local counting derivation](td18-burnside-counting.md) describes the exact
-identity, rotation, and reflection computations used for R. Small-domain tests
-compare these counts with direct orbit generation.
+Totally unoriented roots remain direct ten-move obligations. Every other root
+first tests moves creating at least two fixed points, which close by
+1 + TD(16) = 10. Otherwise inspect every qualifying first move creating one
+fixed point. After contraction, an oriented successor can use a second move
+creating three fixed points, closing by 2 + TD(14) = 10, or two fixed points,
+reaching 16 symbols with budget eight and 3-norm at most seven. Totally
+unoriented successors have no structural outgoing edge.
 
-DirectTwistedBraceletGenerator emits one representative from each realizable
-class of its fixed-point-free annotated type. The framework’s correctness
-statement is Theorem thm:twisted-generation-correctness. Exhaustive generation
-must agree with the required Q count independently of sorting outcomes.
-Counting alone gives no sorting witness.
+On a fixed-point-free omega, any move creating two fixed points uses two
+consecutive omega edges, so its triple has the form
+(x, omega(x), omega squared(x)). Testing at most N such triples is complete,
+including even-length cycles. All qualifying gain-one first supports are
+checked, without a preferred cycle length. The paper proves this criterion.
 
-## The exceptional oriented 9-cycle extensions
+The 104 endpoint types cover all fixed-point-free even annotated permutations
+on 16 symbols with 3-norm at most seven. The 52 with an oriented 3-cycle close
+by 1 + TD(12) = 8. Other endpoint classes need eight-move discharges or final
+inverse reconstruction. Imported TD(16) witnesses must be replayed, and missing
+eight-move results remain obligations even if obstruction markers are absent.
 
-Let beta0 = (0 1 ... 8) and gamma = (0 5 1 6 2 7 3 8 4) = beta0^5.
-The local target gamma * beta0 = beta0^6 has three cycles. Thus this is an
-unchecked candidate orbit that can become realizable when interleaved with
-companions. The TD(16) local classification identifies it as the unique
-exception to its qualifying transposition or (5,4)-sequence route; that
-repository's extension certificates cover only 17 symbols.
+For oriented roots without a favorable prefix, the constrained generator
+assigns current-cycle positions to canonical algebraic labels. Immediate
+forbidden triples and forbidden pairs of moves reject prefixes as soon as
+at most six required positions are known. Auxiliary cycle standardization,
+rotation/twisted-reflection comparisons, and full-target checks leave exactly
+one valid representative per residual class.
 
-The TD(18) branch fixes the local order of gamma on its nine-symbol support
-and interleaves all companions on the other ten symbols. Even permutation
-parity leaves six companion partitions; their full orientation multisets
-give 18 root types. The generator prescribes gamma's ranks in induced beta
-order as 0,2,4,6,8,1,3,5,7, using zero-based ranks along gamma. Twisted
-reflection reverses that subsequence and inverts ranks, preserving the same
-progression after choosing the rank origin. Ordinary reversal alone does
-not express that action.
+Support-clearing patterns relative to beta_S are powers 4 at length 7,
+7 at length 9, 6 at length 11, and 7/10/11 at length 13. The shared
+prop:td16-odd-cycle-reduction certifies their local sequences, and each obeys
+(k+1)/2 + TD(18-k) = 10. These explicit patterns remove 4,249,763 roots.
+The length-nine power 5 is not included; no length-fifteen clearing is assumed.
 
-The existing direct orbit comparisons therefore apply to this invariant
-family, and target validation still rejects noncyclic candidates. Independent
-small interleaving tests compare candidate-orbit deduplication using
-TwistedBraceletKey and valid class sets using ExtendedToricClassKey; tests
-also reproduce the four checked TD(16) realizable counts. This avoids requiring
-intermediate companion deletions to preserve realizability.
+The completed direct total is 248,082,611 roots. In particular, only 667
+classes of the oriented 19-cycle partition have no favorable prefix: two
+have no qualifying first move and 665 do. None is a proved sorting failure.
+Endpoint residuals contribute additional final-phase reconstructed roots.
 
-Every represented 19-symbol class requires a complete sorting witness within
-ten transpositions. The checker regenerates every required class and validates
-its witness directly from the certificate database. Fixed-point roots use
-the established contraction bound. Full emission and verification of all 18
-types remain pending; see [the operations guide](OPERATIONS.md#emit-and-check-exceptional-9-cycle-extensions).
+## Inverse coverage and verification
 
-## The TD(18) obligations
+For each endpoint without an eight-move result, restore two fixed points in
+all cyclic gaps and reverse every support containing both and one original
+symbol. Retain valid oriented fixed-point-free predecessors only after exact
+forward gain and odd-cycle checks. Deduplicate and screen within budget nine.
+Then restore one fixed point in every gap and reverse every support containing
+it and two original symbols. Every remaining valid oriented root requires
+budget-ten closure or a complete witness. Labeling restored symbols in current
+traversal order loses no classes because relabeling transports all supports.
 
-A qualifying 2-move is one transposition that increases the number of
-odd-length algebraic cycles by two and creates a fixed point (upstream
-Subsection interaction). It is not a sequence of two transpositions. With
-beta = (0 1 ... 18), the two exceptional oriented 19-cycle classes in the
-source document are represented by omega = beta to the power 10 and omega =
-beta to the power 16. Their targets are beta to the powers 11 and 17,
-respectively. Each power has cycle length 19/gcd(exponent, 19) = 19; the
-algebraic 19-cycles are even, so both pairs are realizable.
-Direct regression checks enumerate all 969 applicable
-transpositions for each: the former has no 2-moves, and the latter has 57,
-none qualifying. The DFS classification and the complete sorting certificates
-are separate obligations. Both classes admit a complete ten-transposition
-clearing sequence, explicitly given below and replayed by the independent
-checker regression tests. Their inclusion and verification in the finished
-proof database remains a separate requirement.
+A regenerated prefix plus a known diameter is a closure, not a complete
+sorting certificate. The verifier replays the prefix and checks contraction
+and budget. A complete certificate must sort its pair within its budget.
+Exhaustive reconstruction, disk deduplication, and regeneration of missing
+endpoint obligations prevent a partial database from hiding work.
 
-### Explicit clearing of the two oriented 19-cycle exceptions
-
-Let beta = (0 1 ... 18). Each triple below denotes one transposition by its
-three cut symbols, in the cyclic order of the current beta. Apply the triples
-from left to right using omega' = omega * tau inverse and beta' = tau * beta.
-This preserves rho = omega * beta. A 0-move preserves the number of odd-length
-algebraic cycles; a 2-move increases that number by two.
-
-For omega = beta to the power 10, a clearing sequence is:
-
-~~~text
-(0,1,9)   (2,9,11)  (9,8,18)  (8,12,17) (13,17,3)
-(17,16,7) (16,4,6)  (5,6,14)  (1,6,10)  (6,10,15)
-~~~
-
-For omega = beta to the power 16, a clearing sequence is:
-
-~~~text
-(0,1,3)   (1,2,4)   (2,3,5)   (3,10,12) (11,8,14)
-(12,7,15) (14,5,17) (10,16,13) (9,6,3)   (15,4,18)
-~~~
-
-Both sequences start with a 0-move and then use nine 2-moves. Counting fixed
-points as odd-length cycles, the odd-length-cycle counts, including the
-initial state, are 1, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19. At the final state,
-omega is the identity and beta equals rho.
-
-The [independent replay test](../checker/src/test/java/br/unb/cic/td18/verification/OrientedNineteenCycleClassificationTest.java)
-checks applicability, target preservation, complete clearing within ten
-transpositions, and the odd-length-cycle counts. The emitter also has
-[CPU import and reuse tests](../emitter/src/test/java/br/unb/cic/td18/emission/OrientedNineteenCycleEmitterTest.java)
-with ten-move witnesses. These witnesses prove an upper bound of ten for the
-two represented classes. They do not complete the other TD(18) obligations.
-
-### Two-reduction states and retained obligations
-
-Let a state be (T, s), where T is the contracted annotated type and s is the
-number of transpositions already used. Let N be its number of nonfixed
-symbols. Its remaining budget is 10 - s. The
-source document specifies known-diameter closure and the reduction priorities,
-with a depth cap of two for recursive transposition branches and fresh child
-annotations. The reduction families come from the shared manuscript's
-oriented-3 corollary, odd-length-cycle reduction proposition, and even-pair
-proposition in [its TD(16) argument](../../td/docs/paper/main.tex). The present
-priorities account for TD(18)'s budgets; the manuscript's U/T/E9/O/E priority
-table applies to its 17-symbol domain.
-
-At every depth, test the known-diameter bound first. If the state remains
-open and every annotation in its type is unoriented, retain it as a direct
-obligation and apply no structural reduction. This is a routing-policy
-stop; it does not assert that sorting transpositions are unavailable. The
-following reduction rules apply only when some cycle is oriented.
-
-Orientation does not guarantee a qualifying 2-move. For lengths
-`k = 5, 7, 9, 11, 13, 17`, the cited odd-length-cycle reduction supplies either
-a qualifying 2-move or a support-clearing sequence of at most `(k+1)/2`
-transpositions, apart from the specified local 9-cycle exception. Clearing
-closes a state only when `s + (k+1)/2 + TD(N-k-1) <= 10`. Thus root
-`(13O,3U,3U)` closes its no-qualifying-move branch with `7 + TD(5) = 10`,
-while its qualifying 2-moves lead to freshly annotated children. By contrast,
-clearing a root 5-cycle gives `3 + TD(13) = 11`, so another route is required.
-Length 15 is absent from that cited classification because the TD(16)
-argument excludes it by parity on 17 symbols. The independent local
-classification below handles that length for the present domain.
-
-After the oriented-3 rule, inspect oriented odd-length cycles in increasing
-order of distinct length. Include their qualifying 2-move branches and stop fallback exploration
-when a cited support-clearing alternative fits the budget. The exceptional
-9-cycle and 19-cycle root cases have the separate certificate branches
-described above; the exceptional 15-cycle uses its restricted companion
-interleavings below. Otherwise continue with later oriented cycles and the
-even-pair fallback. That fallback requires some oriented cycle in the type,
-but the two selected even-length cycles may both be unoriented. For example,
-`(5O,4U,4U,3U,3U)` still has this fallback if its 5-cycle lacks a qualifying
-move. If none covers the case without a qualifying move, retain
-the type while continuing its conditional branches. Rows 205–292 add
-51 root obligations and 37 one-move obligations to the original rows 1–204.
-Table 2 is the complete inventory of 292 retained types. Its R and Q
-columns serve different purposes; [the workflow](WORKFLOW.md) explains how
-each becomes a computational obligation.
-
-### The exceptional oriented 15-cycle
-
-Let `beta_15 = (0 1 ... 14)` be the current cycle induced on the selected
-support. The independent checker extends the shared paper's half-turn and
-qualifying-move criteria to length 15. Its exhaustive DFS visits 169,355
-nodes and retains exactly `beta_15^14` and `gamma = beta_15^8`. The first is
-unoriented. Thus the unique oriented local configuration without a
-qualifying transposition is represented by
-
-~~~text
-gamma = (0 8 1 9 2 10 3 11 4 12 5 13 6 14 7).
-~~~
-
-This is a cyclic-target candidate: `gamma * beta_15 = beta_15^9` has three
-cycles. It cannot have a support-clearing sequence at any length. Every
-applicable transposition supported there preserves that local product,
-while the restricted current permutation remains one cycle. Clearing
-`gamma` would identify that cycle with a three-cycle product. The
-[classification test](../checker/src/test/java/br/unb/cic/td18/verification/OrientedFifteenCycleClassificationTest.java)
-reproduces the exhaustive classification, checks all 455 local applicable
-transpositions, and verifies a realizable `(15O,3U)` companion interleaving.
-
-The separate computational branch fixes this local pattern and generates
-only its companion interleavings. Its standardized rank progression is
-`(2*j mod 15) + 1` at occurrence `j`, starting at zero. The same progression
-is preserved by twisted reflection and auxiliary rank standardization, so
-the restriction is defined on candidate orbits. The two obligations are:
-
-| State | Candidate bracelets | Realizable classes | Remaining budget |
-| --- | ---: | ---: | ---: |
-| `(15O,2U,2U)`, depth 0 | 360 | 90 | 10 |
-| `(15O,3U)`, depth 1 | 27 | 7 | 9 |
-
-The dedicated generator and checker cover these restricted classes;
-`(15O,3U)` is consequently absent from Table 2 as a whole-type obligation.
-Every other oriented 15-cycle supplies a qualifying transposition, and an
-oriented 3-cycle companion closes through its usual clearing reduction.
-The counts are checked by direct generation and independent fixed-content
-interleavings. CPU search finds a prefix that closes 86 of these classes;
-independent replay checks applicability, target preservation, fixed-point
-gain, and the known diameter at every selected class:
-
-| Classes | Prefix length | Created fixed points | Global bound |
-| --- | ---: | ---: | --- |
-| 74 roots | 3 | 6 | `3 + TD(12) = 10` |
-| 5 roots | 2 | 4 | `2 + TD(14) = 10` |
-| All 7 intermediate classes | 3 | 6 | `1 + 3 + TD(11) = 10` |
-
-Each proof run regenerates these prefixes. The seven intermediate classes
-therefore need no complete sorting certificate. The remaining 11 root
-classes have no closure from this bounded prefix search and still require
-complete ten-transposition witnesses. Their certificate checks remain
-pending. A prefix-search miss does not establish a lower bound.
-
-A short qualifying CPU prefix creates fixed points and closes the remainder
-using an independently known diameter within the global budget. It is not a
-complete sorting witness and is regenerated by the checker. A persisted
-sorting certificate is a complete replayable sequence of transpositions that
-proves an upper bound only for its represented class. A search miss is a
-residual obligation; avoidance reconstructs the reachable predecessor paths
-and requires each remaining full-domain root to close within ten moves.
-
-### Restricted odd-pair classes and recovered root budgets
-
-At depth one, rows 267, 270, and 274 have types `(13O,5O)`, `(11O,7O)`,
-and `(9O,9O)`. Any qualifying move on either cycle follows an existing
-child branch. Direct retention is therefore needed only when both local
-cycles lack such a move. The shared qualifying criterion and half-turn
-corollary, independently enumerated here, give the following local powers
-relative to the current support cycle `beta_k`:
-
-| Length | Algebraic powers without a qualifying move | Zero-based rank steps |
-| --- | --- | --- |
-| 5 | 3 | 2 |
-| 7 | 4 | 2 |
-| 9 | 5, 7 | 2, 4 |
-| 11 | 6 | 2 |
-| 13 | 7, 10, 11 | 2, 4, 6 |
-
-The rank step is the multiplicative inverse of the displayed power modulo
-the cycle length. Prescribe that progression for both oriented colors in
-fixed-content generation, retaining all companion interleavings. Auxiliary
-standardization, rotations, and twisted reflection preserve the condition:
-reflection reverses positions and inverts ranks. Thus the existing canonical
-comparisons give one representative per candidate orbit; target validation
-selects extended-toric classes. Independent support-subset enumeration gives
-756, 912, and 2,917 candidate orbits and 391, 321, and 1,172 valid classes.
-
-These 1,884 classes are seeds for direct root reconstruction, not required
-nine-move sorts. Restore their single contracted fixed point in every cyclic
-gap and reverse every admitted odd-split/even-pair support. There are at most
-`18 * binomial(18,2) = 2,754` attempts per seed, or 5,188,536 in total,
-before filtering and deduplication. Every retained root requires a checked
-CPU closure or a full sorting witness within ten moves. No original
-reduction is prepended to that independent root witness. Both standalone
-avoidance and the checker regenerate all seeds, so missing obstruction
-markers cannot omit this branch. [The full argument and audits](two-cycle-residual-route.md)
-state the coverage proof, literature example, and remaining proof artifacts.
-
-## Find the implementation
-
-Both modules use the br.unb.cic.td18 package prefix; paths below are relative
-to each module’s src/main/java/br/unb/cic/td18 directory.
-
-| Concept | Entry point |
+| Concept | Java location, relative to each module's package root |
 | --- | --- |
-| Pair validity and class identity | model/CyclicTargetCandidate.java, model/CyclicTargetPair.java, model/ExtendedToricClassKey.java |
-| Encoding and auxiliary standardization | model/EncodingWord.java, model/StandardizedEncodingWord.java |
-| Candidate orbit identity | model/TwistedBraceletKey.java |
-| Direct generation and Burnside count | bracelet/DirectTwistedBraceletGenerator.java, bracelet/TwistedBraceletBurnsideCounter.java |
-| Source-table access | table/Table2.java, table/TableEntry.java |
-| Two-reduction policy | reduction/ReductionTypeEnumerator.java |
-| Independent inventory and Q check | checker’s verification/IndependentTypeEnumerator.java and verification/PaperDischargeLemma.java |
-| Exceptional 15-cycle classification and interleavings | checker’s verification/OrientedFifteenCycleClassification.java; model/ExceptionalFifteenCycle.java; bracelet/DirectTwistedBraceletGenerator.java |
-| Restricted odd-pair seeds | model/RestrictedOddPair.java; bracelet/DirectTwistedBraceletGenerator.java; checker’s verification/RestrictedOddPairVerifier.java |
-| CPU prefixes and emitted searches | search/CommonOperations.java; emitter’s search/WitnessSearch.java |
-| Witness encoding and replay | certificate/CertificateCodec.java, certificate/CertificateValidator.java |
-| Predecessor reconstruction | avoidance/ObstructionAvoidance.java, independently implemented in the two modules |
+| Pair validation and class keys | model/ |
+| Fixed-content generation and Burnside counting | bracelet/ |
+| Diameter premises and joint inventories | joint/ |
+| Joint root constraints and support clearing | emitter joint/; checker independent verification code |
+| CPU closures and CUDA dispatch | search/; emitter base/ |
+| Certificate encoding, storage, and replay | certificate/ |
+| Complete inverse waves | avoidance/ |
 
-See [the architecture](ARCHITECTURE.md) for execution and persistence boundaries.
+The package root is br.unb.cic.td18. See [the architecture](ARCHITECTURE.md)
+for module and persistence boundaries.

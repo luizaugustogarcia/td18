@@ -1,115 +1,98 @@
 package br.unb.cic.td18;
 
 import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
+import br.unb.cic.td18.joint.JointInventory;
+import br.unb.cic.td18.joint.JointRootGenerator;
 import br.unb.cic.td18.runtime.ProjectPaths;
-import br.unb.cic.td18.table.Table2;
-
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.time.Instant;
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Counts realizable twisted bracelets for each entry of Table 2 in the TD(18)
- * two-reduction computation.
- * Uses all available CPU cores and Burnside counting for every type; no sorting
- * search, certificate lookup, or representative decoding is performed.
- */
+/** CPU-only exact root and endpoint counting for the joint-selection route. */
 public final class CountTD18Bracelets {
-    private CountTD18Bracelets() {
-    }
-
-    public static void main(final String[] args) throws IOException {
-        final var root = ProjectPaths.root(Path.of(""));
-        var tablePath = root.resolve("docs/td18-reduction-count.tex");
-        var logPath = root.resolve("td18-bracelet-counts.log");
-        var firstRow = 1;
-        var lastRow = Table2.EXPECTED_ENTRIES;
-        for (final var arg : args) {
+    private CountTD18Bracelets() { }
+    public static void main(String[] arguments) throws Exception {
+        Path paper = ProjectPaths.root(Path.of("")).resolve("docs/td18-reduction-count.tex");
+        String phase = "all";
+        int workers = Runtime.getRuntime().availableProcessors();
+        int first = 1, last = 53, endpointFirst = 1, endpointLast = 104;
+        for (String arg : arguments) {
             if (arg.equals("--help")) {
-                System.out.println("CountTD18Bracelets [--table=path] [--log=path] [--rows=first-last]");
-                return;
-            } else if (arg.startsWith("--table=")) {
-                tablePath = Path.of(arg.substring("--table=".length())).toAbsolutePath();
-            } else if (arg.startsWith("--log=")) {
-                logPath = Path.of(arg.substring("--log=".length())).toAbsolutePath();
-            } else if (arg.startsWith("--rows=")) {
-                final var range = arg.substring("--rows=".length()).split("-", -1);
-                if (range.length != 2) {
-                    throw new IllegalArgumentException("Expected --rows=first-last");
+                System.out.println("CountTD18Bracelets [--phase=roots|endpoints|all] [--partitions=FIRST-LAST]"
+                        + " [--endpoints=FIRST-LAST] [--paper=PATH] [--workers=N]"); return;
+            } else if (arg.startsWith("--phase=")) phase = arg.substring(8);
+            else if (arg.startsWith("--paper=")) paper = Path.of(arg.substring(8));
+            else if (arg.startsWith("--workers=")) workers = Integer.parseInt(arg.substring(10));
+            else if (arg.startsWith("--partitions=")) { int[] r = range(arg.substring(13),53); first = r[0]; last = r[1]; }
+            else if (arg.startsWith("--endpoints=")) { int[] r = range(arg.substring(12),104); endpointFirst = r[0]; endpointLast = r[1]; }
+            else throw new IllegalArgumentException("Unknown argument: " + arg);
+        }
+        if (workers < 1) throw new IllegalArgumentException("Positive worker count required");
+        if (!List.of("roots","endpoints","all").contains(phase)) throw new IllegalArgumentException("Invalid count phase");
+        var inventory = JointInventory.read(paper);
+        System.setProperty("td18.twistedBraceletWorkers", Integer.toString(workers));
+        System.out.printf("Counting only: workers=%d availableCores=%d phase=%s%n", workers, Runtime.getRuntime().availableProcessors(), phase);
+        var completed = new AtomicInteger();
+        var reporter = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon(true).name("count-progress").factory());
+        reporter.scheduleWithFixedDelay(() -> System.out.println("Counting progress: completed="+completed.get()), 60, 60, TimeUnit.SECONDS);
+        long started = System.nanoTime();
+        try (var pool = Executors.newFixedThreadPool(workers)) {
+            if (phase.equals("roots") || phase.equals("all")) {
+                var tasks = new ArrayList<Future<RootCount>>();
+                for (var row : inventory) if (row.number() >= first && row.number() <= last) tasks.add(pool.submit(() -> {
+                    long u = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(row.partition(),new boolean[row.partition().length]);
+                    var counts = JointRootGenerator.count(row.partition());
+                    if (u != row.unorientedClasses() || counts.jointResidualClasses() != row.jointResidualClasses()
+                            || counts.supportClearingClasses() != row.supportClearingClasses() || counts.orientedClasses() != row.orientedClasses())
+                        throw new IllegalStateException("Count disagrees with paper at partition " + row.number() + ": U=" + u + " " + counts);
+                    completed.incrementAndGet();
+                    return new RootCount(row,u,counts);
+                }));
+                long unoriented = 0, joint = 0, cleared = 0, oriented = 0, noFirst = 0;
+                for (var task : tasks) {
+                    var count = task.get(); var c = count.counts;
+                    System.out.printf("partition=%d lengths=%s unoriented=%d jointResiduals=%d supportCleared=%d directOriented=%d noQualifyingFirst=%d prefixNodes=%d%n",
+                            count.row.number(),Arrays.toString(count.row.partition()),count.unoriented,c.jointResidualClasses(),
+                            c.supportClearingClasses(),c.orientedClasses(),c.noQualifyingFirstMoveClasses(),c.prefixNodes());
+                    unoriented = Math.addExact(unoriented,count.unoriented); joint = Math.addExact(joint,c.jointResidualClasses());
+                    cleared = Math.addExact(cleared,c.supportClearingClasses()); oriented = Math.addExact(oriented,c.orientedClasses());
+                    noFirst = Math.addExact(noFirst,c.noQualifyingFirstMoveClasses());
                 }
-                firstRow = Integer.parseInt(range[0]);
-                lastRow = Integer.parseInt(range[1]);
-            } else {
-                throw new IllegalArgumentException("Unknown argument: " + arg);
+                System.out.printf("Root counts checked: partitions=%d-%d unoriented=%d jointResiduals=%d supportCleared=%d directOriented=%d directTotal=%d noQualifyingFirst=%d%n",
+                        first,last,unoriented,joint,cleared,oriented,Math.addExact(unoriented,oriented),noFirst);
             }
-        }
-        if (firstRow < 1 || lastRow < firstRow || lastRow > Table2.EXPECTED_ENTRIES) {
-            throw new IllegalArgumentException("Rows must be in the range 1-" + Table2.EXPECTED_ENTRIES);
-        }
-
-        final var entries = Table2.read(tablePath);
-
-        // Set this before the generator initializes its shared executor.
-        System.setProperty("td18.twistedBraceletWorkers",
-                Integer.toString(Runtime.getRuntime().availableProcessors()));
-        try (final var log = Files.newBufferedWriter(logPath, StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
-            final var started = System.nanoTime();
-            logLine(log, "# Started " + Instant.now() + "; cpuCores="
-                    + Runtime.getRuntime().availableProcessors() + "; table=" + tablePath
-                    + "; rows=" + firstRow + "-" + lastRow + "; method=burnside"
-                    + "; counts=realizable twisted bracelets on contracted domains");
-            var total = 0L;
-            var completed = 0;
-            try {
-                for (final var entry : entries) {
-                    if (entry.number() < firstRow || entry.number() > lastRow) {
-                        continue;
-                    }
-                    logLine(log, "# Counting row=" + entry.number() + " type=" + entry.type()
-                            + " method=burnside");
-                    final var entryStarted = System.nanoTime();
-                    final var bracelets = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(
-                            entry.partition(), entry.orientedByPart());
-                    if (entry.recordedRealizableClasses() != null
-                            && entry.recordedRealizableClasses() != bracelets) {
-                        throw new IllegalStateException("Table 2 row " + entry.number()
-                                + " records " + entry.recordedRealizableClasses()
-                                + " realizable classes, counted " + bracelets);
-                    }
-                    logLine(log, "row=" + entry.number() + " type=" + entry.type()
-                            + " nonfixed=" + entry.nonfixedSymbols() + " fixed=" + entry.fixedSymbols()
-                            + " movesUsed=" + entry.movesUsed() + " budget=" + entry.remainingMoves()
-                            + " threeNorm=" + entry.threeNorm() + " bracelets=" + bracelets + " method=burnside"
-                            + " elapsedSeconds=" + elapsedSeconds(entryStarted));
-                    total = Math.addExact(total, bracelets);
-                    completed++;
+            if (phase.equals("endpoints") || phase.equals("all")) {
+                var tasks = new ArrayList<Future<EndpointCount>>();
+                for (var endpoint : JointInventory.endpoints()) if (endpoint.number() >= endpointFirst && endpoint.number() <= endpointLast)
+                    tasks.add(pool.submit(() -> {
+                        long count = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(endpoint.partition(), endpoint.orientedByPart());
+                        completed.incrementAndGet(); return new EndpointCount(endpoint,count);
+                    }));
+                long total = 0, requiringDischarge = 0;
+                for (var task : tasks) {
+                    var result = task.get(); total = Math.addExact(total,result.count);
+                    if (!result.endpoint.elementaryClosure()) requiringDischarge = Math.addExact(requiringDischarge,result.count);
+                    System.out.printf("endpoint=%d lengths=%s orientations=%s classes=%d elementaryClosure=%s%n",
+                            result.endpoint.number(),Arrays.toString(result.endpoint.partition()),Arrays.toString(result.endpoint.orientedByPart()),
+                            result.count,result.endpoint.elementaryClosure());
                 }
-                logLine(log, "# Complete entries=" + completed + " totalBracelets=" + total
-                        + " elapsedSeconds=" + elapsedSeconds(started));
-            } catch (final RuntimeException | Error failure) {
-                logLine(log, "# Failed after " + completed + " entries: " + failure);
-                throw failure;
+                System.out.printf("Endpoint cover counted: annotations=%d-%d allClasses=%d classesRequiringDischarge=%d%n",endpointFirst,endpointLast,total,requiringDischarge);
             }
-        } finally {
-            DirectTwistedBraceletGenerator.shutdownExecutor();
-        }
+        } finally { reporter.shutdownNow(); DirectTwistedBraceletGenerator.shutdownExecutor(); }
+        System.out.printf("Counting complete in %.3f seconds; sorting witnesses were not checked.%n", (System.nanoTime()-started)/1e9);
     }
-
-    private static String elapsedSeconds(final long started) {
-        return String.format(Locale.ROOT, "%.3f", (System.nanoTime() - started) / 1_000_000_000.0);
+    private record RootCount(JointInventory.Root row, long unoriented, JointRootGenerator.Counts counts) { }
+    private record EndpointCount(JointInventory.Endpoint endpoint, long count) { }
+    private static int[] range(String value, int maximum) {
+        String[] parts = value.split("-", -1);
+        if (parts.length != 2) throw new IllegalArgumentException("Expected FIRST-LAST range");
+        int first = Integer.parseInt(parts[0]), last = Integer.parseInt(parts[1]);
+        if (first < 1 || first > last || last > maximum) throw new IllegalArgumentException("Invalid range");
+        return new int[]{first,last};
     }
-
-    private static void logLine(final BufferedWriter log, final String line) throws IOException {
-        log.write(line);
-        log.newLine();
-        log.flush();
-        System.out.println(line);
-    }
-
 }

@@ -1,60 +1,34 @@
-# TD(18) two-reduction computation
+# TD(18) by joint selection of two reductions
 
-This repository implements the conditional two-reduction route specified in
-[docs/td18-reduction-count.tex](docs/td18-reduction-count.tex). It retains the
-complete inventory of 292 annotated types and generates, searches, and checks
-their remaining cyclic-target class obligations.
-At every recursion depth, a totally unoriented type receives no structural
-reduction: a known diameter closes it when possible, and otherwise it becomes
-a direct obligation.
+This repository implements the conditional proof route in
+[the source paper](docs/td18-reduction-count.tex). It jointly selects an
+applicable first transposition and a favorable second transposition, directly
+generates the classes left without such a prefix, and treats endpoint
+sorting failures by final inverse reconstruction.
 
-Rows 267, 270, and 274 generate only 391, 321, and 1,172 classes where
-neither oriented cycle has a qualifying transposition. Their 1,884 classes
-are lifted directly to compatible roots and checked with the full ten-move
-budget; every qualifying child branch remains covered. This leaves
-45,498,334,516 Table 2 class obligations, including those seeds, and at most
-5,188,536 inverse attempts from the seeds before filtering and deduplication.
-See [the restricted route](docs/two-cycle-residual-route.md) for its proof,
-counts, and the additional exceptional-cycle obligations.
+The completed count gives **248,082,611 direct root classes**:
+214,474,050 totally unoriented classes and 33,608,561 oriented classes after
+support clearing. The 19-cycle partition contributes 667 classes.
+The 104 endpoint types include 52 elementary closures; the other 52 require
+checked eight-move results or final reconstruction. Endpoint failure counts
+are not assumed upfront. Reconstructed roots are additional final-phase work.
 
-**TD(18) = 10 is not proved here.** Every exit criterion in
-[the research plan](docs/RESEARCH_PLAN.md) still needs its checked artifact.
-The checker regenerates obligations and validates their witnesses or closure
-arguments directly from the certificate database. Checksums and sidecar files
-are not proof inputs. The exceptional oriented 9-cycle branch emits and checks
-its 19-symbol extensions; its complete computational run remains pending.
-The exceptional oriented 15-cycle branch separately covers 90 root classes
-within ten transpositions and 7 intermediate classes within nine. Its
-classification, generation counts, and 86 CPU prefix closures are checked.
-Complete witnesses remain pending for 11 root classes; all seven intermediate
-classes close by a regenerated prefix and a known smaller diameter.
-
-The verification workflow is **emitter → certificate database → checker**.
-The checker must independently regenerate every required obligation, reject
-missing or unresolved obligations, and validate every witness or justified
-closure against its move budget.
-
-**Instruction for maintainers and agents:** Do not reintroduce mandatory
-checksum validation, sidecar-manifest requirements, or
-"file-integrity validation deferred" warnings. Verification must establish
-completeness and correctness through regeneration and witness/closure checks.
+**TD(18) = 10 is not proved here.** Full sorting certificates and independent
+end-to-end verification remain pending. A witness proves an upper bound only
+for its represented class. The checker regenerates obligations, checks
+witnesses and closures, and rejects missing data; checksums and sidecar
+manifests are not proof inputs.
 
 ## Start here
 
-- [Proof/computation workflow](docs/WORKFLOW.md): stage order, commands, outputs,
-  and what each check establishes.
-- [Documentation map](docs/README.md): source specification, research plan,
-  mathematical knowledge, and operations.
-- [Mathematical knowledge](docs/KNOWLEDGE.md): encoding, standardization,
-  twisted dihedral action, orbit correspondence, counting, and generation.
-- [Architecture](docs/ARCHITECTURE.md): code responsibilities and verification
-  boundaries.
-- [Operations](docs/OPERATIONS.md): CUDA tuning, database formats, row ranges,
-  witness import, and resume commands.
+- [Workflow](docs/WORKFLOW.md): counting, emission, final reconstruction, and checking.
+- [Research plan](docs/RESEARCH_PLAN.md): checked artifacts required for completion.
+- [Mathematical knowledge](docs/KNOWLEDGE.md): pairs, twisted bracelets, and reductions.
+- [Operations](docs/OPERATIONS.md): commands, CPU workers, CUDA, and certificate storage.
+- [Architecture](docs/ARCHITECTURE.md): generation, search, and independent verification.
+- [Documentation map](docs/README.md): the source paper and remaining guides.
 
-## Run the CPU checks
-
-JDK 21, Maven, and Bash are the baseline. From the repository root:
+JDK 21, Maven, and Bash are the baseline. CPU validation does not require CUDA:
 
 ~~~bash
 tools/td18 test
@@ -62,24 +36,20 @@ tools/td18 inventory
 tools/td18 structure
 ~~~
 
-Use tools/td18 help for counting, emission, avoidance, survivor certificates,
-and CPU verification. Use tools/td18 --dry-run COMMAND to inspect a command.
-CUDA-dependent operations explicitly select the gpu profile.
-
-## Repository layout
+Use tools/td18 help for all commands and tools/td18 --dry-run COMMAND to
+inspect the Maven invocation. CUDA initializes only when a sorting search
+needs it. Counting uses all available CPU cores by default.
 
 | Path | Responsibility |
 | --- | --- |
-| emitter/ | Class generation, CPU/CUDA search, witness writing, and avoidance reconstruction. |
-| checker/ | CPU regeneration and replay, with independent inventory and reconstruction paths. |
-| docs/ | Route specification, completion criteria, mathematical explanations, and run guides. |
-| tools/ | A command launcher for the proof/computation workflow. |
+| emitter/ | Direct class generation, CPU/CUDA search, and certificate emission. |
+| checker/ | Independent CPU regeneration, reconstruction, and witness replay. |
+| docs/ | Source specification, mathematics, completion criteria, and operations. |
+| tools/ | Workflow launcher and independent counting audits. |
 
 The checker has no dependency on the emitter artifact. Generated databases,
-checkpoints, logs, and certificates remain untracked. A sorting witness proves
-an upper bound only for its represented class.
-
-The sibling ../td repository supplies the shared twisted-bracelet framework
-and conventions. The local source document governs this TD(18) route.
+checkpoints, logs, and certificates remain untracked. The sibling ../td
+repository supplies the shared twisted-bracelet framework and established
+mathematical conventions; the local paper specifies the TD(18) route.
 
 Licensed under the [Apache License, Version 2.0](LICENSE).

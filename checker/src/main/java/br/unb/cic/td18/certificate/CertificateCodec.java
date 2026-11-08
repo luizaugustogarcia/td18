@@ -9,8 +9,6 @@ import java.util.List;
 
 /** Compact on-disk encoding for normalized certificate pairs and witnesses. */
 public final class CertificateCodec {
-    private static final int INTERMEDIATE_KEY_FORMAT = 1;
-    private static final int INTERMEDIATE_KEY_HEADER_BYTES = 3;
     private static final int SYMBOL_BITS = 5;
     private static final int SYMBOL_LIMIT = 1 << SYMBOL_BITS;
     private static final int TRIPLE_BITS = 3 * SYMBOL_BITS;
@@ -24,6 +22,10 @@ public final class CertificateCodec {
      * bit first.
      */
     public static byte[] keyFor(final CyclicTargetPair pair) {
+        for (int symbol = 0; symbol < pair.getBeta().size(); symbol++) {
+            if (pair.getBeta().get(symbol) != symbol)
+                throw new IllegalArgumentException("Certificate keys require the normalized current cycle");
+        }
         final var oneLine = pair.getOmega().getOneLineNotation();
         if (oneLine.length != pair.getBeta().size()) {
             throw new IllegalArgumentException(
@@ -36,32 +38,6 @@ public final class CertificateCodec {
         for (final var image : oneLine) {
             bitOffset = writeSymbol(encoded, bitOffset, Byte.toUnsignedInt(image));
         }
-        return encoded;
-    }
-
-    /**
-     * Encodes a legacy avoidance-intermediate key with an explicit format,
-     * domain, and move budget. This namespace is deliberately distinct from
-     * the raw keys used by Table 2 and full-domain root witnesses.
-     */
-    public static byte[] intermediateKeyFor(
-            final CyclicTargetPair pair,
-            final int maximumMoves
-    ) {
-        if (maximumMoves <= 0 || maximumMoves > 0xFF) {
-            throw new IllegalArgumentException(
-                    "Intermediate witness budget must fit one byte");
-        }
-        final int domainSize = pair.getBeta().size();
-        requireDomainSize(domainSize);
-        final byte[] rawKey = keyFor(pair);
-        final byte[] encoded = new byte[
-                INTERMEDIATE_KEY_HEADER_BYTES + rawKey.length];
-        encoded[0] = (byte) INTERMEDIATE_KEY_FORMAT;
-        encoded[1] = (byte) domainSize;
-        encoded[2] = (byte) maximumMoves;
-        System.arraycopy(rawKey, 0, encoded,
-                INTERMEDIATE_KEY_HEADER_BYTES, rawKey.length);
         return encoded;
     }
 

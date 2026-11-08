@@ -1,12 +1,17 @@
 package br.unb.cic.td18;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 
-/** Command-line entry point; implementation lives in {@link br.unb.cic.td18.avoidance.ObstructionAvoidanceRunner}. */
+/** Runs final reconstruction after regenerating endpoint witness misses. */
 public final class ObstructionAvoidanceRunner {
     private ObstructionAvoidanceRunner() { }
-
-    public static void main(final String[] args) throws IOException {
-        br.unb.cic.td18.avoidance.ObstructionAvoidanceRunner.main(args);
+    public static void main(String[] arguments) throws IOException {
+        var args = new ArrayList<String>();
+        for (String arg : arguments) if (arg.startsWith("--phase="))
+            throw new IllegalArgumentException("This entry point selects the avoidance phase");
+        args.add("--phase=avoidance"); args.addAll(Arrays.asList(arguments));
+        br.unb.cic.td18.emission.WitnessEmitter.main(args.toArray(String[]::new));
     }
 }

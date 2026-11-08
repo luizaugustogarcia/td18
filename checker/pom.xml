@@ -14,8 +14,6 @@
         <exec.mainClass>br.unb.cic.td18.CertificateChecker</exec.mainClass>
         <td18.certificateDb>${project.basedir}/../certificates</td18.certificateDb>
         <td18.twistedBraceletWorkers>auto</td18.twistedBraceletWorkers>
-        <td18.twistedBraceletBatchSize>256</td18.twistedBraceletBatchSize>
-        <td18.certificateStatsPeriodSeconds>0</td18.certificateStatsPeriodSeconds>
     </properties>
 
     <dependencies>
@@ -44,14 +42,6 @@
                         <systemProperty>
                             <key>td18.twistedBraceletWorkers</key>
                             <value>${td18.twistedBraceletWorkers}</value>
-                        </systemProperty>
-                        <systemProperty>
-                            <key>td18.twistedBraceletBatchSize</key>
-                            <value>${td18.twistedBraceletBatchSize}</value>
-                        </systemProperty>
-                        <systemProperty>
-                            <key>td18.certificateStatsPeriodSeconds</key>
-                            <value>${td18.certificateStatsPeriodSeconds}</value>
                         </systemProperty>
                     </systemProperties>
                 </configuration>

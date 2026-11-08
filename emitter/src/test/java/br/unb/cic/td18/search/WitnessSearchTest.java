@@ -7,6 +7,7 @@ import br.unb.cic.td18.permutation.MulticyclePermutation;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WitnessSearchTest {
@@ -32,10 +33,6 @@ class WitnessSearchTest {
                 Cycle.of(0, 1, 2, 3, 4, 5, 6, 7, 8,
                         9, 10, 11, 12, 13, 14, 15, 16, 17));
 
-        final var result = WitnessSearch.screenIntermediatePrefix(pair, 9);
-
-        assertEquals(WitnessSearch.Disposition.RESIDUAL,
-                result.disposition());
-        assertTrue(result.moves().isEmpty());
+        assertFalse(WitnessSearch.closesByCpuPrefix(pair, 9));
     }
 }

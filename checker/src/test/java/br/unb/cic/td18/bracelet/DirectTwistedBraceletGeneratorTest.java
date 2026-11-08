@@ -37,28 +37,6 @@ class DirectTwistedBraceletGeneratorTest {
     }
 
     @Test
-    void batchedGenerationPreservesEveryRepresentative() {
-        final Set<String> sequential = new HashSet<>();
-        DirectTwistedBraceletGenerator.generateRepresentatives(
-                new int[]{5, 3}, new boolean[]{true, false},
-                pair -> sequential.add(pair.extendedToricClassKey().toString()));
-        final Set<String> batched = ConcurrentHashMap.newKeySet();
-        System.setProperty("td18.twistedBraceletBatchSize", "3");
-        try {
-            DirectTwistedBraceletGenerator
-                    .generateRepresentativeBatchesConcurrently(
-                            new int[]{5, 3}, new boolean[]{true, false},
-                            () -> { }, pairs -> Arrays.stream(pairs)
-                                    .map(pair -> pair.extendedToricClassKey()
-                                            .toString())
-                                    .forEach(batched::add));
-        } finally {
-            System.clearProperty("td18.twistedBraceletBatchSize");
-        }
-        assertEquals(sequential, batched);
-    }
-
-    @Test
     void generatesKnownSmallMixedFamiliesWithoutDuplicates() {
         assertGeneratedFamilyEqualsBruteForce(
                 new int[]{3, 3}, new boolean[]{false, false});

@@ -1,7 +1,6 @@
 package br.unb.cic.td18.bracelet;
 
 import br.unb.cic.td18.model.CyclicTargetPair;
-import br.unb.cic.td18.model.RestrictedOddPair;
 import br.unb.cic.td18.permutation.Cycle;
 import br.unb.cic.td18.permutation.MulticyclePermutation;
 
@@ -59,9 +58,7 @@ public final class DirectTwistedBraceletGenerator {
     private static final int REVERSE_LARGER = 1;
     private static final byte COMPARISON_LARGER = 1;
     private static final int FRONTIER_TASKS_PER_WORKER = 16;
-    private static final String BATCH_SIZE_PROPERTY =
-            "td18.twistedBraceletBatchSize";
-    private static final int DEFAULT_BATCH_SIZE = 256;
+    private static final int DEFAULT_WORKER_COUNT = defaultWorkerCount();
     private static final String WORKER_COUNT_PROPERTY = "td18.twistedBraceletWorkers";
     private static final int WORKER_COUNT = workerCountFromVmOption();
     private static final Runnable NO_CANCELLATION_CHECK = () -> { };
@@ -90,104 +87,6 @@ public final class DirectTwistedBraceletGenerator {
         validate(partition, orientedByPart);
         new Generator(normalizedSpecs(partition, orientedByPart), consumer, null,
                 null, cancellationCheck).generate();
-    }
-
-    /**
-     * Generates the invariant subfamily whose unique oriented 9-cycle has ranks
-     * 0,2,4,6,8,1,3,5,7 in induced beta order. Rank origins are auxiliary data;
-     * twisted reflection reverses positions and inverts ranks, preserving this
-     * progression. Thus the ordinary orbit comparisons remain exhaustive.
-     * The partition must be fixed-point-free and contain exactly one 9-cycle.
-     * Iteration follows the deterministic generation order.
-     */
-    public static void generateExceptionalNineRepresentatives(
-            final int[] partition,
-            final boolean[] orientedByPart,
-            final Consumer<CyclicTargetPair> consumer) {
-        generateExceptionalProgressionRepresentatives(partition, orientedByPart, 9, consumer);
-    }
-
-    /**
-     * Generates the invariant subfamily whose unique oriented 15-cycle has rank
-     * progression 2 modulo 15 in induced beta order. Twisted reflection reverses
-     * positions and inverts ranks, so it preserves that progression. The usual
-     * auxiliary and dihedral comparisons therefore apply to this subfamily.
-     * The partition must be fixed-point-free and contain exactly one 15-cycle.
-     */
-    public static void generateExceptionalFifteenRepresentatives(
-            final int[] partition,
-            final boolean[] orientedByPart,
-            final Consumer<CyclicTargetPair> consumer) {
-        generateExceptionalProgressionRepresentatives(partition, orientedByPart, 15, consumer);
-    }
-
-    /**
-     * Generates exactly the simultaneous no-qualifying-transposition family
-     * of either (13O,5O), (11O,7O), or (9O,9O). Both local cyclic-rank
-     * progressions are enforced while constructing prefixes. In particular,
-     * equal-length cycles may independently choose either allowed progression;
-     * their auxiliary interchange remains part of the canonical comparisons.
-     * The family is invariant under rotation and twisted reflection, so the
-     * existing direct orbit comparisons emit one representative per realizable
-     * class without generating or filtering the unrestricted types.
-     */
-    public static void generateRestrictedOddPairRepresentatives(
-            final int[] partition,
-            final boolean[] orientedByPart,
-            final Consumer<CyclicTargetPair> consumer) {
-        if (!RestrictedOddPair.isType(partition, orientedByPart)) {
-            throw new IllegalArgumentException("Expected a restricted oriented odd-pair type");
-        }
-        final var specs = normalizedSpecs(partition, orientedByPart);
-        final int[] masks = restrictedOddPairMasks(specs);
-        new Generator(specs, java.util.Objects.requireNonNull(consumer), null,
-                null, NO_CANCELLATION_CHECK, masks).generate();
-    }
-
-    /** Test boundary before target realizability, using the same prefix tree. */
-    static void generateRestrictedOddPairWords(
-            final int[] partition,
-            final boolean[] orientedByPart,
-            final Consumer<int[]> consumer) {
-        if (!RestrictedOddPair.isType(partition, orientedByPart)) {
-            throw new IllegalArgumentException("Expected a restricted oriented odd-pair type");
-        }
-        final var specs = normalizedSpecs(partition, orientedByPart);
-        new Generator(specs, null, java.util.Objects.requireNonNull(consumer),
-                null, NO_CANCELLATION_CHECK, restrictedOddPairMasks(specs)).generate();
-    }
-
-    private static int[] restrictedOddPairMasks(final CycleSpec[] specs) {
-        final int[] masks = new int[specs.length];
-        for (var cycle = 0; cycle < specs.length; cycle++) {
-            for (final int step : RestrictedOddPair.allowedRankSteps(specs[cycle].size)) {
-                masks[cycle] |= 1 << step;
-            }
-        }
-        return masks;
-    }
-
-    private static void generateExceptionalProgressionRepresentatives(
-            final int[] partition,
-            final boolean[] orientedByPart,
-            final int cycleLength,
-            final Consumer<CyclicTargetPair> consumer) {
-        validate(partition, orientedByPart);
-        final var specs = normalizedSpecs(partition, orientedByPart);
-        var exceptionalCycle = -1;
-        for (var index = 0; index < specs.length; index++) {
-            if (specs[index].size == cycleLength) {
-                if (exceptionalCycle != -1 || !specs[index].oriented) {
-                    throw new IllegalArgumentException("Expected a unique oriented " + cycleLength + "-cycle");
-                }
-                exceptionalCycle = index;
-            }
-        }
-        if (exceptionalCycle == -1) {
-            throw new IllegalArgumentException("Expected a unique oriented " + cycleLength + "-cycle");
-        }
-        new Generator(specs, java.util.Objects.requireNonNull(consumer), null,
-                null, NO_CANCELLATION_CHECK, exceptionalCycle).generate();
     }
 
     /** Counts realizable representatives without decoding completed words. */
@@ -223,25 +122,6 @@ public final class DirectTwistedBraceletGenerator {
             final Runnable cancellationCheck,
             final Consumer<CyclicTargetPair> consumer) {
         generateConcurrently(partition, orientedByPart, cancellationCheck, consumer, null);
-    }
-
-    /**
-     * Parallel generation which delivers each worker's representatives in
-     * bounded batches. The final batch from every worker may be smaller.
-     */
-    public static void generateRepresentativeBatchesConcurrently(
-            final int[] partition,
-            final boolean[] orientedByPart,
-            final Runnable cancellationCheck,
-            final Consumer<CyclicTargetPair[]> consumer) {
-        final var batchingConsumer = new BatchingConsumer(
-                batchSizeFromVmOption(), consumer);
-        try {
-            generateRepresentativesConcurrently(partition, orientedByPart,
-                    cancellationCheck, batchingConsumer);
-        } finally {
-            batchingConsumer.flushCurrentThread();
-        }
     }
 
     private static void generateConcurrently(
@@ -301,7 +181,7 @@ public final class DirectTwistedBraceletGenerator {
     private static int workerCountFromVmOption() {
         final var configured = System.getProperty(WORKER_COUNT_PROPERTY);
         if (configured == null || configured.equals("auto")) {
-            return Math.max(1, Runtime.getRuntime().availableProcessors());
+            return DEFAULT_WORKER_COUNT;
         }
         try {
             final var parsed = Integer.parseInt(configured);
@@ -317,65 +197,8 @@ public final class DirectTwistedBraceletGenerator {
         }
     }
 
-    private static int batchSizeFromVmOption() {
-        final var configured = System.getProperty(BATCH_SIZE_PROPERTY,
-                Integer.toString(DEFAULT_BATCH_SIZE));
-        try {
-            final var parsed = Integer.parseInt(configured);
-            if (parsed < 1) {
-                throw new IllegalArgumentException(
-                        BATCH_SIZE_PROPERTY + " must be a positive integer: "
-                                + configured);
-            }
-            return parsed;
-        } catch (final NumberFormatException exception) {
-            throw new IllegalArgumentException(
-                    BATCH_SIZE_PROPERTY
-                            + " must be a positive integer: " + configured,
-                    exception);
-        }
-    }
-
-    private static final class BatchingConsumer
-            implements Consumer<CyclicTargetPair> {
-        private final int batchSize;
-        private final Consumer<CyclicTargetPair[]> consumer;
-        private final ThreadLocal<ArrayList<CyclicTargetPair>> batches =
-                ThreadLocal.withInitial(ArrayList::new);
-
-        private BatchingConsumer(
-                final int batchSize,
-                final Consumer<CyclicTargetPair[]> consumer
-        ) {
-            this.batchSize = batchSize;
-            this.consumer = consumer;
-        }
-
-        @Override
-        public void accept(final CyclicTargetPair pair) {
-            final var batch = batches.get();
-            batch.add(pair);
-            if (batch.size() == batchSize) {
-                flush(batch);
-            }
-        }
-
-        private void flushCurrentThread() {
-            try {
-                flush(batches.get());
-            } finally {
-                batches.remove();
-            }
-        }
-
-        private void flush(final ArrayList<CyclicTargetPair> batch) {
-            if (batch.isEmpty()) {
-                return;
-            }
-            final var emitted = batch.toArray(CyclicTargetPair[]::new);
-            batch.clear();
-            consumer.accept(emitted);
-        }
+    private static int defaultWorkerCount() {
+        return Math.max(1, Runtime.getRuntime().availableProcessors());
     }
 
     /**
@@ -515,14 +338,7 @@ public final class DirectTwistedBraceletGenerator {
         }
 
         private void runToCompletion() {
-            try {
-                runContinuation();
-            } finally {
-                if (generator.consumer
-                        instanceof BatchingConsumer batchingConsumer) {
-                    batchingConsumer.flushCurrentThread();
-                }
-            }
+            runContinuation();
         }
 
         private void runContinuation() {
@@ -625,44 +441,11 @@ public final class DirectTwistedBraceletGenerator {
         private int comparisonMapTrailSize;
         private Consumer<GenerationTask> continuationCollector;
 
-        private final int[] allowedRankStepMasks;
-        private final int[] rankStepsByCycle;
-
         private Generator(final CycleSpec[] specs,
                           final Consumer<CyclicTargetPair> consumer,
                           final Consumer<int[]> wordConsumer,
                           final Runnable countConsumer,
                           final Runnable cancellationCheck) {
-            this(specs, consumer, wordConsumer, countConsumer, cancellationCheck, -1);
-        }
-
-        private Generator(final CycleSpec[] specs,
-                          final Consumer<CyclicTargetPair> consumer,
-                          final Consumer<int[]> wordConsumer,
-                          final Runnable countConsumer,
-                          final Runnable cancellationCheck,
-                          final int exceptionalCycle) {
-            this(specs, consumer, wordConsumer, countConsumer, cancellationCheck,
-                    exceptionalProgressionMasks(specs.length, exceptionalCycle));
-        }
-
-        private static int[] exceptionalProgressionMasks(
-                final int cycleCount, final int exceptionalCycle) {
-            final int[] masks = new int[cycleCount];
-            if (exceptionalCycle >= 0) {
-                masks[exceptionalCycle] = 1 << 2;
-            }
-            return masks;
-        }
-
-        private Generator(final CycleSpec[] specs,
-                          final Consumer<CyclicTargetPair> consumer,
-                          final Consumer<int[]> wordConsumer,
-                          final Runnable countConsumer,
-                          final Runnable cancellationCheck,
-                          final int[] allowedRankStepMasks) {
-            this.allowedRankStepMasks = allowedRankStepMasks.clone();
-            this.rankStepsByCycle = new int[specs.length];
             this.specs = specs;
             this.consumer = consumer;
             this.wordConsumer = wordConsumer;
@@ -747,8 +530,7 @@ public final class DirectTwistedBraceletGenerator {
 
         private Generator(final Generator source) {
             this(source.specs, source.consumer, source.wordConsumer, source.countConsumer,
-                    source.cancellationCheck, source.allowedRankStepMasks);
-            copy(source.rankStepsByCycle, rankStepsByCycle);
+                    source.cancellationCheck);
 
             copy(source.word, word);
             copy(source.remaining, remaining);
@@ -1504,20 +1286,6 @@ public final class DirectTwistedBraceletGenerator {
         /** Records orientation information for a placement. */
         private boolean recordPlacement(final int position, final int symbol) {
             final var cycle = symbolCycle[symbol];
-            if (allowedRankStepMasks[cycle] != 0) {
-                final int occurrence = placedByCycle[cycle];
-                final int rank = symbolRank[symbol];
-                if (occurrence == 1) {
-                    if ((allowedRankStepMasks[cycle] & (1 << rank)) == 0) {
-                        return false;
-                    }
-                    // Every sibling at the second occurrence overwrites this
-                    // value; below that depth it is constant along the branch.
-                    rankStepsByCycle[cycle] = rank;
-                } else if (rank != rankStepsByCycle[cycle] * occurrence % specs[cycle].size) {
-                    return false;
-                }
-            }
             previousRankByPosition[position] = lastRankByCycle[cycle];
             previousReverseOrderByPosition[position] = followsReverseOrder[cycle];
             previousLastPositionByPosition[position] = lastPositionByCycle[cycle];
