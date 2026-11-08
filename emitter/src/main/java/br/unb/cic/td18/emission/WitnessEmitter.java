@@ -90,7 +90,9 @@ public final class WitnessEmitter {
     private static boolean settle(CyclicTargetPair input, int budget,
                                   AsyncCertificateWriter writer, ReadOnlyWitnessSource source, boolean search) {
         var pair = input.canonicalRepresentative();
-        if (writer.find(pair, budget).isPresent()) return true;
+        // WitnessSearch already checks this database before searching. Only
+        // read here when importing another source or regenerating misses.
+        if ((source != null || !search) && writer.find(pair, budget).isPresent()) return true;
         if (source != null) {
             var imported = source.find(pair, budget);
             if (imported.isPresent()) { writer.enqueue(pair, imported.orElseThrow()); return true; }

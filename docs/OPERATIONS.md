@@ -99,7 +99,8 @@ tools/td18 avoidance -Dtd18.certificateDb="$PWD/certificates"
 The optional TD(16) database is read-only. Only valid complete witnesses
 within the requested budget are reused. Roots use ten moves; endpoints use
 eight. Final reconstruction searches 18-symbol predecessors on GPU within
-nine moves and sends remaining full roots to budget-ten search.
+nine moves and sends remaining full roots to budget-ten search. Both searches
+try the bounded CPU prefix before dispatching to CUDA.
 Missing endpoint witnesses generate final obligations even if no obstruction
 marker exists. No list of expected endpoint failures is required.
 
@@ -114,12 +115,23 @@ tasks; a full queue makes the submitting thread process work itself.
 
 The GPU search checks identity and the known-diameter bound at every depth
 up to the obligation budget. It permits odd-length-cycle gains zero and two.
-CPU work consists of class generation and result replay.
+A CPU prefix first tries the same exits, using actual applicable transpositions
+with odd-length-cycle gains zero and two. Its defaults are depth three and
+8,192 examined supports per obligation. Set td18.cpuPrefixDepth=0 or
+td18.cpuPrefixMaxTriples=0 to disable prefix expansion; initial identity and
+diameter checks still apply. Neither fixed-point gain ordering nor the prefix
+limits remove any full GPU obligation. Totally unoriented states receive no
+structural reduction. Every successful prefix is replayed and persisted.
 
 Every 10 seconds, GPU statistics report searches per second, complete
 witnesses, diameter closures, misses, slot occupancy, pending work, and
 failures. Phase progress is logged separately. A throughput of 55.727/s means
 about 56 searches per second.
+CPU prefix statistics separately report attempts per second, settled results,
+GPU fallthroughs, closure rate, and average search time and prefix depth.
+td18.cpuStatsPeriodSeconds controls their period and defaults to the GPU period;
+zero disables a reporter. GPU throughput counts only fallthroughs once CPU
+prefixes are enabled, so use both counters when comparing runs.
 
 To monitor a complete run through a log file:
 

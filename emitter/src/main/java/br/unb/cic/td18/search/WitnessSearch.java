@@ -35,6 +35,7 @@ public final class WitnessSearch {
     }
 
     public static void shutdownGpuStats() {
+        CpuPrefixSearchStats.shutdown();
         if (gpuInitialized) GPUSortingSearch.shutdownStatsReporter();
     }
 
@@ -57,6 +58,8 @@ public final class WitnessSearch {
         if (writer == null) throw new IllegalStateException("Sorting requires a proof-scoped certificate writer");
         final var existing = writer.findResult(pair, maximumMoves);
         if (existing.isPresent()) return checked(existing.orElseThrow());
+        final var cpu = CpuPrefixSearch.search(pair, maximumMoves);
+        if (cpu.isPresent()) return persist(pair, cpu.orElseThrow(), maximumMoves, writer);
         final byte[] beta = new byte[pair.getBeta().size()];
         for (int i = 0; i < beta.length; i++) beta[i] = (byte) pair.getBeta().get(i);
         final var outcome = gpu().search(beta, new OneLinePermutation(pair.getOmega().getOneLineNotation()), maximumMoves, true);
@@ -65,9 +68,14 @@ public final class WitnessSearch {
         final var result = outcome.disposition() == GPUSortingSearch.Disposition.COMPLETE
                 ? SortingCertificate.complete(moves)
                 : SortingCertificate.closure(moves);
+        return persist(pair, result, maximumMoves, writer);
+    }
+
+    private static SearchResult persist(CyclicTargetPair pair, SortingCertificate result,
+                                        int maximumMoves, AsyncCertificateWriter writer) {
         CertificateValidator.validate(pair, result, maximumMoves);
-        if (result.kind() == SortingCertificate.Kind.COMPLETE) writer.enqueue(pair, moves);
-        else writer.enqueueClosure(pair, moves, maximumMoves);
+        if (result.kind() == SortingCertificate.Kind.COMPLETE) writer.enqueue(pair, result.moves());
+        else writer.enqueueClosure(pair, result.moves(), maximumMoves);
         writer.throwIfFailed();
         return checked(result);
     }

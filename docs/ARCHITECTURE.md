@@ -35,8 +35,11 @@ The CUDA sorter allows transpositions with odd-length-cycle gains zero or
 two. It searches up to the complete budget and stops at identity or when
 contraction leaves a domain whose established diameter fits the remaining
 budget. Fixed points are counted as data at the root and updated after each
-transposition. The CPU generates classes and replays results; it performs no
-prefix sorting search.
+transposition. Before CUDA, a bounded CPU prefix tries actual transpositions
+and the same identity or diameter exits. It prioritizes immediate exits on
+consecutive algebraic supports and then larger fixed-point gains, including
+at totally unoriented states. These are witness-search orderings, not structural
+reductions. A prefix miss retains the original pair and full GPU budget.
 
 Complete witnesses and diameter closures are validated and persisted with
 separate kind tags. CUDA initialization is lazy. The certificate writer uses
@@ -44,6 +47,11 @@ a bounded queue of 16,384 entries by default, configurable through
 td18.certificateQueueCapacity. The joint-generation and root-witness task
 queues each permit 256 pending tasks. CPU worker counts are automatic.
 Each disk set buffers at most 16,384 unique keys before flushing to RocksDB.
+Emitter orbit minimization compares spatial images in the fixed alphabet
+using primitive buffers and constructs only the winning auxiliary-standardized
+word. Twisted reflection still reverses positions and inverts oriented ranks.
+Emitter certificate replay uses primitive permutation images; the independent
+checker retains its separate object-based orbit and replay implementations.
 
 Avoidance restores two fixed points to each unresolved endpoint and reverses
 every compatible second move. Disk-backed class deduplication precedes GPU

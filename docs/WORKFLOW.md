@@ -43,7 +43,7 @@ tools/td18 emit -Dtd18.args=--phase=endpoints
 All direct roots use budget ten and require a persisted complete witness or
 known-diameter closure. Endpoint types with an oriented 3-cycle close by
 1 + TD(12) = 8. For the other types, the emitter replays available witnesses,
-then searches on GPU within eight moves, checking the known-diameter exit at
+then tries a bounded CPU prefix before searching on GPU within eight moves, checking the known-diameter exit at
 every depth. Valid TD(16)
 witnesses may be imported through --td16-db=PATH; every reused witness is
 replayed. An endpoint search miss becomes a residual for final reconstruction,
@@ -57,7 +57,7 @@ tools/td18 avoidance
 
 Regenerate endpoint classes without an eight-move discharge. Restore two
 fixed points and reverse the second move, search deduplicated 18-symbol
-predecessors on GPU within budget nine and persist successful discharges, then restore one fixed point and reverse
+predecessors within budget nine (CPU prefix, then GPU) and persist successful discharges, then restore one fixed point and reverse
 the first move. Each remaining deduplicated root needs a ten-move closure
 or complete witness. All gap distributions and admissible supports are
 covered, including moves within even-length cycles. Missing obstruction

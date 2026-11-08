@@ -99,8 +99,8 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     public void enqueueClosure(CyclicTargetPair pair, List<Cycle> moves, int maximumMoves) {
         var result = SortingCertificate.closure(moves);
-        CertificateValidator.validate(pair, result, maximumMoves);
-        CertificateValidator.validate(pair, result, obligationBudget(pair.getBeta().size()));
+        CertificateValidator.validate(pair, result,
+                Math.min(maximumMoves, obligationBudget(pair.getBeta().size())));
         offer(new Entry(CertificateCodec.keyFor(pair), CertificateCodec.resultFor(result), pair.getBeta().size(), 0));
     }
 
@@ -116,8 +116,10 @@ public final class AsyncCertificateWriter implements AutoCloseable {
             byte[] encoded = database.get(witnesses, CertificateCodec.keyFor(pair));
             if (encoded == null) return Optional.empty();
             var result = CertificateCodec.decodeResult(encoded);
-            CertificateValidator.validate(pair, result, obligationBudget(pair.getBeta().size()));
-            return CertificateValidator.requiredBudget(pair, result) <= maximumMoves ? Optional.of(result) : Optional.empty();
+            int required = CertificateValidator.requiredBudget(pair, result);
+            if (required > obligationBudget(pair.getBeta().size()))
+                throw new IllegalArgumentException("Sorting result does not close its obligation budget");
+            return required <= maximumMoves ? Optional.of(result) : Optional.empty();
         } catch (RocksDBException error) { throw new IllegalStateException("Cannot read sorting result", error); }
     }
 

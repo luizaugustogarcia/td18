@@ -67,7 +67,8 @@ never closes an entire type by its reported count.
 
 A stored diameter closure must replay applicable transpositions, preserve the target,
 contract the resulting fixed points, and satisfy the remaining known-diameter
-bound. GPU search checks this condition at every depth up to the full budget.
+bound. A bounded CPU prefix checks this condition before the full-budget GPU
+search, which checks it at every depth. A CPU miss does not change the GPU obligation.
 The GPU permits
 odd-length-cycle gains zero and two. A closure is not a complete witness. Every complete certificate
 must finish at the target within its budget. A valid longer witness is a miss

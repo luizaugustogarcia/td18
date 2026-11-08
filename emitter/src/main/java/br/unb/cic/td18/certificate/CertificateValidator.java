@@ -1,11 +1,8 @@
 package br.unb.cic.td18.certificate;
 
+import br.unb.cic.td18.joint.KnownDiameters;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.permutation.Cycle;
-import br.unb.cic.td18.permutation.MulticyclePermutation;
-import br.unb.cic.td18.permutation.PermutationGroups;
-import br.unb.cic.td18.search.CommonOperations;
-import br.unb.cic.td18.joint.KnownDiameters;
 
 import java.util.List;
 
@@ -23,24 +20,58 @@ public final class CertificateValidator {
     /** Replays every transposition, then derives the required budget from the actual remainder. */
     public static int requiredBudget(final CyclicTargetPair pair, final SortingCertificate result) {
         final var moves = result.moves();
-        final var target = pair.getRho();
-        Cycle beta = pair.getBeta();
-        MulticyclePermutation omega = pair.getOmega();
+        final int n = pair.getBeta().size();
+        final int[] omega = new int[n];
+        for (int symbol = 0; symbol < n; symbol++) omega[symbol] = symbol;
+        for (final var cycle : pair.getOmega()) {
+            final int[] symbols = cycle.getSymbols();
+            for (int i = 0; i < symbols.length; i++)
+                omega[symbols[i]] = symbols[(i + 1) % symbols.length];
+        }
+        // Allocate replay state once. Omitted algebraic symbols remain fixed points.
+        final int[] beta = moves.isEmpty() ? null : pair.getBeta().getSymbols().clone();
+        final int[] positions = moves.isEmpty() ? null : new int[n];
+        final int[] scratch = moves.isEmpty() ? null : new int[n];
+        final int[] target = moves.isEmpty() ? null : new int[n];
+        if (!moves.isEmpty()) {
+            for (int i = 0; i < n; i++) positions[beta[i]] = i;
+            final int[] targetSymbols = pair.getRho().getSymbols();
+            for (int i = 0; i < n; i++)
+                target[targetSymbols[i]] = targetSymbols[(i + 1) % n];
+        }
         for (final var move : moves) {
-            requireApplicable(beta, move);
-            omega = PermutationGroups.computeProduct(omega, move.getInverse());
-            beta = CommonOperations.applyTranspositionOptimized(beta, move);
-            final var currentTarget = PermutationGroups.computeProduct(true, beta.size(), omega, beta);
-            if (!currentTarget.equals(new MulticyclePermutation(target))) {
-                throw new IllegalArgumentException("Certificate move does not preserve the cyclic target: " + move);
+            if (move.size() != 3)
+                throw new IllegalArgumentException("A move must contain three distinct symbols");
+            final int a = move.get(0), b = move.get(1), c = move.get(2);
+            if (a == b || b == c || a == c)
+                throw new IllegalArgumentException("A move must contain three distinct symbols");
+            if (a < 0 || b < 0 || c < 0 || a >= n || b >= n || c >= n)
+                throw new IllegalArgumentException("Move is not an ordered triple in the current cyclic order: " + move);
+            final int first = positions[a], second = positions[b], third = positions[c];
+            if (!(first < second && second < third))
+                throw new IllegalArgumentException("Move is not an ordered triple in the current cyclic order: " + move);
+
+            // omega' = omega * (a b c)^-1; swap beta's two adjacent blocks.
+            final int oldA = omega[a], oldB = omega[b];
+            omega[a] = omega[c];
+            omega[b] = oldA;
+            omega[c] = oldB;
+            System.arraycopy(beta, first, scratch, 0, third - first);
+            System.arraycopy(scratch, second - first, beta, first, third - second);
+            System.arraycopy(scratch, 0, beta, first + third - second, second - first);
+            for (int i = first; i < third; i++) positions[beta[i]] = i;
+
+            for (int i = 0; i < n; i++) {
+                if (omega[beta[(i + 1) % n]] != target[beta[i]])
+                    throw new IllegalArgumentException("Certificate move does not preserve the cyclic target: " + move);
             }
         }
+        int nonfixed = 0;
+        for (int symbol = 0; symbol < n; symbol++) if (omega[symbol] != symbol) nonfixed++;
         if (result.kind() == SortingCertificate.Kind.COMPLETE) {
-            if (!omega.isIdentity()) throw new IllegalArgumentException("Certificate does not sort the algebraic permutation");
+            if (nonfixed != 0) throw new IllegalArgumentException("Certificate does not sort the algebraic permutation");
             return moves.size();
         }
-        int nonfixed = 0;
-        for (int symbol = 0; symbol < beta.size(); symbol++) if (omega.image(symbol) != symbol) nonfixed++;
         int diameter = KnownDiameters.knownDiameter(nonfixed);
         if (diameter == Integer.MAX_VALUE) throw new IllegalArgumentException("Closure uses an unknown diameter");
         return Math.addExact(moves.size(), diameter);
@@ -49,18 +80,5 @@ public final class CertificateValidator {
     public static void validate(final CyclicTargetPair pair, final SortingCertificate result, final int maximumMoves) {
         if (maximumMoves < 0 || requiredBudget(pair, result) > maximumMoves)
             throw new IllegalArgumentException("Sorting result does not close the requested move budget");
-    }
-
-    private static void requireApplicable(final Cycle beta, final Cycle move) {
-        if (move.size() != 3 || move.get(0) == move.get(1) || move.get(1) == move.get(2)
-                || move.get(0) == move.get(2)) {
-            throw new IllegalArgumentException("A move must contain three distinct symbols");
-        }
-        final int first = beta.indexOf(move.get(0));
-        final int second = beta.indexOf(move.get(1));
-        final int third = beta.indexOf(move.get(2));
-        if (first < 0 || second < 0 || third < 0 || !(first < second && second < third)) {
-            throw new IllegalArgumentException("Move is not an ordered triple in the current cyclic order: " + move);
-        }
     }
 }

@@ -381,6 +381,7 @@ namespace {
                                              const short *omega0,
                                              const short *beta0,
                                              const int n,
+                                             const int initialOddCycles,
                                              const int initialFixedPoints,
                                              const int reverseTripleOrder) {
         const int queueIndex = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
@@ -428,7 +429,7 @@ namespace {
                     node.omega[b] = static_cast<uint8_t>(omega0[a]);
                     node.omega[c] = static_cast<uint8_t>(omega0[b]);
 
-                    node.oddCycles = static_cast<uint8_t>(count_odd_cycles(node.omega, n));
+                    node.oddCycles = static_cast<uint8_t>(initialOddCycles + delta);
                     node.fixedPoints = static_cast<uint8_t>(initialFixedPoints
                             + (omega0[c] == a) + (omega0[a] == b) + (omega0[b] == c));
                     // betaStart: first element of beta cycle after block transposition
@@ -518,12 +519,34 @@ namespace {
             idleBackoff = 64;
 #endif
 
-            node.depth = (uint8_t)__shfl_sync(0xFFFFFFFF, node.depth, 0);
-            node.oddCycles = (uint8_t)__shfl_sync(0xFFFFFFFF, static_cast<int>(node.oddCycles), 0);
-            node.fixedPoints = (uint8_t)__shfl_sync(0xFFFFFFFF, static_cast<int>(node.fixedPoints), 0);
-            node.betaStart = (uint8_t)__shfl_sync(0xFFFFFFFF, static_cast<int>(node.betaStart), 0);
-            for (int d = 0; d < ctx.maxDepth; ++d) {
-                node.moves[d] = static_cast<PackedMove>(__shfl_sync(0xFFFFFFFF, node.moves[d], 0));
+            node.depth = (uint8_t)__shfl_sync(0xFFFFFFFF, lane == 0 ? node.depth : 0, 0);
+            if (node.depth == 0 || node.depth > ctx.maxDepth || node.depth > MAX_DEPTH) {
+                if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
+                continue;
+            }
+            node.oddCycles = (uint8_t)__shfl_sync(0xFFFFFFFF, lane == 0 ? static_cast<int>(node.oddCycles) : 0, 0);
+            node.fixedPoints = (uint8_t)__shfl_sync(0xFFFFFFFF, lane == 0 ? static_cast<int>(node.fixedPoints) : 0, 0);
+            node.betaStart = (uint8_t)__shfl_sync(0xFFFFFFFF, lane == 0 ? static_cast<int>(node.betaStart) : 0, 0);
+            for (int d = 0; d < node.depth; ++d) {
+                node.moves[d] = static_cast<PackedMove>(__shfl_sync(0xFFFFFFFF, lane == 0 ? node.moves[d] : 0, 0));
+            }
+
+            const int parentOddCycles = node.oddCycles;
+
+            // Neither accepting a prefix nor pruning a node needs its beta cycle.
+            const int parentKind = solution_kind(ctx, parentOddCycles, node.fixedPoints, node.depth);
+            if (parentKind != 0) {
+                if (atomicCAS(ctx.foundFlag, 0, 1) == 0) {
+                    *ctx.solutionDepth = node.depth;
+                    *ctx.solutionKind = parentKind;
+                    for (int d = 0; d < node.depth; ++d) ctx.solutionMoves[d] = node.moves[d];
+                }
+                return;
+            }
+
+            if (node.depth >= ctx.maxDepth || !can_still_reach(ctx, parentOddCycles, node.depth)) {
+                if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
+                continue;
             }
 
             // Store parent omega in shared memory, reconstruct beta via rho invariant
@@ -547,28 +570,6 @@ namespace {
                     sh_parent_beta[i] = sh_tmp[i];
             }
             __syncwarp(0xFFFFFFFF);
-
-            if (node.depth == 0 || node.depth > ctx.maxDepth || node.depth > MAX_DEPTH) {
-                if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
-                continue;
-            }
-
-            const int parentOddCycles = node.oddCycles;
-
-            const int parentKind = solution_kind(ctx, parentOddCycles, node.fixedPoints, node.depth);
-            if (parentKind != 0) {
-                if (atomicCAS(ctx.foundFlag, 0, 1) == 0) {
-                    *ctx.solutionDepth = node.depth;
-                    *ctx.solutionKind = parentKind;
-                    for (int d = 0; d < node.depth; ++d) ctx.solutionMoves[d] = node.moves[d];
-                }
-                return;
-            }
-
-            if (node.depth >= ctx.maxDepth || !can_still_reach(ctx, parentOddCycles, node.depth)) {
-                if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
-                continue;
-            }
 
             const int childDepth = node.depth + 1;
             for (int tBase = 0; tBase < ctx.tripleCount; tBase += WARP_SIZE) {
@@ -925,7 +926,7 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
             slotView.queues, queueCount,
             slotView.nodes, localCapacity,
             slotView.overflow, slotView.overflowNodes, overflowCapacity,
-            dOverflow, dOutstandingWork, dOmega0, dBeta0, n, initialFixedPoints,
+            dOverflow, dOutstandingWork, dOmega0, dBeta0, n, initialOddCycles, initialFixedPoints,
             (queueCount == 1) ? 1 : 0);
     CHECK_CUDA(cudaGetLastError());
 
