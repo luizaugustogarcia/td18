@@ -2,6 +2,7 @@ package br.unb.cic.td18.avoidance;
 
 import br.unb.cic.td18.certificate.CertificateCodec;
 import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.runtime.BoundedTasks;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -24,6 +25,7 @@ public final class DiskStateSet implements AutoCloseable {
     private final HashSet<ByteBuffer> pending = new HashSet<>();
     private long size = -1;
     private boolean closed;
+    private final boolean readOnly;
 
     public record State(CyclicTargetPair pair, int maximumMoves) {
         public State {
@@ -36,24 +38,51 @@ public final class DiskStateSet implements AutoCloseable {
     }
 
     public DiskStateSet(Path directory) {
+        this(directory, false, -1);
+    }
+
+    /** Reopens a sealed checkpoint, checking every record and its exact inventory count. */
+    public static DiskStateSet openSealed(Path directory, long expectedCount) {
+        if (expectedCount < 0) throw new IllegalArgumentException("Nonnegative checkpoint count required");
+        return new DiskStateSet(directory, true, expectedCount);
+    }
+
+    private DiskStateSet(Path directory, boolean readOnly, long expectedCount) {
+        this.readOnly = readOnly;
+        RocksDB opened = null;
         try {
-            Files.createDirectory(directory);
-            database = RocksDB.open(options, directory.toString());
+            if (readOnly) {
+                if (!Files.isRegularFile(directory.resolve("CURRENT")))
+                    throw new IllegalStateException("Missing checkpoint state set: " + directory);
+                options.setCreateIfMissing(false);
+                opened = RocksDB.openReadOnly(options, directory.toString());
+            } else {
+                Files.createDirectory(directory);
+                opened = RocksDB.open(options, directory.toString());
+            }
+            database = opened;
+            if (readOnly && seal() != expectedCount)
+                throw new IllegalStateException("Checkpoint state count disagrees at " + directory
+                        + ": expected " + expectedCount + ", found " + size);
         } catch (IOException | RocksDBException | RuntimeException failure) {
+            if (opened != null) opened.close();
             writes.close(); options.close();
-            throw new IllegalStateException("State set needs a fresh directory: " + directory, failure);
+            throw new IllegalStateException("Cannot open reconstruction state set: " + directory, failure);
         }
     }
 
-    public synchronized void add(CyclicTargetPair pair, int maximumMoves) {
-        requireOpen();
-        if (size >= 0) throw new IllegalStateException("State set is sealed");
+    public void add(CyclicTargetPair pair, int maximumMoves) {
+        // Orbit minimization is CPU work and must not serialize all producers on the disk lock.
         var state = new State(pair.canonicalRepresentative(), maximumMoves);
         byte[] raw = CertificateCodec.keyFor(state.pair());
         byte[] key = ByteBuffer.allocate(raw.length + 3).put(VERSION).put((byte) maximumMoves)
                 .put((byte) pair.getBeta().size()).put(raw).array();
-        pending.add(ByteBuffer.wrap(key));
-        if (pending.size() >= BUFFER_KEYS) flushPending();
+        synchronized (this) {
+            requireOpen();
+            if (readOnly || size >= 0) throw new IllegalStateException("State set is sealed");
+            pending.add(ByteBuffer.wrap(key));
+            if (pending.size() >= BUFFER_KEYS) flushPending();
+        }
     }
 
     private void flushPending() {
@@ -67,11 +96,11 @@ public final class DiskStateSet implements AutoCloseable {
     public synchronized long seal() {
         requireOpen();
         if (size >= 0) return size;
-        flushPending();
+        if (!readOnly) flushPending();
         long count = 0;
         try (var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads);
              var flush = new FlushOptions().setWaitForFlush(true)) {
-            database.flush(flush);
+            if (!readOnly) database.flush(flush);
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
                 decode(iterator.key(), iterator.value());
                 count = Math.addExact(count, 1);
@@ -93,6 +122,13 @@ public final class DiskStateSet implements AutoCloseable {
             iterator.status();
         } catch (RocksDBException failure) { throw new IllegalStateException("Cannot scan reconstruction states", failure); }
         if (scanned != expected) throw new IllegalStateException("Reconstruction scan missed states");
+    }
+
+    /** Reads deterministic keys with bounded parallel callbacks, waiting for all work to finish. */
+    public void forEachConcurrently(int workers, Consumer<State> consumer) {
+        try (var tasks = new BoundedTasks(workers, "reconstruction-")) {
+            forEach(state -> tasks.submit(() -> consumer.accept(state)));
+        }
     }
 
     private static State decode(byte[] key, byte[] value) {

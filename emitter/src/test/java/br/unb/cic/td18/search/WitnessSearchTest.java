@@ -16,6 +16,31 @@ class WitnessSearchTest {
     }
     @Test void sortingRequiresPersistenceBeforeAnyGpuWork() {
         assertThrows(IllegalStateException.class, () -> WitnessSearch.search(pair(), 2));
+        assertThrows(IllegalStateException.class, () -> WitnessSearch.prefetchCpu(pair(), 2));
+    }
+
+    @Test void cpuPrefetchPersistsReplayedClosuresButNeverMarksItsMisses(@TempDir Path path) {
+        try (var writer = new AsyncCertificateWriter(path, 60)) {
+            WitnessSearch.installWriter(writer);
+            try {
+                assertTrue(WitnessSearch.prefetchCpu(pair(), 2));
+                assertFalse(WitnessSearch.prefetchCpu(pair(), 1));
+                writer.flush();
+                assertTrue(writer.findResult(pair(), 2).isPresent());
+                assertTrue(writer.findResult(pair(), 1).isEmpty());
+                var markers = new java.util.concurrent.atomic.AtomicInteger();
+                writer.forEachObstruction(key -> markers.incrementAndGet());
+                assertEquals(0, markers.get());
+            } finally { WitnessSearch.uninstallWriter(writer); }
+        }
+    }
+
+    @Test void interruptedCpuSearchStopsWithoutReturningACertificate() {
+        Thread.currentThread().interrupt();
+        try {
+            assertThrows(java.util.concurrent.CancellationException.class,
+                    () -> CpuPrefixSearch.search(pair(), 2, 10, 16777216));
+        } finally { Thread.interrupted(); }
     }
     @Test
     void cpuClosureIsPersistedReplayedAndNotACompleteWitness(@TempDir Path path) {

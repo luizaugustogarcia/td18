@@ -8,6 +8,7 @@ import br.unb.cic.td18.permutation.Cycle;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
 
 /**
  * A bounded sorting-prefix heuristic before the full GPU search. Every result
@@ -35,7 +36,7 @@ public final class CpuPrefixSearch {
         }
     }
 
-    static Optional<SortingCertificate> search(CyclicTargetPair pair, int maximumMoves,
+    public static Optional<SortingCertificate> search(CyclicTargetPair pair, int maximumMoves,
                                                 int maximumDepth, int maximumTriples) {
         Objects.requireNonNull(pair);
         if (maximumMoves < 1 || maximumMoves > KnownDiameters.MAX_BUDGET
@@ -67,6 +68,7 @@ public final class CpuPrefixSearch {
         SortingCertificate result;
 
         boolean visit(int depth, int fixed, int odd) {
+            if (Thread.currentThread().isInterrupted()) throw new CancellationException("CPU search interrupted");
             if (fixed == n || KnownDiameters.knownDiameter(n - fixed) <= maximumMoves - depth) {
                 var moves = new ArrayList<Cycle>(depth);
                 for (int step = 0; step < depth; step++) {

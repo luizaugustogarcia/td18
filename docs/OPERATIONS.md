@@ -82,7 +82,7 @@ independently prove that a large list contains every required class.
 
 WitnessEmitter accepts --phase=roots|endpoints|avoidance|all,
 --partitions=FIRST-LAST, --endpoints=FIRST-LAST, --paper=PATH,
---database=PATH, --work=PATH, and --td16-db=PATH. The default phase is all.
+--database=PATH, --work=PATH, --td16-db=PATH, and --resume-work=PATH. The default phase is all.
 The database defaults to certificates/ or the td18.certificateDb property;
 --database overrides that property. Work directories are fresh per invocation
 and must lie outside the certificate database. An explicit --work path must
@@ -112,6 +112,42 @@ which adds the configured GPU slots to the available CPU count so that waiting
 for CUDA does not leave CPU workers idle. No server-specific CPU count is
 required. Joint-generation and root-witness queues each hold at most 256
 tasks; a full queue makes the submitting thread process work itself.
+
+Final inverse generation uses all available CPU cores. Intermediate and
+reconstructed-root searches use the same td18.twistedBraceletWorkers count as
+direct generation, with bounded queues and concurrent CPU prefixes and GPU
+searches. Canonicalization runs outside the disk-set write lock. Each wave
+finishes all callbacks before its deduplicated successor set is sealed;
+worker failures prevent successful completion. Reconstruction progress reports
+completed and total classes separately for the intermediate and root waves.
+
+A separate CPU pool searches ahead of each GPU wave and persists replayed
+witnesses so the GPU scan can reuse them. This pool never waits on CUDA; a CPU
+miss leaves every GPU obligation intact. Its bounded queue holds 256 classes.
+td18.cpuPrefetchWorkers=auto uses all available CPU cores (zero disables it);
+td18.cpuPrefetchDepth defaults to ten, capped at the obligation budget, and
+td18.cpuPrefetchMaxTriples defaults to 16,777,216 per class. Its completed and
+covered counters appear in reconstruction progress. Outstanding heuristic work
+is cancelled and joined when the full GPU wave finishes. These limits affect
+only witness discovery; independent verification still regenerates all work.
+
+After sealing the intermediate wave, emission writes
+reconstruction-checkpoint.txt with a version and exact endpoint and
+intermediate counts. Resume that wave without repeating direct emission:
+
+~~~bash
+tools/td18 avoidance -Dtd18.certificateDb="$PWD/certificates" \
+  '-Dtd18.args=--resume-work=/path/to/previous/work'
+~~~
+
+The checkpoint databases are opened read-only; every record is decoded and
+the exact inventory counts are checked. Missing databases, records, inventory
+fields, or incompatible budgets fail the resume. A fresh work directory holds
+regenerated roots, and available sorting witnesses are replayed. Preserve the
+original checkpoint directory for further resumes. Resume accepts no phase
+other than avoidance, ranges, or TD(16) import. Checkpoints are emission
+optimizations, not proof inputs: the independent checker still regenerates
+all obligations and replays the certificate database.
 
 The GPU search checks identity and the known-diameter bound at every depth
 up to the obligation budget. It permits odd-length-cycle gains zero and two.

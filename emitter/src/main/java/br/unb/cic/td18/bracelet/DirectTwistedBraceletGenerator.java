@@ -71,6 +71,9 @@ public final class DirectTwistedBraceletGenerator {
     private DirectTwistedBraceletGenerator() {
     }
 
+    /** Shared producer count for generation and final reconstruction. */
+    public static int configuredWorkerCount() { return WORKER_COUNT; }
+
     /** Shuts down the shared executor after all concurrent generation has completed. */
     public static void shutdownExecutor() {
         EXECUTOR.shutdown();

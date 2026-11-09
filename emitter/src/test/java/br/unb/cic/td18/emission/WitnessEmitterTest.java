@@ -44,5 +44,10 @@ class WitnessEmitterTest {
     @Test void malformedScopeIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> WitnessEmitter.Options.parse(new String[]{"--partitions=0-53"},Path.of(".")));
         assertThrows(IllegalArgumentException.class, () -> WitnessEmitter.Options.parse(new String[]{"--phase=unknown"},Path.of(".")));
+        assertThrows(IllegalArgumentException.class, () -> WitnessEmitter.Options.parse(new String[]{"--resume-work=old"},Path.of(".")));
+        assertThrows(IllegalArgumentException.class, () -> WitnessEmitter.Options.parse(
+                new String[]{"--phase=avoidance", "--resume-work=old", "--endpoints=8-12"},Path.of(".")));
+        assertEquals(Path.of("old").toAbsolutePath().normalize(), WitnessEmitter.Options.parse(
+                new String[]{"--phase=avoidance", "--resume-work=old"},Path.of(".")).resumeWork());
     }
 }

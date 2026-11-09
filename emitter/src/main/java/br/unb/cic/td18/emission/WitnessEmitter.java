@@ -10,16 +10,14 @@ import br.unb.cic.td18.joint.JointRootGenerator;
 import br.unb.cic.td18.joint.SupportClearing;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.runtime.ProjectPaths;
+import br.unb.cic.td18.runtime.BoundedTasks;
 import br.unb.cic.td18.search.WitnessSearch;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -57,7 +55,7 @@ public final class WitnessEmitter {
                             result.jointResiduals-result.supportCleared, result.unresolved);
                     if (result.unresolved != 0) throw new IllegalStateException("Unresolved direct root witnesses: " + result.unresolved);
                 }
-                if (options.endpoints() || options.avoidance()) for (var endpoint : JointInventory.endpoints())
+                if (options.resumeWork == null && (options.endpoints() || options.avoidance())) for (var endpoint : JointInventory.endpoints())
                     if (options.includesEndpoint(endpoint.number())) {
                         // Avoidance regenerates misses from the witness database. It
                         // never starts from a persisted obstruction list alone.
@@ -68,9 +66,13 @@ public final class WitnessEmitter {
                     }
                 if (options.avoidance()) {
                     progress.phase(() -> "final inverse reconstruction");
-                    var result = JointAvoidance.resolve(endpoints, work,
-                            pair -> settle(pair, 9, writer, null, true),
-                            pair -> settle(pair, 10, writer, null, true));
+                    var result = options.resumeWork == null
+                            ? JointAvoidance.resolve(endpoints, work,
+                                    pair -> settle(pair, 9, writer, null, true),
+                                    pair -> settle(pair, 10, writer, null, true), WitnessSearch::prefetchCpu)
+                            : JointAvoidance.resume(options.resumeWork, work,
+                                    pair -> settle(pair, 9, writer, null, true),
+                                    pair -> settle(pair, 10, writer, null, true), WitnessSearch::prefetchCpu);
                     writer.flush();
                     log.info("Final reconstruction: {}", result);
                     if (result.unresolved() != 0) throw new IllegalStateException("Unresolved reconstructed roots: " + result.unresolved());
@@ -114,7 +116,7 @@ public final class WitnessEmitter {
                     unoriented.increment();
                     if (!discharge.apply(pair.canonicalRepresentative(), 10)) unresolved.increment();
                 });
-        try (var tasks = new BoundedTasks()) {
+        try (var tasks = new BoundedTasks(Runtime.getRuntime().availableProcessors(), "root-witness-")) {
             log.info("Root partition {}: joint generation uses {} available CPU cores",
                     row.number(), Runtime.getRuntime().availableProcessors());
             JointRootGenerator.generateResidualsConcurrently(row.partition(), tasks::check, pair -> {
@@ -161,45 +163,19 @@ public final class WitnessEmitter {
         @Override public void close() { reporter.shutdownNow(); }
     }
 
-    private static final class BoundedTasks implements AutoCloseable {
-        private final AtomicReference<Throwable> failure = new AtomicReference<>();
-        private final ThreadPoolExecutor workers;
-        BoundedTasks() {
-            int count = Runtime.getRuntime().availableProcessors();
-            workers = new ThreadPoolExecutor(count, count, 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(256),
-                    Thread.ofPlatform().name("root-witness-", 0).factory(), new ThreadPoolExecutor.CallerRunsPolicy());
-        }
-        void submit(Runnable task) { check(); workers.execute(() -> {
-            if (failure.get() != null) return;
-            try { task.run(); } catch (Throwable error) { failure.compareAndSet(null,error); }
-        }); }
-        void check() {
-            if (failure.get() != null) throw new IllegalStateException("Root witness worker failed", failure.get());
-            if (Thread.currentThread().isInterrupted()) throw new IllegalStateException("Root generation interrupted");
-        }
-        @Override public void close() {
-            workers.shutdown();
-            try { while (!workers.awaitTermination(1, TimeUnit.SECONDS)) {
-                if (failure.get() != null) workers.shutdownNow();
-            } } catch (InterruptedException error) {
-                workers.shutdownNow(); Thread.currentThread().interrupt(); throw new IllegalStateException(error);
-            }
-            check();
-        }
-    }
-
     private static void usage() {
         System.out.println("WitnessEmitter [--phase=roots|endpoints|avoidance|all] [--partitions=FIRST-LAST]"
-                + " [--endpoints=FIRST-LAST] [--paper=PATH] [--database=PATH] [--work=PATH] [--td16-db=PATH]");
+                + " [--endpoints=FIRST-LAST] [--paper=PATH] [--database=PATH] [--work=PATH] [--td16-db=PATH]"
+                + " [--resume-work=PATH (requires --phase=avoidance)]");
     }
 
-    record Options(Path paper, Path database, Path work, Path td16, String phase,
+    record Options(Path paper, Path database, Path work, Path td16, Path resumeWork, String phase,
                    int firstPartition, int lastPartition, int firstEndpoint, int lastEndpoint, boolean help) {
         static Options parse(String[] args, Path root) {
             Path paper = root.resolve("docs/td18-reduction-count.tex");
             Path database = Path.of(System.getProperty("td18.certificateDb", root.resolve("certificates").toString()));
             Path work = root.resolve("emitter/target/joint-emission-" + ProcessHandle.current().pid() + "-" + System.nanoTime());
-            Path td16 = null; String phase = "all"; boolean help = false;
+            Path td16 = null, resumeWork = null; String phase = "all"; boolean help = false;
             int first = 1, last = 53, endpointFirst = 1, endpointLast = 104;
             for (String arg : args) {
                 if (arg.equals("--help")) help = true;
@@ -207,14 +183,20 @@ public final class WitnessEmitter {
                 else if (arg.startsWith("--paper=")) paper = Path.of(arg.substring(8));
                 else if (arg.startsWith("--database=")) database = Path.of(arg.substring(11));
                 else if (arg.startsWith("--work=")) work = Path.of(arg.substring(7));
+                else if (arg.startsWith("--resume-work=")) resumeWork = Path.of(arg.substring(14));
                 else if (arg.startsWith("--td16-db=")) td16 = Path.of(arg.substring(10));
                 else if (arg.startsWith("--partitions=")) { int[] r = range(arg.substring(13),53); first = r[0]; last = r[1]; }
                 else if (arg.startsWith("--endpoints=")) { int[] r = range(arg.substring(12),104); endpointFirst = r[0]; endpointLast = r[1]; }
                 else throw new IllegalArgumentException("Unknown argument: " + arg);
             }
             if (!List.of("roots", "endpoints", "avoidance", "all").contains(phase)) throw new IllegalArgumentException("Invalid emission phase");
+            if (resumeWork != null && (!phase.equals("avoidance") || first != 1 || last != 53
+                    || endpointFirst != 1 || endpointLast != 104 || td16 != null))
+                throw new IllegalArgumentException("Resume requires --phase=avoidance without ranges or a TD(16) import");
             return new Options(paper.toAbsolutePath().normalize(), database.toAbsolutePath().normalize(), work.toAbsolutePath().normalize(),
-                    td16 == null ? null : td16.toAbsolutePath().normalize(), phase, first, last, endpointFirst, endpointLast, help);
+                    td16 == null ? null : td16.toAbsolutePath().normalize(),
+                    resumeWork == null ? null : resumeWork.toAbsolutePath().normalize(),
+                    phase, first, last, endpointFirst, endpointLast, help);
         }
         private static int[] range(String value, int maximum) {
             String[] fields = value.split("-", -1);

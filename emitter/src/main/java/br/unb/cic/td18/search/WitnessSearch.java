@@ -71,6 +71,20 @@ public final class WitnessSearch {
         return persist(pair, result, maximumMoves, writer);
     }
 
+    /** CPU assistance only: a miss never discharges or marks the original GPU obligation. */
+    public static boolean prefetchCpu(CyclicTargetPair input, int maximumMoves) {
+        var pair = input.canonicalRepresentative();
+        var writer = certificateWriter;
+        if (writer == null) throw new IllegalStateException("Sorting requires a proof-scoped certificate writer");
+        if (writer.findResult(pair, maximumMoves).isPresent()) return true;
+        var result = CpuPrefixSearch.search(pair, maximumMoves,
+                Integer.getInteger("td18.cpuPrefetchDepth", KnownDiameters.MAX_BUDGET),
+                Integer.getInteger("td18.cpuPrefetchMaxTriples", 16777216));
+        if (result.isEmpty()) return false;
+        persist(pair, result.orElseThrow(), maximumMoves, writer);
+        return true;
+    }
+
     private static SearchResult persist(CyclicTargetPair pair, SortingCertificate result,
                                         int maximumMoves, AsyncCertificateWriter writer) {
         CertificateValidator.validate(pair, result, maximumMoves);

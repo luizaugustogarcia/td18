@@ -63,6 +63,12 @@ or complete witness. All gap distributions and admissible supports are
 covered, including moves within even-length cycles. Missing obstruction
 markers cannot omit obligations.
 
+Inverse generation runs across the available CPU cores; intermediate and
+root searches use the configured td18.twistedBraceletWorkers pool with
+bounded queues. A sealed intermediate checkpoint can resume through
+tools/td18 avoidance with --resume-work=PATH; see the operations guide for
+the checked inventory and fresh-work requirements.
+
 The default emit phase is all: roots, endpoints, then final reconstruction.
 Rerunning regenerates the selected scope and reuses valid stored witnesses.
 

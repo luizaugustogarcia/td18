@@ -24,6 +24,7 @@ Examples:
   tools/td18 count '-Dexec.args=--phase=roots --partitions=1-1 --workers=4'
   tools/td18 emit '-Dtd18.args=--phase=endpoints --endpoints=1-10'
   tools/td18 avoidance -Dtd18.args=--endpoints=1-10
+  tools/td18 avoidance -Dtd18.args=--resume-work=/path/to/previous/work
   tools/td18 verify '-Dexec.args=--phase=roots --partitions=1-1'
   tools/td18 --dry-run emit
 
