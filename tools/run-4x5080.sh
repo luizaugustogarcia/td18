@@ -24,8 +24,8 @@ cmake -S emitter/src/native -B emitter/target/native \
 # Keep the remaining VRAM available for CUDA contexts and allocator overhead.
 # 64 additional GPU queue entries give 96 pending searches in total.
 # 192 producers cover 32 active + 96 pending searches and 64 CPU workers.
-# TD18_CPU_PREFIX_DEPTH configures direct roots and endpoints; reconstruction
-# sends unresolved classes directly to CUDA without CPU sorting.
+# Reconstructed classes get at most 10 ms in the CPU prefix before the full
+# original obligation falls through to CUDA.
 # Reuse certificates on subsequent runs; no existing data is deleted.
 nohup ./tools/td18 emit -B -Dstyle.color=never \
     -Dtd18.gpuDevices=0,1,2,3 \
@@ -35,6 +35,7 @@ nohup ./tools/td18 emit -B -Dstyle.color=never \
     -Dtd18.twistedBraceletWorkers=192 \
     -Dtd18.cpuPrefixDepth="${TD18_CPU_PREFIX_DEPTH:-4}" \
     -Dtd18.cpuPrefixMaxTriples=8192 \
+    -Dtd18.reconstructionCpuPrefixMillis="${TD18_RECONSTRUCTION_CPU_PREFIX_MILLIS:-10}" \
     -Dtd18.certificateQueueCapacity=1048576 \
     -Dtd18.certificateLookupBatchSize=262144 \
     -Dtd18.reconstructionBufferKeys=1048576 \

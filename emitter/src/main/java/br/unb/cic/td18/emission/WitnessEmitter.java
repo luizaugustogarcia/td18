@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 /** Generates the joint-selection obligations and persists replayed sorting witnesses. */
 public final class WitnessEmitter {
     private static final Logger log = LoggerFactory.getLogger(WitnessEmitter.class);
+    private static final long RECONSTRUCTION_CPU_PREFIX_MILLIS = reconstructionCpuPrefixMillis();
     private WitnessEmitter() { }
 
     public static void main(String[] arguments) throws IOException {
@@ -66,6 +67,8 @@ public final class WitnessEmitter {
                     }
                 if (options.avoidance()) {
                     progress.phase(() -> "final inverse reconstruction");
+                    log.info("Reconstruction CPU prefix deadline: {} ms before GPU fallback",
+                            RECONSTRUCTION_CPU_PREFIX_MILLIS);
                     var result = options.resumeWork == null
                             ? JointAvoidance.resolve(endpoints, work,
                                     pair -> settleReconstructed(pair, 9, writer),
@@ -116,11 +119,19 @@ public final class WitnessEmitter {
         return false;
     }
 
-    private static boolean settleReconstructed(CyclicTargetPair pair, int budget, AsyncCertificateWriter writer) {
-        var result = WitnessSearch.searchGpu(pair, budget);
+    static boolean settleReconstructed(CyclicTargetPair pair, int budget, AsyncCertificateWriter writer) {
+        var result = WitnessSearch.searchWithCpuPrefixTimeout(
+                pair, budget, RECONSTRUCTION_CPU_PREFIX_MILLIS);
         if (result.disposition() != WitnessSearch.Disposition.RESIDUAL) return true;
         writer.enqueueObstruction(pair, budget);
         return false;
+    }
+
+    private static long reconstructionCpuPrefixMillis() {
+        long value = Long.getLong("td18.reconstructionCpuPrefixMillis", 10L);
+        if (value < 0) throw new IllegalArgumentException(
+                "td18.reconstructionCpuPrefixMillis must not be negative");
+        return value;
     }
 
     static RootResult emitRoot(JointInventory.Root row, PairDischarge discharge, Progress progress) {

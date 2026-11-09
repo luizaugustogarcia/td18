@@ -23,11 +23,23 @@ public final class CpuPrefixSearch {
     private CpuPrefixSearch() { }
 
     public static Optional<SortingCertificate> search(CyclicTargetPair pair, int maximumMoves) {
+        return recordedSearch(pair, maximumMoves, Long.MAX_VALUE);
+    }
+
+    static Optional<SortingCertificate> searchWithinNanos(CyclicTargetPair pair, int maximumMoves,
+                                                          long maximumNanos) {
+        if (maximumNanos < 0) throw new IllegalArgumentException("CPU prefix time limit cannot be negative");
+        return recordedSearch(pair, maximumMoves, maximumNanos);
+    }
+
+    private static Optional<SortingCertificate> recordedSearch(CyclicTargetPair pair, int maximumMoves,
+                                                               long maximumNanos) {
         long started = System.nanoTime();
         try {
             var result = search(pair, maximumMoves,
                     Integer.getInteger("td18.cpuPrefixDepth", DEFAULT_DEPTH),
-                    Integer.getInteger("td18.cpuPrefixMaxTriples", DEFAULT_TRIPLE_LIMIT));
+                    Integer.getInteger("td18.cpuPrefixMaxTriples", DEFAULT_TRIPLE_LIMIT),
+                    deadline(started, maximumNanos));
             CpuPrefixSearchStats.instance().completed(result, System.nanoTime() - started);
             return result;
         } catch (RuntimeException | Error error) {
@@ -38,6 +50,12 @@ public final class CpuPrefixSearch {
 
     public static Optional<SortingCertificate> search(CyclicTargetPair pair, int maximumMoves,
                                                 int maximumDepth, int maximumTriples) {
+        return search(pair, maximumMoves, maximumDepth, maximumTriples, Long.MAX_VALUE);
+    }
+
+    private static Optional<SortingCertificate> search(CyclicTargetPair pair, int maximumMoves,
+                                                       int maximumDepth, int maximumTriples,
+                                                       long deadlineNanos) {
         Objects.requireNonNull(pair);
         if (maximumMoves < 1 || maximumMoves > KnownDiameters.MAX_BUDGET
                 || maximumDepth < 0 || maximumDepth > KnownDiameters.MAX_BUDGET
@@ -48,6 +66,7 @@ public final class CpuPrefixSearch {
         work.maximumMoves = maximumMoves;
         work.maximumDepth = Math.min(maximumDepth, maximumMoves);
         work.remainingTriples = maximumTriples;
+        work.deadlineNanos = deadlineNanos;
         work.result = null;
         int fixed = 0;
         for (int symbol = 0; symbol < work.n; symbol++) {
@@ -59,12 +78,19 @@ public final class CpuPrefixSearch {
         return Optional.ofNullable(work.result);
     }
 
+    private static long deadline(long started, long maximumNanos) {
+        if (maximumNanos == Long.MAX_VALUE) return Long.MAX_VALUE;
+        try { return Math.addExact(started, maximumNanos); }
+        catch (ArithmeticException overflow) { return Long.MAX_VALUE; }
+    }
+
     private static final class Workspace {
         final int[] omega = new int[KnownDiameters.ROOT_SYMBOLS];
         final int[][] beta = new int[KnownDiameters.MAX_BUDGET + 1][KnownDiameters.ROOT_SYMBOLS];
         final int[][] positions = new int[KnownDiameters.MAX_BUDGET][KnownDiameters.ROOT_SYMBOLS];
         final int[] stack = new int[KnownDiameters.MAX_BUDGET];
         int n, maximumMoves, maximumDepth, remainingTriples;
+        long deadlineNanos;
         SortingCertificate result;
 
         boolean visit(int depth, int fixed, int odd) {
@@ -78,6 +104,7 @@ public final class CpuPrefixSearch {
                 result = fixed == n ? SortingCertificate.complete(moves) : SortingCertificate.closure(moves);
                 return true;
             }
+            if (deadlineReached()) return false;
             if (depth == maximumDepth || remainingTriples == 0) return false;
             // A permitted move increases the odd-length-cycle count by at
             // most two. A prefix cannot close a budget below this lower bound.
@@ -99,6 +126,7 @@ public final class CpuPrefixSearch {
                     int b = order[j];
                     if (omega[b] == b) continue;
                     for (int k = j + 1; k < n; k++) {
+                        if (deadlineReached()) return false;
                         int c = order[k];
                         if (omega[c] == c) continue;
                         if (remainingTriples == 0) return false;
@@ -128,6 +156,7 @@ public final class CpuPrefixSearch {
             // Prefer clearing an entire 3-cycle to gaining two fixed points.
             for (int wantedGain = 3; wantedGain >= 2; wantedGain--)
             for (int symbol = 0; symbol < n && remainingTriples > 0; symbol++) {
+                if (deadlineReached()) return false;
                 int a = symbol, b = omega[a], c = omega[b];
                 if (a == b || b == c || c == a || omega[c] == c) continue;
                 // The three origins of an algebraic 3-cycle give one move.
@@ -157,6 +186,7 @@ public final class CpuPrefixSearch {
                 int b = omega[a];
                 if (a == b) continue;
                 for (int c = 0; c < n; c++) {
+                    if (deadlineReached()) return false;
                     if (c == a || c == b || omega[c] == c) continue;
                     if (remainingTriples == 0) return false;
                     remainingTriples--;
@@ -196,6 +226,10 @@ public final class CpuPrefixSearch {
                 if (KnownDiameters.knownDiameter(remainder) <= maximumMoves - used) return true;
             }
             return false;
+        }
+
+        boolean deadlineReached() {
+            return deadlineNanos != Long.MAX_VALUE && System.nanoTime() - deadlineNanos >= 0;
         }
 
         int oddCycles() {

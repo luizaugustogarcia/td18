@@ -53,7 +53,7 @@ public final class WitnessSearch {
 
     /** Searches the full budget, accepting identity or a replayed known-diameter closure at any depth. */
     public static SearchResult search(final CyclicTargetPair input, final int maximumMoves) {
-        return search(input, maximumMoves, true, WitnessSearch::dispatchGpu);
+        return search(input, maximumMoves, Long.MAX_VALUE, WitnessSearch::dispatchGpu);
     }
 
     /** Reuses stored certificates, then sends an unresolved reconstructed class directly to CUDA. */
@@ -61,14 +61,28 @@ public final class WitnessSearch {
         return searchGpu(input, maximumMoves, WitnessSearch::dispatchGpu);
     }
 
+    /** Gives the CPU prefix a wall-clock budget, then sends the untouched obligation to CUDA. */
+    public static SearchResult searchWithCpuPrefixTimeout(final CyclicTargetPair input,
+                                                          final int maximumMoves,
+                                                          final long maximumMillis) {
+        return searchWithCpuPrefixTimeout(input, maximumMoves, maximumMillis, WitnessSearch::dispatchGpu);
+    }
+
     @FunctionalInterface
     interface GpuSearch { GPUSortingSearch.SearchOutcome search(CyclicTargetPair pair, int maximumMoves); }
 
     static SearchResult searchGpu(CyclicTargetPair input, int maximumMoves, GpuSearch dispatcher) {
-        return search(input, maximumMoves, false, dispatcher);
+        return search(input, maximumMoves, -1, dispatcher);
     }
 
-    private static SearchResult search(CyclicTargetPair input, int maximumMoves, boolean cpuPrefix, GpuSearch dispatcher) {
+    static SearchResult searchWithCpuPrefixTimeout(CyclicTargetPair input, int maximumMoves,
+                                                   long maximumMillis, GpuSearch dispatcher) {
+        if (maximumMillis < 0) throw new IllegalArgumentException("CPU prefix timeout cannot be negative");
+        return search(input, maximumMoves, Math.multiplyExact(maximumMillis, 1_000_000L), dispatcher);
+    }
+
+    private static SearchResult search(CyclicTargetPair input, int maximumMoves,
+                                       long cpuPrefixNanos, GpuSearch dispatcher) {
         Objects.requireNonNull(input);
         if (maximumMoves < 1 || maximumMoves > KnownDiameters.MAX_BUDGET)
             throw new IllegalArgumentException("Sorting budget must lie between 1 and 10");
@@ -77,8 +91,10 @@ public final class WitnessSearch {
         if (writer == null) throw new IllegalStateException("Sorting requires a proof-scoped certificate writer");
         final var existing = writer.findResult(pair, maximumMoves);
         if (existing.isPresent()) return checked(existing.orElseThrow());
-        if (cpuPrefix) {
-            final var cpu = CpuPrefixSearch.search(pair, maximumMoves);
+        if (cpuPrefixNanos >= 0) {
+            final var cpu = cpuPrefixNanos == Long.MAX_VALUE
+                    ? CpuPrefixSearch.search(pair, maximumMoves)
+                    : CpuPrefixSearch.searchWithinNanos(pair, maximumMoves, cpuPrefixNanos);
             if (cpu.isPresent()) return persist(pair, cpu.orElseThrow(), maximumMoves, writer);
         }
         final var outcome = dispatcher.search(pair, maximumMoves);

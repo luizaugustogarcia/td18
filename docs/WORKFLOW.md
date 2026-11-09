@@ -67,11 +67,13 @@ Inverse generation runs across the available CPU cores; intermediate and
 root searches use the configured td18.twistedBraceletWorkers pool with
 bounded queues. Each wave globally deduplicates its reconstruction keys, then
 replays previously stored witnesses through multiGet batches before sending
-only cache misses directly to GPU search. Reconstruction uses no CPU sorting
-prefix or CPU helper scan. Default buffers hold 1,048,576 reconstruction
-keys and 262,144 lookup classes. A sealed intermediate checkpoint can resume through
-tools/td18 avoidance with --resume-work=PATH; see the operations guide for
-the checked inventory and fresh-work requirements.
+each cache miss through a CPU sorting prefix for at most the configured
+reconstruction deadline. A prefix miss or timeout sends the untouched class
+and full budget to GPU search. The former CPU helper scan is not used. Default
+buffers hold 1,048,576 reconstruction keys and 262,144 lookup classes. A
+sealed intermediate or root checkpoint can resume through tools/td18
+avoidance with --resume-work=PATH; see the operations guide for the checked
+inventory and fresh-work requirements.
 
 The default emit phase is all: roots, endpoints, then final reconstruction.
 Rerunning regenerates the selected scope and reuses valid stored witnesses.

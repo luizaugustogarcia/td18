@@ -99,8 +99,10 @@ tools/td18 avoidance -Dtd18.certificateDb="$PWD/certificates"
 The optional TD(16) database is read-only. Only valid complete witnesses
 within the requested budget are reused. Roots use ten moves; endpoints use
 eight. Final reconstruction searches 18-symbol predecessors on GPU within
-nine moves and sends remaining full roots to budget-ten search. Both waves
-dispatch cache misses directly to CUDA, without CPU sorting searches.
+nine moves. Both reconstructed intermediates and roots first use the bounded
+CPU prefix for at most td18.reconstructionCpuPrefixMillis, ten milliseconds by
+default. A miss or timeout sends the untouched obligation and full remaining
+budget to the GPU.
 Missing endpoint witnesses generate final obligations even if no obstruction
 marker exists. No list of expected endpoint failures is required.
 
@@ -135,13 +137,17 @@ cached classes separately, and each bulk lookup logs requested and reusable
 counts. Both buffer sizes must be positive and keep memory use bounded.
 
 Reconstruction CPU work is generation, canonicalization, disk deduplication,
-batched certificate lookup, and replay. Intermediate and reconstructed-root
-sorting bypass both the short CPU prefix and the former CPU helper scan.
+batched certificate lookup, replay, and the time-bounded prefix for both
+reconstructed waves. Set td18.reconstructionCpuPrefixMillis=0 to perform only
+the initial prefix checks before GPU fallback. The former CPU helper scan is
+not used.
 The GPU retains identity and known-diameter exits at every search depth.
 
 After sealing the intermediate wave, emission writes
 reconstruction-checkpoint.txt with a version and exact endpoint and
-intermediate counts. Resume that wave without repeating direct emission:
+intermediate counts. After sealing the root wave, it additionally writes
+root-reconstruction-checkpoint.txt with the propagated-intermediate and root
+counts. Resume the latest sealed wave without repeating earlier work:
 
 ~~~bash
 tools/td18 avoidance -Dtd18.certificateDb="$PWD/certificates" \
@@ -150,9 +156,10 @@ tools/td18 avoidance -Dtd18.certificateDb="$PWD/certificates" \
 
 The checkpoint databases are opened read-only; every record is decoded and
 the exact inventory counts are checked. Missing databases, records, inventory
-fields, or incompatible budgets fail the resume. A fresh work directory holds
-regenerated roots, and available sorting witnesses are replayed. Preserve the
-original checkpoint directory for further resumes. Resume accepts no phase
+fields, or incompatible budgets fail the resume. An intermediate checkpoint
+regenerates roots in the fresh work directory. A root checkpoint searches its
+sealed root set directly; available sorting witnesses are replayed in both
+cases. Preserve the original checkpoint directory for further resumes. Resume accepts no phase
 other than avoidance, ranges, or TD(16) import. Checkpoints are emission
 optimizations, not proof inputs: the independent checker still regenerates
 all obligations and replays the certificate database.
@@ -214,8 +221,8 @@ GPU fallthroughs, closure rate, and average search time and prefix depth.
 td18.cpuStatsPeriodSeconds controls their period and defaults to the GPU period;
 zero disables a reporter. For direct roots and endpoints, GPU throughput
 counts only fallthroughs once CPU prefixes are enabled, so use both counters
-when comparing those phases. Reconstruction reports GPU searches and cache
-hits directly and starts no CPU sorting reporter.
+when comparing those phases. The same applies to reconstructed-class cache
+misses after enabling the timed CPU prefix; cache hits remain separate.
 
 If physical GPU utilization and slot occupancy are both near 100%, with a
 full pending queue, increasing worker counts or lookup batches cannot feed

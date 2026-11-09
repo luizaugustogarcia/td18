@@ -63,11 +63,13 @@ checker retains its separate object-based orbit and replay implementations.
 Avoidance restores two fixed points to each unresolved endpoint and reverses
 every compatible second move. Disk-backed class deduplication precedes GPU
 search with budget nine. Batched multiGet replays stored witnesses before
-dispatching only missing classes directly to GPU search. Reconstruction has
-no CPU sorting prefix or CPU helper pool. Successful intermediate discharges are persisted.
+trying each missing class in the bounded CPU prefix for at most the configured
+reconstruction deadline. A timeout sends the untouched obligation directly to
+GPU search. Successful intermediate discharges are persisted.
 The second inverse wave restores one fixed point and reconstructs roots;
-remaining roots receive budget-ten searches. The root result starts at the
-root and is independent of the selected reduction prefix.
+remaining roots use the same timed CPU prefix followed by budget-ten GPU
+search on every prefix miss or timeout. The root result starts at the root and
+is independent of the selected reduction prefix.
 
 ## Checker
 

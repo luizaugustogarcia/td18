@@ -2,8 +2,13 @@ package br.unb.cic.td18.emission;
 
 import br.unb.cic.td18.avoidance.DiskStateSet;
 import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
+import br.unb.cic.td18.certificate.AsyncCertificateWriter;
 import br.unb.cic.td18.joint.JointInventory;
 import br.unb.cic.td18.joint.JointRootGenerator;
+import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.permutation.Cycle;
+import br.unb.cic.td18.permutation.MulticyclePermutation;
+import br.unb.cic.td18.search.WitnessSearch;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.LongAdder;
 import org.junit.jupiter.api.Test;
@@ -49,5 +54,18 @@ class WitnessEmitterTest {
                 new String[]{"--phase=avoidance", "--resume-work=old", "--endpoints=8-12"},Path.of(".")));
         assertEquals(Path.of("old").toAbsolutePath().normalize(), WitnessEmitter.Options.parse(
                 new String[]{"--phase=avoidance", "--resume-work=old"},Path.of(".")).resumeWork());
+    }
+
+    @Test void reconstructedRootUsesCpuPrefixAndPersistsItsClosure(@TempDir Path directory) {
+        var pair = CyclicTargetPair.of(new MulticyclePermutation("(0 1 2)(3 4 5)"),
+                Cycle.of(0,1,2,3,4,5)).canonicalRepresentative();
+        try (var writer = new AsyncCertificateWriter(directory.resolve("certificates"), 60)) {
+            WitnessSearch.installWriter(writer);
+            try {
+                assertTrue(WitnessEmitter.settleReconstructed(pair, 2, writer));
+                writer.flush();
+                assertEquals(1, writer.findResult(pair, 2).orElseThrow().moves().size());
+            } finally { WitnessSearch.uninstallWriter(writer); }
+        }
     }
 }

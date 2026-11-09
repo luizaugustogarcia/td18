@@ -48,7 +48,7 @@ public final class JointAvoidance {
         }
     }
 
-    /** Resumes a sealed intermediate wave; roots are regenerated and available witnesses replayed. */
+    /** Resumes the latest sealed intermediate or root wave and replays available results. */
     public static Result resume(Path checkpointWork, Path work,
                                 Predicate<CyclicTargetPair> intermediateClosure,
                                 Predicate<CyclicTargetPair> rootClosure) {
@@ -59,13 +59,22 @@ public final class JointAvoidance {
                                 Predicate<CyclicTargetPair> intermediateClosure,
                                 Predicate<CyclicTargetPair> rootClosure,
                                 Function<List<DiskStateSet.State>, boolean[]> lookup) {
-        var checkpoint = ReconstructionCheckpoint.read(checkpointWork);
         int workers = DirectTwistedBraceletGenerator.configuredWorkerCount();
+        if (RootReconstructionCheckpoint.exists(checkpointWork)) {
+            var checkpoint = RootReconstructionCheckpoint.read(checkpointWork);
+            try (var roots = DiskStateSet.openSealed(checkpointWork.resolve("roots"), checkpoint.roots());
+                 var progress = new Progress()) {
+                log.info("Resuming sealed root reconstruction: rootClasses={}, workers={}, lookupBatch={}, source={}",
+                        checkpoint.roots(), workers, DiskStateSet.lookupBatchSize(), checkpointWork);
+                return searchRoots(checkpoint, roots, rootClosure, lookup, workers, progress);
+            }
+        }
+        var checkpoint = ReconstructionCheckpoint.read(checkpointWork);
         try (var endpoints = DiskStateSet.openSealed(checkpointWork.resolve("endpoint-residuals"), checkpoint.endpoints());
              var intermediates = DiskStateSet.openSealed(checkpointWork.resolve("intermediates"), checkpoint.intermediates());
              var progress = new Progress()) {
             endpoints.forEach(state -> requireState(state, 16, 8));
-            log.info("Resuming reconstruction: endpoints={}, intermediateClasses={}, workers={}, lookupBatch={}, sorting=GPU, source={}",
+            log.info("Resuming reconstruction: endpoints={}, intermediateClasses={}, workers={}, lookupBatch={}, source={}",
                     checkpoint.endpoints(), checkpoint.intermediates(), workers, DiskStateSet.lookupBatchSize(), checkpointWork);
             return searchIntermediates(checkpoint.endpoints(), intermediates, work,
                     intermediateClosure, rootClosure, lookup, workers, progress);
@@ -95,22 +104,33 @@ public final class JointAvoidance {
                 completed.incrementAndGet();
             });
             long rootCount = roots.seal();
-            log.info("Reconstruction: propagatedIntermediates={}, rootClasses={}", propagated.get(), rootCount);
-            var sorted = new AtomicLong();
-            var rootCached = new AtomicLong();
-            var unresolved = new AtomicLong();
-            var rootLookup = checkedLookup(lookup, 19, 10);
-            progress.phase(() -> "searching roots: completed=" + sorted.get() + "/" + rootCount
-                    + " unresolved=" + unresolved.get() + " cached=" + rootCached.get());
-            roots.forEachConcurrently(workers, rootLookup, state -> {
-                rootCached.incrementAndGet(); sorted.incrementAndGet();
-            }, state -> {
-                requireState(state, 19, 10);
-                if (!rootClosure.test(state.pair())) unresolved.incrementAndGet();
-                sorted.incrementAndGet();
-            });
-            return new Result(endpointCount, middleCount, propagated.get(), rootCount, unresolved.get());
+            var checkpoint = new RootReconstructionCheckpoint(
+                    endpointCount, middleCount, propagated.get(), rootCount);
+            checkpoint.write(work);
+            log.info("Reconstruction: propagatedIntermediates={}, rootClasses={}", checkpoint.propagatedIntermediates(), rootCount);
+            return searchRoots(checkpoint, roots, rootClosure, lookup, workers, progress);
         }
+    }
+
+    private static Result searchRoots(RootReconstructionCheckpoint checkpoint, DiskStateSet roots,
+                                      Predicate<CyclicTargetPair> rootClosure,
+                                      Function<List<DiskStateSet.State>, boolean[]> lookup,
+                                      int workers, Progress progress) {
+        var sorted = new AtomicLong();
+        var rootCached = new AtomicLong();
+        var unresolved = new AtomicLong();
+        var rootLookup = checkedLookup(lookup, 19, 10);
+        progress.phase(() -> "searching roots: completed=" + sorted.get() + "/" + checkpoint.roots()
+                + " unresolved=" + unresolved.get() + " cached=" + rootCached.get());
+        roots.forEachConcurrently(workers, rootLookup, state -> {
+            rootCached.incrementAndGet(); sorted.incrementAndGet();
+        }, state -> {
+            requireState(state, 19, 10);
+            if (!rootClosure.test(state.pair())) unresolved.incrementAndGet();
+            sorted.incrementAndGet();
+        });
+        return new Result(checkpoint.endpoints(), checkpoint.intermediates(),
+                checkpoint.propagatedIntermediates(), checkpoint.roots(), unresolved.get());
     }
 
     private static Function<List<DiskStateSet.State>, boolean[]> checkedLookup(

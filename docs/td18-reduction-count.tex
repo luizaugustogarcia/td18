@@ -461,8 +461,9 @@ closure; a prefix miss leaves the
 original obligation and its full budget for CUDA search. Prefix move ordering
 introduces no structural reduction, including at totally unoriented states.
 Reconstructed classes are deduplicated, checked for previously established
-sorting witnesses, and sent directly to GPU search when no applicable witness
-is available, without a CPU sorting prefix.
+sorting witnesses, and given the same sound CPU prefix heuristic under a
+wall-clock deadline. A prefix miss or timeout retains no partial path and
+sends the unchanged class with its full budget to GPU search.
 The checker has no emitter dependency and independently regenerates roots,
 endpoints, and inverse waves. The certificate format is their interface.
 Every direct root requires a checked budget-ten result, either a complete

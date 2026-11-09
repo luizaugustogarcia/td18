@@ -58,6 +58,32 @@ class JointAvoidanceTest {
         assertThrows(IllegalArgumentException.class, () -> ReconstructionCheckpoint.read(directory));
     }
 
+    @Test void resumedSealedRootWaveSkipsIntermediateReconstruction(@TempDir Path directory) throws Exception {
+        Path source = Files.createDirectory(directory.resolve("source"));
+        long rootCount;
+        try (var roots = new DiskStateSet(source.resolve("roots"))) {
+            for (var pair : pairs(19, 4).values()) roots.add(pair, 10);
+            rootCount = roots.seal();
+        }
+        var checkpoint = new RootReconstructionCheckpoint(2, 7, 4, rootCount);
+        checkpoint.write(source);
+        var rootCalls = new AtomicLong();
+        var result = JointAvoidance.resume(source, Files.createDirectory(directory.resolve("resumed")),
+                pair -> { fail("A root checkpoint must not repeat intermediate search"); return false; },
+                pair -> { rootCalls.incrementAndGet(); return true; });
+        assertEquals(checkpoint, RootReconstructionCheckpoint.read(source));
+        assertEquals(rootCount, rootCalls.get());
+        assertEquals(new JointAvoidance.Result(2, 7, 4, rootCount, 0), result);
+    }
+
+    @Test void rootCheckpointRejectsMalformedOrImpossibleCounts(@TempDir Path directory) throws Exception {
+        assertThrows(IllegalStateException.class, () -> RootReconstructionCheckpoint.read(directory));
+        assertThrows(IllegalArgumentException.class, () -> new RootReconstructionCheckpoint(1, 2, 3, 4));
+        Files.writeString(directory.resolve("root-reconstruction-checkpoint.txt"),
+                "td18-root-reconstruction-checkpoint-v1\nendpoints=2\nintermediates=3\nroots=4\n");
+        assertThrows(IllegalArgumentException.class, () -> RootReconstructionCheckpoint.read(directory));
+    }
+
     @Test void bulkCacheHitsAvoidAllIntermediateSearchAndRootReconstruction(@TempDir Path directory) throws Exception {
         Path source=Files.createDirectory(directory.resolve("source"));
         try(var endpoints=new DiskStateSet(source.resolve("endpoint-residuals"));

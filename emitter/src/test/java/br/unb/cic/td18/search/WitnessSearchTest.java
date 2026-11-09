@@ -81,6 +81,35 @@ class WitnessSearchTest {
             } finally {WitnessSearch.uninstallWriter(writer);}
         }
     }
+
+    @Test void timedCpuPrefixEitherSettlesOrFallsThroughWithTheFullBudget(@TempDir Path path) {
+        try (var writer = new AsyncCertificateWriter(path.resolve("settled"), 60)) {
+            WitnessSearch.installWriter(writer);
+            try {
+                var result = WitnessSearch.searchWithCpuPrefixTimeout(pair(), 2, 1000,
+                        (input, budget) -> { fail("The CPU prefix should settle this pair"); return null; });
+                assertEquals(WitnessSearch.Disposition.DIAMETER_CLOSURE, result.disposition());
+                assertEquals(1, result.moves().size());
+            } finally { WitnessSearch.uninstallWriter(writer); }
+        }
+        try (var writer = new AsyncCertificateWriter(path.resolve("timeout"), 60)) {
+            WitnessSearch.installWriter(writer);
+            try {
+                var dispatched = new java.util.concurrent.atomic.AtomicInteger();
+                var result = WitnessSearch.searchWithCpuPrefixTimeout(pair(), 2, 0, (input, budget) -> {
+                    assertEquals(2, budget);
+                    assertEquals(pair().extendedToricClassKey(), input.extendedToricClassKey());
+                    dispatched.incrementAndGet();
+                    return new GPUSortingSearch.SearchOutcome(GPUSortingSearch.Disposition.DIAMETER_CLOSURE,
+                            java.util.List.of(new int[]{0,1,2}));
+                });
+                assertEquals(WitnessSearch.Disposition.DIAMETER_CLOSURE, result.disposition());
+                assertEquals(1, dispatched.get());
+            } finally { WitnessSearch.uninstallWriter(writer); }
+        }
+        assertThrows(IllegalArgumentException.class,
+                () -> WitnessSearch.searchWithCpuPrefixTimeout(pair(), 2, -1, (input,budget) -> null));
+    }
     @Test
     void cpuClosureIsPersistedReplayedAndNotACompleteWitness(@TempDir Path path) {
         try (var writer = new AsyncCertificateWriter(path,60)) {
