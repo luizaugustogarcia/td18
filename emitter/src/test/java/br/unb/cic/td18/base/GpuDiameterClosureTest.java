@@ -32,9 +32,11 @@ class GpuDiameterClosureTest {
             permute(beta.clone(),0,omega->{
                 if(!hasCyclicTarget(omega)) return;
                 for(int budget=1;budget<=3;budget++) {
-                    var result=gpu().search(beta,new OneLinePermutation(omega.clone()),budget,true);
-                    assertEquals(oracle(omega,beta,0,budget),result.disposition()!=GPUSortingSearch.Disposition.RESIDUAL);
-                    check(omega,beta,result,budget);
+                    for(boolean closure : new boolean[]{false,true}) {
+                        var result=gpu().search(beta,new OneLinePermutation(omega.clone()),budget,closure);
+                        assertEquals(oracle(omega,beta,0,budget,closure),result.disposition()!=GPUSortingSearch.Disposition.RESIDUAL);
+                        check(omega,beta,result,budget);
+                    }
                 }
             });
         }
@@ -75,9 +77,9 @@ class GpuDiameterClosureTest {
         int[] symbols=new int[beta.length];for(int i=0;i<beta.length;i++) symbols[i]=beta[i];
         return CyclicTargetPair.of(cycles,br.unb.cic.td18.permutation.Cycle.of(symbols));
     }
-    private static boolean oracle(byte[] omega,byte[] beta,int used,int budget) {
+    private static boolean oracle(byte[] omega,byte[] beta,int used,int budget,boolean closure) {
         int nonfixed=0;for(int i=0;i<omega.length;i++)if(omega[i]!=i)nonfixed++;
-        if(KnownDiameters.knownDiameter(nonfixed)<=budget-used)return true;
+        if(nonfixed==0 || (closure && KnownDiameters.knownDiameter(nonfixed)<=budget-used))return true;
         if(used==budget)return false;
         int odd=oddCycles(omega);
         for(int i=0;i<beta.length-2;i++) for(int j=i+1;j<beta.length-1;j++) for(int k=j+1;k<beta.length;k++) {
@@ -85,7 +87,7 @@ class GpuDiameterClosureTest {
             byte[] next=omega.clone();next[a]=omega[c];next[b]=omega[a];next[c]=omega[b];
             int gain=oddCycles(next)-odd;if(gain!=0&&gain!=2)continue;
             byte[] order=beta.clone();System.arraycopy(beta,j,order,i,k-j);System.arraycopy(beta,i,order,i+k-j,j-i);
-            if(oracle(next,order,used+1,budget))return true;
+            if(oracle(next,order,used+1,budget,closure))return true;
         }
         return false;
     }

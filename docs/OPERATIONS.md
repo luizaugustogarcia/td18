@@ -184,6 +184,27 @@ The GPU checks the O(N) consecutive supports for an immediate complete or
 known-diameter exit before expanding general children. These search choices
 add no structural reductions, including on totally unoriented states.
 
+CUDA general-support enumeration contracts fixed symbols, while retaining
+their original current-cycle positions in every recorded move. Cycle labels,
+ranks, and lengths are computed once per parent, so each support's
+odd-length-cycle delta uses constant-time arithmetic instead of repeated
+cycle walks. At the final depth, the consecutive-support test covers every
+possible exit: with one move remaining, a parent with at most three nonfixed
+symbols would already close; a new diameter-zero closure therefore gains at
+least two fixed points. Without diameter closures, a move reaching identity
+fixes its three symbols. No general child can be queued at that depth.
+Validate the cycle arithmetic independently on CPU with:
+
+~~~bash
+c++ -O3 -std=c++17 tools/audit/check_cycle_metadata.cpp -o /tmp/td18-cycle-metadata
+/tmp/td18-cycle-metadata
+~~~
+
+This checks every permutation and ordered support through eight symbols,
+and deterministic samples through nineteen; it does not certify the full
+sorting obligations. GPU oracle tests additionally compare complete bounded
+search results through six symbols, with and without diameter closures.
+
 Every 10 seconds, GPU statistics report searches per second, complete
 witnesses, diameter closures, misses, slot occupancy, pending work, and
 failures. Phase progress is logged separately. A throughput of 55.727/s means
@@ -195,6 +216,14 @@ zero disables a reporter. For direct roots and endpoints, GPU throughput
 counts only fallthroughs once CPU prefixes are enabled, so use both counters
 when comparing those phases. Reconstruction reports GPU searches and cache
 hits directly and starts no CPU sorting reporter.
+
+If physical GPU utilization and slot occupancy are both near 100%, with a
+full pending queue, increasing worker counts or lookup batches cannot feed
+additional work to the current kernel. Compare identical intermediate
+classes and budgets before changing slot counts, and replay every successful
+result. Long unsuccessful budget-nine searches can dominate reconstruction
+even when most other intermediates close quickly. Rates measured on a small
+sample or another GPU are performance experiments, not a full-run forecast.
 
 For a deterministic sample comparison of the search algorithm, build the
 classes and a dependency classpath, then run the audit benchmark:
@@ -271,7 +300,8 @@ The queues and disk buffer have these defaults:
 | --- | ---: | --- |
 | Pending certificate writes | 16,384 entries | td18.certificateQueueCapacity |
 | Pending oriented-root search tasks | 256 tasks | Fixed bound in the emitter |
-| Buffered unique keys per disk set | 16,384 keys | Fixed bound in emitter and checker |
+| Buffered unique keys per emitter disk set | 1,048,576 keys | td18.reconstructionBufferKeys |
+| Buffered unique keys per checker disk set | 16,384 keys | Fixed bound in checker |
 
 The certificate writer drains under queue pressure and flushes every five
 seconds by default; td18.certificateFlushSeconds controls the period. The

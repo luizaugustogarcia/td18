@@ -9,11 +9,17 @@
 #include <vector>
 
 #include "backtracking/slot_manager.cuh"
+#include "backtracking/cycle_metadata.cuh"
 #include "core/cuda_error.cuh"
 #include "core/cuda_memory.cuh"
 
 namespace {
     constexpr int WARP_SIZE = 32;
+
+    // Tables for sizes 3..n are concatenated; sum_{k=3}^{n-1} C(k,3)=C(n,4).
+    __host__ __device__ __forceinline__ int triple_table_offset(const int n) {
+        return n < 4 ? 0 : n * (n - 1) * (n - 2) * (n - 3) / 24;
+    }
 
     struct BacktrackingNode {
         uint8_t depth;
@@ -470,6 +476,8 @@ namespace {
         __shared__ uint8_t sh_parent_omega[MAX_N];
         __shared__ uint8_t sh_parent_beta[MAX_N];
         __shared__ uint8_t sh_tmp[MAX_N];
+        __shared__ uint8_t sh_active_positions[MAX_N];
+        __shared__ AlgebraicCycleMetadata<MAX_N> sh_cycle_metadata;
         __shared__ BacktrackingNode sh_children[WARP_SIZE];
 #if __CUDA_ARCH__ >= 700
         unsigned idleBackoff = 64;
@@ -568,6 +576,18 @@ namespace {
                 }
                 for (int i = 0; i < ctx.n; ++i)
                     sh_parent_beta[i] = sh_tmp[i];
+                // Contract fixed symbols for support enumeration, retaining
+                // original beta positions so every recorded move replays on
+                // the full pair. Retained triples keep their original order.
+                int active = 0;
+                for (int pos = 0; pos < ctx.n; ++pos) {
+                    const int symbol = sh_parent_beta[pos];
+                    if (sh_parent_omega[symbol] != symbol)
+                        sh_active_positions[active++] = static_cast<uint8_t>(pos);
+                }
+                // Every candidate support uses the same parent permutation.
+                // Trace its cycles once instead of three times per support.
+                build_cycle_metadata(sh_parent_omega, ctx.n, sh_cycle_metadata);
             }
             __syncwarp(0xFFFFFFFF);
 
@@ -610,11 +630,24 @@ namespace {
                     return;
                 }
             }
-            for (int tBase = 0; tBase < ctx.tripleCount; tBase += WARP_SIZE) {
+            // At the final depth a closure must leave at most two nonfixed
+            // symbols. With one move remaining, the parent would already
+            // close if it had at most three, so any new closure gains at least
+            // two fixed points. Without closures, a move reaching identity
+            // fixes its three symbols. Both are among the consecutive triples
+            // just tested; no general child can be queued at this depth.
+            if (childDepth == ctx.maxDepth) {
+                if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
+                continue;
+            }
+            const int activeCount = ctx.n - node.fixedPoints;
+            const int activeTriples = combinations_of_three(activeCount);
+            const int activeOffset = triple_table_offset(activeCount);
+            for (int tBase = 0; tBase < activeTriples; tBase += WARP_SIZE) {
                 if (warp_should_stop(ctx)) return;
 
                 const int t = ctx.reverseTripleOrder
-                    ? (ctx.tripleCount - 1 - tBase - lane)
+                    ? (activeTriples - 1 - tBase - lane)
                     : (tBase + lane);
                 bool foundChild = false;
                 bool wantsPush = false;
@@ -626,16 +659,16 @@ namespace {
                 uint8_t child_a = 0, child_b = 0, child_c = 0;
                 short moveFirst = 0, moveSecond = 0, moveThird = 0;
 
-                if (t >= 0 && t < ctx.tripleCount) {
-                    moveFirst = ctx.tripleFirst[t];
-                    moveSecond = ctx.tripleSecond[t];
-                    moveThird = ctx.tripleThird[t];
+                if (t >= 0 && t < activeTriples) {
+                    moveFirst = sh_active_positions[ctx.tripleFirst[activeOffset + t]];
+                    moveSecond = sh_active_positions[ctx.tripleSecond[activeOffset + t]];
+                    moveThird = sh_active_positions[ctx.tripleThird[activeOffset + t]];
                     const uint8_t a = sh_parent_beta[moveFirst];
                     const uint8_t b = sh_parent_beta[moveSecond];
                     const uint8_t c = sh_parent_beta[moveThird];
 
                     if (!contains_fixed_symbol(sh_parent_omega, a, b, c)) {
-                        const int delta = delta_odd_cycles(sh_parent_omega, a, b, c);
+                        const int delta = metadata_odd_cycle_delta(sh_cycle_metadata, a, b, c);
 
                         if (delta == 0 || delta == 2) {
                             childOddCycles = parentOddCycles + delta;
@@ -812,7 +845,7 @@ void allocateGpuSortingSearchSlot(const int slot, const int device,
             static_cast<size_t>(queueCount) * static_cast<size_t>(localCapacity), "sort.nodes");
     buffers.overflowNodes = allocateDeviceBuffer<BacktrackingNode>(
             static_cast<size_t>(overflowCapacity), "sort.overflowNodes");
-    const size_t maxTriples = static_cast<size_t>(combinations_of_three(MAX_N));
+    const size_t maxTriples = static_cast<size_t>(triple_table_offset(MAX_N + 1));
     buffers.tripleFirst = allocateDeviceBuffer<short>(maxTriples, "sort.tripleFirst");
     buffers.tripleSecond = allocateDeviceBuffer<short>(maxTriples, "sort.tripleSecond");
     buffers.tripleThird = allocateDeviceBuffer<short>(maxTriples, "sort.tripleThird");
@@ -890,24 +923,27 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
 
     if (slotView.triplesNeedUpload) {
         std::vector<short> firsts, seconds, thirds;
-        firsts.reserve(static_cast<size_t>(tripleCount));
-        seconds.reserve(static_cast<size_t>(tripleCount));
-        thirds.reserve(static_cast<size_t>(tripleCount));
-        for (short i = 0; i < n - 2; ++i) {
-            for (short j = i + 1; j < n - 1; ++j) {
-                for (short k = j + 1; k < n; ++k) {
-                    firsts.push_back(i);
-                    seconds.push_back(j);
-                    thirds.push_back(k);
+        const int tableCount = triple_table_offset(n + 1);
+        firsts.reserve(static_cast<size_t>(tableCount));
+        seconds.reserve(static_cast<size_t>(tableCount));
+        thirds.reserve(static_cast<size_t>(tableCount));
+        for (short domain = 3; domain <= n; ++domain) {
+            for (short i = 0; i < domain - 2; ++i) {
+                for (short j = i + 1; j < domain - 1; ++j) {
+                    for (short k = j + 1; k < domain; ++k) {
+                        firsts.push_back(i);
+                        seconds.push_back(j);
+                        thirds.push_back(k);
+                    }
                 }
             }
         }
         CHECK_CUDA(cudaMemcpyAsync(slotView.tripleFirst, firsts.data(),
-                                   sizeof(short) * tripleCount, cudaMemcpyHostToDevice, stream));
+                                   sizeof(short) * tableCount, cudaMemcpyHostToDevice, stream));
         CHECK_CUDA(cudaMemcpyAsync(slotView.tripleSecond, seconds.data(),
-                                   sizeof(short) * tripleCount, cudaMemcpyHostToDevice, stream));
+                                   sizeof(short) * tableCount, cudaMemcpyHostToDevice, stream));
         CHECK_CUDA(cudaMemcpyAsync(slotView.tripleThird, thirds.data(),
-                                   sizeof(short) * tripleCount, cudaMemcpyHostToDevice, stream));
+                                   sizeof(short) * tableCount, cudaMemcpyHostToDevice, stream));
     }
 
     auto inputVectors = std::vector<short>(static_cast<size_t>(n) * 2);
@@ -959,7 +995,9 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
     constexpr int INIT_THREADS = 128;
     const int initBlocks = (queueCount + INIT_THREADS - 1) / INIT_THREADS;
     initialize_queues_kernel<<<initBlocks, INIT_THREADS, 0, stream>>>(
-            slotView.tripleFirst, slotView.tripleSecond, slotView.tripleThird,
+            slotView.tripleFirst + triple_table_offset(n),
+            slotView.tripleSecond + triple_table_offset(n),
+            slotView.tripleThird + triple_table_offset(n),
             tripleCount,
             slotView.queues, queueCount,
             slotView.nodes, localCapacity,

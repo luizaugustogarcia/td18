@@ -41,6 +41,12 @@ consecutive algebraic supports and then larger fixed-point gains, including
 at totally unoriented states. These are witness-search orderings, not structural
 reductions. A prefix miss retains the original pair and full GPU budget.
 
+CUDA contracts fixed symbols for general support enumeration and records
+moves in the original current-cycle coordinates. Shared cycle metadata
+replaces per-support cycle walks. The consecutive-triple exit test suffices
+at the last depth, where no general child can be queued; see OPERATIONS.md
+for the diameter-zero argument and the independent cycle-arithmetic audit.
+
 Complete witnesses and diameter closures are validated and persisted with
 separate kind tags. CUDA initialization is lazy. The certificate writer uses
 a bounded queue of 16,384 entries by default, configurable through
