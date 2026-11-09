@@ -39,7 +39,7 @@ class JointAvoidanceTest {
             awaitParallel(rootBarrier);
             rootCalls.incrementAndGet();
             return true;
-        }, (pair, budget) -> false);
+        });
         assertEquals(4, middleCalls.get());
         assertEquals(4, result.intermediates());
         assertEquals(4, result.propagatedIntermediates());
@@ -69,7 +69,7 @@ class JointAvoidanceTest {
         var lookedUp=new AtomicLong();
         var result=JointAvoidance.resume(source,Files.createDirectory(directory.resolve("resumed")),
                 pair->{fail("Cached intermediates must not be searched");return false;},
-                pair->{fail("Cached intermediates must not be reconstructed");return false;},null,batch->{
+                pair->{fail("Cached intermediates must not be reconstructed");return false;},batch->{
                     var hits=new boolean[batch.size()];Arrays.fill(hits,true);
                     for(var state:batch){assertEquals(18,state.pair().getBeta().size());assertEquals(9,state.maximumMoves());}
                     lookedUp.addAndGet(batch.size());return hits;

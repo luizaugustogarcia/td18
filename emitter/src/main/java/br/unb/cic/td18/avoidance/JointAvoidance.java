@@ -8,7 +8,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
-import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -30,14 +29,6 @@ public final class JointAvoidance {
     public static Result resolve(DiskStateSet endpoints, Path work,
                                  Predicate<CyclicTargetPair> intermediateClosure,
                                  Predicate<CyclicTargetPair> rootClosure,
-                                 BiPredicate<CyclicTargetPair, Integer> cpuClosure) {
-        return resolve(endpoints, work, intermediateClosure, rootClosure, cpuClosure, null);
-    }
-
-    public static Result resolve(DiskStateSet endpoints, Path work,
-                                 Predicate<CyclicTargetPair> intermediateClosure,
-                                 Predicate<CyclicTargetPair> rootClosure,
-                                 BiPredicate<CyclicTargetPair, Integer> cpuClosure,
                                  Function<List<DiskStateSet.State>, boolean[]> lookup) {
         int workers = DirectTwistedBraceletGenerator.configuredWorkerCount();
         try (var intermediates = new DiskStateSet(work.resolve("intermediates"));
@@ -53,7 +44,7 @@ public final class JointAvoidance {
             long middleCount = intermediates.seal();
             new ReconstructionCheckpoint(endpointCount, middleCount).write(work);
             log.info("Reconstruction: endpoints={}, intermediateClasses={}, workers={}", endpointCount, middleCount, workers);
-            return searchIntermediates(endpointCount, intermediates, work, intermediateClosure, rootClosure, cpuClosure, lookup, workers, progress);
+            return searchIntermediates(endpointCount, intermediates, work, intermediateClosure, rootClosure, lookup, workers, progress);
         }
     }
 
@@ -67,14 +58,6 @@ public final class JointAvoidance {
     public static Result resume(Path checkpointWork, Path work,
                                 Predicate<CyclicTargetPair> intermediateClosure,
                                 Predicate<CyclicTargetPair> rootClosure,
-                                BiPredicate<CyclicTargetPair, Integer> cpuClosure) {
-        return resume(checkpointWork, work, intermediateClosure, rootClosure, cpuClosure, null);
-    }
-
-    public static Result resume(Path checkpointWork, Path work,
-                                Predicate<CyclicTargetPair> intermediateClosure,
-                                Predicate<CyclicTargetPair> rootClosure,
-                                BiPredicate<CyclicTargetPair, Integer> cpuClosure,
                                 Function<List<DiskStateSet.State>, boolean[]> lookup) {
         var checkpoint = ReconstructionCheckpoint.read(checkpointWork);
         int workers = DirectTwistedBraceletGenerator.configuredWorkerCount();
@@ -82,17 +65,16 @@ public final class JointAvoidance {
              var intermediates = DiskStateSet.openSealed(checkpointWork.resolve("intermediates"), checkpoint.intermediates());
              var progress = new Progress()) {
             endpoints.forEach(state -> requireState(state, 16, 8));
-            log.info("Resuming reconstruction: endpoints={}, intermediateClasses={}, workers={}, lookupBatch={}, source={}",
+            log.info("Resuming reconstruction: endpoints={}, intermediateClasses={}, workers={}, lookupBatch={}, sorting=GPU, source={}",
                     checkpoint.endpoints(), checkpoint.intermediates(), workers, DiskStateSet.lookupBatchSize(), checkpointWork);
             return searchIntermediates(checkpoint.endpoints(), intermediates, work,
-                    intermediateClosure, rootClosure, cpuClosure, lookup, workers, progress);
+                    intermediateClosure, rootClosure, lookup, workers, progress);
         }
     }
 
     private static Result searchIntermediates(long endpointCount, DiskStateSet intermediates, Path work,
                                               Predicate<CyclicTargetPair> intermediateClosure,
                                               Predicate<CyclicTargetPair> rootClosure,
-                                              BiPredicate<CyclicTargetPair, Integer> cpuClosure,
                                               Function<List<DiskStateSet.State>, boolean[]> lookup, int workers, Progress progress) {
         try (var roots = new DiskStateSet(work.resolve("roots"))) {
             long middleCount = intermediates.seal();
@@ -100,39 +82,33 @@ public final class JointAvoidance {
             var cached = new AtomicLong();
             var propagated = new AtomicLong();
             var intermediateLookup = checkedLookup(lookup, 18, 9);
-            try (var cpu = new CpuWitnessPrefetch(intermediates, cpuClosure, intermediateLookup)) {
-                progress.phase(() -> "searching intermediates: completed=" + completed.get() + "/" + middleCount
-                        + " propagated=" + propagated.get() + " cached=" + cached.get() + cpu.progress());
-                intermediates.forEachConcurrently(workers, intermediateLookup, state -> {
-                    cpu.check(); cached.incrementAndGet(); completed.incrementAndGet();
-                }, state -> {
-                    cpu.check();
-                    requireState(state, 18, 9);
-                    if (!intermediateClosure.test(state.pair())) {
-                        propagated.incrementAndGet();
-                        JointInverseReconstruction.roots(state.pair(), p -> roots.add(p, 10));
-                    }
-                    completed.incrementAndGet();
-                });
-            }
+            progress.phase(() -> "searching intermediates: completed=" + completed.get() + "/" + middleCount
+                    + " propagated=" + propagated.get() + " cached=" + cached.get());
+            intermediates.forEachConcurrently(workers, intermediateLookup, state -> {
+                cached.incrementAndGet(); completed.incrementAndGet();
+            }, state -> {
+                requireState(state, 18, 9);
+                if (!intermediateClosure.test(state.pair())) {
+                    propagated.incrementAndGet();
+                    JointInverseReconstruction.roots(state.pair(), p -> roots.add(p, 10));
+                }
+                completed.incrementAndGet();
+            });
             long rootCount = roots.seal();
             log.info("Reconstruction: propagatedIntermediates={}, rootClasses={}", propagated.get(), rootCount);
             var sorted = new AtomicLong();
             var rootCached = new AtomicLong();
             var unresolved = new AtomicLong();
             var rootLookup = checkedLookup(lookup, 19, 10);
-            try (var cpu = new CpuWitnessPrefetch(roots, cpuClosure, rootLookup)) {
-                progress.phase(() -> "searching roots: completed=" + sorted.get() + "/" + rootCount
-                        + " unresolved=" + unresolved.get() + " cached=" + rootCached.get() + cpu.progress());
-                roots.forEachConcurrently(workers, rootLookup, state -> {
-                    cpu.check(); rootCached.incrementAndGet(); sorted.incrementAndGet();
-                }, state -> {
-                    cpu.check();
-                    requireState(state, 19, 10);
-                    if (!rootClosure.test(state.pair())) unresolved.incrementAndGet();
-                    sorted.incrementAndGet();
-                });
-            }
+            progress.phase(() -> "searching roots: completed=" + sorted.get() + "/" + rootCount
+                    + " unresolved=" + unresolved.get() + " cached=" + rootCached.get());
+            roots.forEachConcurrently(workers, rootLookup, state -> {
+                rootCached.incrementAndGet(); sorted.incrementAndGet();
+            }, state -> {
+                requireState(state, 19, 10);
+                if (!rootClosure.test(state.pair())) unresolved.incrementAndGet();
+                sorted.incrementAndGet();
+            });
             return new Result(endpointCount, middleCount, propagated.get(), rootCount, unresolved.get());
         }
     }

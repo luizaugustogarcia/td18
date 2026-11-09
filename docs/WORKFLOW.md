@@ -57,7 +57,7 @@ tools/td18 avoidance
 
 Regenerate endpoint classes without an eight-move discharge. Restore two
 fixed points and reverse the second move, search deduplicated 18-symbol
-predecessors within budget nine (CPU prefix, then GPU) and persist successful discharges, then restore one fixed point and reverse
+predecessors directly on GPU within budget nine and persist successful discharges, then restore one fixed point and reverse
 the first move. Each remaining deduplicated root needs a ten-move closure
 or complete witness. All gap distributions and admissible supports are
 covered, including moves within even-length cycles. Missing obstruction
@@ -67,7 +67,8 @@ Inverse generation runs across the available CPU cores; intermediate and
 root searches use the configured td18.twistedBraceletWorkers pool with
 bounded queues. Each wave globally deduplicates its reconstruction keys, then
 replays previously stored witnesses through multiGet batches before sending
-only cache misses to search. Default buffers hold 1,048,576 reconstruction
+only cache misses directly to GPU search. Reconstruction uses no CPU sorting
+prefix or CPU helper scan. Default buffers hold 1,048,576 reconstruction
 keys and 262,144 lookup classes. A sealed intermediate checkpoint can resume through
 tools/td18 avoidance with --resume-work=PATH; see the operations guide for
 the checked inventory and fresh-work requirements.

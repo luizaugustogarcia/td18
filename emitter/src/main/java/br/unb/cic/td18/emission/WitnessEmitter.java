@@ -68,12 +68,12 @@ public final class WitnessEmitter {
                     progress.phase(() -> "final inverse reconstruction");
                     var result = options.resumeWork == null
                             ? JointAvoidance.resolve(endpoints, work,
-                                    pair -> settle(pair, 9, writer, null, true),
-                                    pair -> settle(pair, 10, writer, null, true), WitnessSearch::prefetchCpu,
+                                    pair -> settleReconstructed(pair, 9, writer),
+                                    pair -> settleReconstructed(pair, 10, writer),
                                     WitnessEmitter::lookupReconstructionBatch)
                             : JointAvoidance.resume(options.resumeWork, work,
-                                    pair -> settle(pair, 9, writer, null, true),
-                                    pair -> settle(pair, 10, writer, null, true), WitnessSearch::prefetchCpu,
+                                    pair -> settleReconstructed(pair, 9, writer),
+                                    pair -> settleReconstructed(pair, 10, writer),
                                     WitnessEmitter::lookupReconstructionBatch);
                     writer.flush();
                     log.info("Final reconstruction: {}", result);
@@ -111,6 +111,13 @@ public final class WitnessEmitter {
         }
         if (!search) return false;
         var result = WitnessSearch.search(pair, budget);
+        if (result.disposition() != WitnessSearch.Disposition.RESIDUAL) return true;
+        writer.enqueueObstruction(pair, budget);
+        return false;
+    }
+
+    private static boolean settleReconstructed(CyclicTargetPair pair, int budget, AsyncCertificateWriter writer) {
+        var result = WitnessSearch.searchGpu(pair, budget);
         if (result.disposition() != WitnessSearch.Disposition.RESIDUAL) return true;
         writer.enqueueObstruction(pair, budget);
         return false;

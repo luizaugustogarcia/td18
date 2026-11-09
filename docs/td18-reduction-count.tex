@@ -454,11 +454,15 @@ budget. Its completeness does not depend on a predicted obstruction set.
 
 \section{Certificates and completion criteria}
 The workflow separates exhaustive generation, sorting, and independent
-verification. The Java emitter generates classes on CPU and first tries a
-bounded CPU sorting prefix. It replays and persists every successful prefix
-as a complete witness or a known-diameter closure; a prefix miss leaves the
+verification. The Java emitter generates classes on CPU and may first try a
+bounded CPU sorting prefix for direct roots and endpoints. It replays and
+persists every successful prefix as a complete witness or a known-diameter
+closure; a prefix miss leaves the
 original obligation and its full budget for CUDA search. Prefix move ordering
 introduces no structural reduction, including at totally unoriented states.
+Reconstructed classes are deduplicated, checked for previously established
+sorting witnesses, and sent directly to GPU search when no applicable witness
+is available, without a CPU sorting prefix.
 The checker has no emitter dependency and independently regenerates roots,
 endpoints, and inverse waves. The certificate format is their interface.
 Every direct root requires a checked budget-ten result, either a complete

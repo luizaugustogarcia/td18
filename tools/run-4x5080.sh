@@ -24,8 +24,8 @@ cmake -S emitter/src/native -B emitter/target/native \
 # Keep the remaining VRAM available for CUDA contexts and allocator overhead.
 # 64 additional GPU queue entries give 96 pending searches in total.
 # 192 producers cover 32 active + 96 pending searches and 64 CPU workers.
-# Set TD18_CPU_PREFIX_DEPTH=0 for GPU-first execution; CPU shortcuts usually
-# improve total throughput, so depth four remains the default.
+# TD18_CPU_PREFIX_DEPTH configures direct roots and endpoints; reconstruction
+# sends unresolved classes directly to CUDA without CPU sorting.
 # Reuse certificates on subsequent runs; no existing data is deleted.
 nohup ./tools/td18 emit -B -Dstyle.color=never \
     -Dtd18.gpuDevices=0,1,2,3 \

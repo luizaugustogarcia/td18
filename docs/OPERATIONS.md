@@ -99,8 +99,8 @@ tools/td18 avoidance -Dtd18.certificateDb="$PWD/certificates"
 The optional TD(16) database is read-only. Only valid complete witnesses
 within the requested budget are reused. Roots use ten moves; endpoints use
 eight. Final reconstruction searches 18-symbol predecessors on GPU within
-nine moves and sends remaining full roots to budget-ten search. Both searches
-try the bounded CPU prefix before dispatching to CUDA.
+nine moves and sends remaining full roots to budget-ten search. Both waves
+dispatch cache misses directly to CUDA, without CPU sorting searches.
 Missing endpoint witnesses generate final obligations even if no obstruction
 marker exists. No list of expected endpoint failures is required.
 
@@ -115,8 +115,8 @@ tasks; a full queue makes the submitting thread process work itself.
 
 Final inverse generation uses all available CPU cores. Intermediate and
 reconstructed-root searches use the same td18.twistedBraceletWorkers count as
-direct generation, with bounded queues and concurrent CPU prefixes and GPU
-searches. Canonicalization runs outside the disk-set write lock. Each wave
+direct generation, with bounded queues feeding concurrent GPU searches.
+Canonicalization runs outside the disk-set write lock. Each wave
 finishes all callbacks before its deduplicated successor set is sealed;
 worker failures prevent successful completion. Reconstruction progress reports
 completed and total classes separately for the intermediate and root waves.
@@ -134,16 +134,10 @@ missing records remain part of the obligation inventory. Progress reports
 cached classes separately, and each bulk lookup logs requested and reusable
 counts. Both buffer sizes must be positive and keep memory use bounded.
 
-A separate CPU pool searches ahead of each GPU wave and persists replayed
-witnesses so the GPU scan can reuse them. This pool never waits on CUDA; a CPU
-miss leaves every GPU obligation intact. Its bounded queue holds 256 classes.
-Its input is filtered by the same large multiGet batches before CPU dispatch.
-td18.cpuPrefetchWorkers=auto uses all available CPU cores (zero disables it);
-td18.cpuPrefetchDepth defaults to ten, capped at the obligation budget, and
-td18.cpuPrefetchMaxTriples defaults to 16,777,216 per class. Its completed and
-covered counters appear in reconstruction progress. Outstanding heuristic work
-is cancelled and joined when the full GPU wave finishes. These limits affect
-only witness discovery; independent verification still regenerates all work.
+Reconstruction CPU work is generation, canonicalization, disk deduplication,
+batched certificate lookup, and replay. Intermediate and reconstructed-root
+sorting bypass both the short CPU prefix and the former CPU helper scan.
+The GPU retains identity and known-diameter exits at every search depth.
 
 After sealing the intermediate wave, emission writes
 reconstruction-checkpoint.txt with a version and exact endpoint and
@@ -165,7 +159,7 @@ all obligations and replays the certificate database.
 
 The GPU search checks identity and the known-diameter bound at every depth
 up to the obligation budget. It permits odd-length-cycle gains zero and two.
-A CPU prefix first tries the same exits, using actual applicable transpositions
+For direct roots and endpoints, a CPU prefix first tries the same exits, using actual applicable transpositions
 with odd-length-cycle gains zero and two. Its defaults are depth three and
 a shared support budget of 8,192 per obligation. Set td18.cpuPrefixDepth=0 or
 td18.cpuPrefixMaxTriples=0 to disable prefix expansion; initial identity and
@@ -197,8 +191,10 @@ about 56 searches per second.
 CPU prefix statistics separately report attempts per second, settled results,
 GPU fallthroughs, closure rate, and average search time and prefix depth.
 td18.cpuStatsPeriodSeconds controls their period and defaults to the GPU period;
-zero disables a reporter. GPU throughput counts only fallthroughs once CPU
-prefixes are enabled, so use both counters when comparing runs.
+zero disables a reporter. For direct roots and endpoints, GPU throughput
+counts only fallthroughs once CPU prefixes are enabled, so use both counters
+when comparing those phases. Reconstruction reports GPU searches and cache
+hits directly and starts no CPU sorting reporter.
 
 For a deterministic sample comparison of the search algorithm, build the
 classes and a dependency classpath, then run the audit benchmark:

@@ -53,6 +53,22 @@ public final class WitnessSearch {
 
     /** Searches the full budget, accepting identity or a replayed known-diameter closure at any depth. */
     public static SearchResult search(final CyclicTargetPair input, final int maximumMoves) {
+        return search(input, maximumMoves, true, WitnessSearch::dispatchGpu);
+    }
+
+    /** Reuses stored certificates, then sends an unresolved reconstructed class directly to CUDA. */
+    public static SearchResult searchGpu(final CyclicTargetPair input, final int maximumMoves) {
+        return searchGpu(input, maximumMoves, WitnessSearch::dispatchGpu);
+    }
+
+    @FunctionalInterface
+    interface GpuSearch { GPUSortingSearch.SearchOutcome search(CyclicTargetPair pair, int maximumMoves); }
+
+    static SearchResult searchGpu(CyclicTargetPair input, int maximumMoves, GpuSearch dispatcher) {
+        return search(input, maximumMoves, false, dispatcher);
+    }
+
+    private static SearchResult search(CyclicTargetPair input, int maximumMoves, boolean cpuPrefix, GpuSearch dispatcher) {
         Objects.requireNonNull(input);
         if (maximumMoves < 1 || maximumMoves > KnownDiameters.MAX_BUDGET)
             throw new IllegalArgumentException("Sorting budget must lie between 1 and 10");
@@ -61,11 +77,11 @@ public final class WitnessSearch {
         if (writer == null) throw new IllegalStateException("Sorting requires a proof-scoped certificate writer");
         final var existing = writer.findResult(pair, maximumMoves);
         if (existing.isPresent()) return checked(existing.orElseThrow());
-        final var cpu = CpuPrefixSearch.search(pair, maximumMoves);
-        if (cpu.isPresent()) return persist(pair, cpu.orElseThrow(), maximumMoves, writer);
-        final byte[] beta = new byte[pair.getBeta().size()];
-        for (int i = 0; i < beta.length; i++) beta[i] = (byte) pair.getBeta().get(i);
-        final var outcome = gpu().search(beta, new OneLinePermutation(pair.getOmega().getOneLineNotation()), maximumMoves, true);
+        if (cpuPrefix) {
+            final var cpu = CpuPrefixSearch.search(pair, maximumMoves);
+            if (cpu.isPresent()) return persist(pair, cpu.orElseThrow(), maximumMoves, writer);
+        }
+        final var outcome = dispatcher.search(pair, maximumMoves);
         if (outcome.disposition() == GPUSortingSearch.Disposition.RESIDUAL) return SearchResult.residual();
         final var moves = outcome.moves().stream().map(move -> Cycle.of(move[0], move[1], move[2])).toList();
         final var result = outcome.disposition() == GPUSortingSearch.Disposition.COMPLETE
@@ -74,18 +90,10 @@ public final class WitnessSearch {
         return persist(pair, result, maximumMoves, writer);
     }
 
-    /** CPU assistance only: a miss never discharges or marks the original GPU obligation. */
-    public static boolean prefetchCpu(CyclicTargetPair input, int maximumMoves) {
-        var pair = input.canonicalRepresentative();
-        var writer = certificateWriter;
-        if (writer == null) throw new IllegalStateException("Sorting requires a proof-scoped certificate writer");
-        if (writer.findResult(pair, maximumMoves).isPresent()) return true;
-        var result = CpuPrefixSearch.search(pair, maximumMoves,
-                Integer.getInteger("td18.cpuPrefetchDepth", KnownDiameters.MAX_BUDGET),
-                Integer.getInteger("td18.cpuPrefetchMaxTriples", 16777216));
-        if (result.isEmpty()) return false;
-        persist(pair, result.orElseThrow(), maximumMoves, writer);
-        return true;
+    private static GPUSortingSearch.SearchOutcome dispatchGpu(CyclicTargetPair pair, int maximumMoves) {
+        final byte[] beta = new byte[pair.getBeta().size()];
+        for (int i = 0; i < beta.length; i++) beta[i] = (byte) pair.getBeta().get(i);
+        return gpu().search(beta, new OneLinePermutation(pair.getOmega().getOneLineNotation()), maximumMoves, true);
     }
 
     /** Replays a large batch before any of its cache misses enter a sorting queue. */

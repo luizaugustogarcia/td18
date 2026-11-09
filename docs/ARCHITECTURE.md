@@ -35,7 +35,7 @@ The CUDA sorter allows transpositions with odd-length-cycle gains zero or
 two. It searches up to the complete budget and stops at identity or when
 contraction leaves a domain whose established diameter fits the remaining
 budget. Fixed points are counted as data at the root and updated after each
-transposition. Before CUDA, a bounded CPU prefix tries actual transpositions
+transposition. For direct roots and endpoints, a bounded CPU prefix tries actual transpositions
 and the same identity or diameter exits. It prioritizes immediate exits on
 consecutive algebraic supports and then larger fixed-point gains, including
 at totally unoriented states. These are witness-search orderings, not structural
@@ -46,7 +46,8 @@ separate kind tags. CUDA initialization is lazy. The certificate writer uses
 a bounded queue of 16,384 entries by default, configurable through
 td18.certificateQueueCapacity. The joint-generation and root-witness task
 queues each permit 256 pending tasks. CPU worker counts are automatic.
-Each disk set buffers at most 16,384 unique keys before flushing to RocksDB.
+Each disk set buffers at most 1,048,576 unique keys before flushing to RocksDB,
+configurable through td18.reconstructionBufferKeys.
 Emitter orbit minimization compares spatial images in the fixed alphabet
 using primitive buffers and constructs only the winning auxiliary-standardized
 word. Twisted reflection still reverses positions and inverts oriented ranks.
@@ -55,7 +56,9 @@ checker retains its separate object-based orbit and replay implementations.
 
 Avoidance restores two fixed points to each unresolved endpoint and reverses
 every compatible second move. Disk-backed class deduplication precedes GPU
-search with budget nine. Successful intermediate discharges are persisted.
+search with budget nine. Batched multiGet replays stored witnesses before
+dispatching only missing classes directly to GPU search. Reconstruction has
+no CPU sorting prefix or CPU helper pool. Successful intermediate discharges are persisted.
 The second inverse wave restores one fixed point and reconstructs roots;
 remaining roots receive budget-ten searches. The root result starts at the
 root and is independent of the selected reduction prefix.
