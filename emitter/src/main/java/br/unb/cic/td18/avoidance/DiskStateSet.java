@@ -8,16 +8,19 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.rocksdb.*;
 
 /** Bounded disk deduplication of a regenerated wave of valid-pair classes. */
 public final class DiskStateSet implements AutoCloseable {
     private static final byte VERSION = 1;
     private static final byte[] EMPTY = {};
-    private static final int BUFFER_KEYS = 16384;
     static { RocksDB.loadLibrary(); }
+    private final int bufferKeys = positiveProperty("td18.reconstructionBufferKeys", 1048576);
     private final Options options = new Options().setCreateIfMissing(true)
             .setWriteBufferSize(32L << 20).setMaxWriteBufferNumber(2).setMaxBackgroundJobs(2).setMaxOpenFiles(128);
     private final WriteOptions writes = new WriteOptions().setDisableWAL(true);
@@ -81,7 +84,7 @@ public final class DiskStateSet implements AutoCloseable {
             requireOpen();
             if (readOnly || size >= 0) throw new IllegalStateException("State set is sealed");
             pending.add(ByteBuffer.wrap(key));
-            if (pending.size() >= BUFFER_KEYS) flushPending();
+            if (pending.size() >= bufferKeys) flushPending();
         }
     }
 
@@ -128,6 +131,45 @@ public final class DiskStateSet implements AutoCloseable {
     public void forEachConcurrently(int workers, Consumer<State> consumer) {
         try (var tasks = new BoundedTasks(workers, "reconstruction-")) {
             forEach(state -> tasks.submit(() -> consumer.accept(state)));
+        }
+    }
+
+    public static int lookupBatchSize() { return positiveProperty("td18.certificateLookupBatchSize", 262144); }
+
+    private static int positiveProperty(String name, int defaultValue) {
+        int value = Integer.getInteger(name, defaultValue);
+        if (value < 1) throw new IllegalArgumentException(name + " must be positive");
+        return value;
+    }
+
+    /** Deterministic bounded batches, including the final partial batch. */
+    public void forEachBatch(Consumer<List<State>> consumer) {
+        int limit = lookupBatchSize();
+        var batch = new ArrayList<State>(limit);
+        forEach(state -> {
+            batch.add(state);
+            if (batch.size() == limit) { consumer.accept(List.copyOf(batch)); batch.clear(); }
+        });
+        if (!batch.isEmpty()) consumer.accept(List.copyOf(batch));
+    }
+
+    /** Bulk replay precedes bounded submission; cached classes never enter the worker queue. */
+    public void forEachConcurrently(int workers, Function<List<State>, boolean[]> lookup,
+                                    Consumer<State> cached, Consumer<State> missing) {
+        if (lookup == null) { forEachConcurrently(workers, missing); return; }
+        try (var tasks = new BoundedTasks(workers, "reconstruction-")) {
+            forEachBatch(batch -> {
+                tasks.check();
+                boolean[] hits = lookup.apply(batch);
+                if (hits == null || hits.length != batch.size())
+                    throw new IllegalStateException("Incomplete reconstruction batch lookup");
+                for (int i = 0; i < batch.size(); i++) if (hits[i]) cached.accept(batch.get(i));
+                for (int i = 0; i < batch.size(); i++) {
+                    if (hits[i]) continue;
+                    State state = batch.get(i);
+                    tasks.submit(() -> missing.accept(state));
+                }
+            });
         }
     }
 

@@ -9,6 +9,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
+import java.util.List;
 
 /** Bounded CPU searches ahead of the GPU scan; only replayed witnesses can remove GPU work. */
 final class CpuWitnessPrefetch implements AutoCloseable {
@@ -23,6 +25,16 @@ final class CpuWitnessPrefetch implements AutoCloseable {
     }
 
     CpuWitnessPrefetch(DiskStateSet states, BiPredicate<CyclicTargetPair, Integer> search, int count) {
+        this(states, search, count, null);
+    }
+
+    CpuWitnessPrefetch(DiskStateSet states, BiPredicate<CyclicTargetPair, Integer> search,
+                       Function<List<DiskStateSet.State>, boolean[]> lookup) {
+        this(states, search, configuredWorkers(), lookup);
+    }
+
+    CpuWitnessPrefetch(DiskStateSet states, BiPredicate<CyclicTargetPair, Integer> search, int count,
+                       Function<List<DiskStateSet.State>, boolean[]> lookup) {
         if (count < 0) throw new IllegalArgumentException("CPU prefetch worker count must be nonnegative");
         if (search == null || count == 0) { workers = null; producer = null; return; }
         workers = new ThreadPoolExecutor(count, count, 0L, TimeUnit.MILLISECONDS,
@@ -36,21 +48,40 @@ final class CpuWitnessPrefetch implements AutoCloseable {
                 });
         producer = Thread.ofPlatform().name("cpu-witness-prefetch-reader").unstarted(() -> {
             try {
-                states.forEach(state -> {
-                    if (cancelled.get()) throw new CancellationException("CPU prefetch stopped");
-                    check();
-                    workers.execute(() -> {
-                        if (cancelled.get()) return;
-                        try {
-                            if (search.test(state.pair(), state.maximumMoves())) covered.incrementAndGet();
-                            completed.incrementAndGet();
-                        } catch (Throwable error) { failed(error); }
-                    });
+                java.util.function.Consumer<DiskStateSet.State> submit = state -> {
+                    requireRunning();
+                    workers.execute(() -> search(state, search));
+                };
+                if (lookup == null) states.forEach(submit);
+                else states.forEachBatch(batch -> {
+                    requireRunning();
+                    boolean[] hits = lookup.apply(batch);
+                    if (hits == null || hits.length != batch.size())
+                        throw new IllegalStateException("Incomplete CPU prefetch batch lookup");
+                    for (boolean hit : hits) if (hit) { covered.incrementAndGet(); completed.incrementAndGet(); }
+                    for (int i = 0; i < batch.size(); i++) {
+                        requireRunning();
+                        if (!hits[i]) submit.accept(batch.get(i));
+                    }
                 });
             } catch (Throwable error) { failed(error); }
             finally { workers.shutdown(); }
         });
         producer.start();
+    }
+
+    private void requireRunning() {
+        if (cancelled.get() || Thread.currentThread().isInterrupted())
+            throw new CancellationException("CPU prefetch stopped");
+        check();
+    }
+
+    private void search(DiskStateSet.State state, BiPredicate<CyclicTargetPair, Integer> search) {
+        if (cancelled.get()) return;
+        try {
+            if (search.test(state.pair(), state.maximumMoves())) covered.incrementAndGet();
+            completed.incrementAndGet();
+        } catch (Throwable error) { failed(error); }
     }
 
     private static int configuredWorkers() {

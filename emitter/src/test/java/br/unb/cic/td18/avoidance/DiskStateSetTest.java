@@ -44,4 +44,36 @@ class DiskStateSetTest {
             }));
         }
     }
+
+    @Test void bulkLookupSkipsHitsAndKeepsCrossBufferDuplicatesAndThePartialBatch(@TempDir Path directory) {
+        var pair = CyclicTargetPair.of(new MulticyclePermutation(Cycle.of(0,1,2)),Cycle.of(0,1,2));
+        String oldBatch = System.getProperty("td18.certificateLookupBatchSize");
+        String oldBuffer = System.getProperty("td18.reconstructionBufferKeys");
+        System.setProperty("td18.certificateLookupBatchSize","3");
+        System.setProperty("td18.reconstructionBufferKeys","2");
+        try (var states = new DiskStateSet(directory.resolve("states"))) {
+            for (int budget=1;budget<=7;budget++) states.add(pair,budget);
+            for (int budget=1;budget<=7;budget++) states.add(pair,budget);
+            assertEquals(7,states.seal());
+            var sizes = new ArrayList<Integer>();
+            var hits = new java.util.concurrent.atomic.AtomicInteger();
+            var misses = java.util.concurrent.ConcurrentHashMap.<Integer>newKeySet();
+            states.forEachConcurrently(2,batch->{
+                sizes.add(batch.size());var found=new boolean[batch.size()];
+                for(int i=0;i<found.length;i++)found[i]=batch.get(i).maximumMoves()%2==0;
+                return found;
+            },state->hits.incrementAndGet(),state->{
+                assertEquals(1,state.maximumMoves()%2);
+                assertTrue(misses.add(state.maximumMoves()),"A duplicate reached sorting");
+            });
+            assertEquals(java.util.List.of(3,3,1),sizes);
+            assertEquals(3,hits.get());assertEquals(java.util.Set.of(1,3,5,7),misses);
+            assertThrows(IllegalStateException.class,()->states.forEachConcurrently(2,
+                    batch->new boolean[batch.size()-1],state->fail("Incomplete lookup cannot skip work"),
+                    state->fail("Incomplete lookup cannot dispatch work")));
+        } finally {
+            if(oldBatch==null)System.clearProperty("td18.certificateLookupBatchSize");else System.setProperty("td18.certificateLookupBatchSize",oldBatch);
+            if(oldBuffer==null)System.clearProperty("td18.reconstructionBufferKeys");else System.setProperty("td18.reconstructionBufferKeys",oldBuffer);
+        }
+    }
 }

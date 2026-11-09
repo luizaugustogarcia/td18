@@ -27,6 +27,8 @@
         <td18.certificateDb>${project.basedir}/../certificates</td18.certificateDb>
         <td18.certificateFlushSeconds>5</td18.certificateFlushSeconds>
         <td18.certificateQueueCapacity>16384</td18.certificateQueueCapacity>
+        <td18.certificateLookupBatchSize>262144</td18.certificateLookupBatchSize>
+        <td18.reconstructionBufferKeys>1048576</td18.reconstructionBufferKeys>
         <td18.args></td18.args>
     </properties>
 
@@ -53,7 +55,7 @@
                         <goals><goal>exec</goal></goals>
                         <configuration>
                             <executable>java</executable>
-                            <commandlineArgs>-classpath %classpath -Djava.library.path=${project.build.directory}/native -Dtd18.gpuDevices=${td18.gpuDevices} -Dtd18.gpuSlots=${td18.gpuSlots} -Dtd18.gpuBudgetMB=${td18.gpuBudgetMB} -Dtd18.gpuQueueCapacity=${td18.gpuQueueCapacity} -Dtd18.gpuStatsPeriodSeconds=${td18.gpuStatsPeriodSeconds} -Dtd18.cpuPrefixDepth=${td18.cpuPrefixDepth} -Dtd18.cpuPrefixMaxTriples=${td18.cpuPrefixMaxTriples} -Dtd18.cpuPrefetchWorkers=${td18.cpuPrefetchWorkers} -Dtd18.cpuPrefetchDepth=${td18.cpuPrefetchDepth} -Dtd18.cpuPrefetchMaxTriples=${td18.cpuPrefetchMaxTriples} -Dtd18.cpuStatsPeriodSeconds=${td18.cpuStatsPeriodSeconds} -Dtd18.twistedBraceletWorkers=${td18.twistedBraceletWorkers} -Dtd18.certificateDb=${td18.certificateDb} -Dtd18.certificateFlushSeconds=${td18.certificateFlushSeconds} -Dtd18.certificateQueueCapacity=${td18.certificateQueueCapacity} ${exec.mainClass} ${td18.args}</commandlineArgs>
+                            <commandlineArgs>-classpath %classpath -Djava.library.path=${project.build.directory}/native -Dtd18.gpuDevices=${td18.gpuDevices} -Dtd18.gpuSlots=${td18.gpuSlots} -Dtd18.gpuBudgetMB=${td18.gpuBudgetMB} -Dtd18.gpuQueueCapacity=${td18.gpuQueueCapacity} -Dtd18.gpuStatsPeriodSeconds=${td18.gpuStatsPeriodSeconds} -Dtd18.cpuPrefixDepth=${td18.cpuPrefixDepth} -Dtd18.cpuPrefixMaxTriples=${td18.cpuPrefixMaxTriples} -Dtd18.cpuPrefetchWorkers=${td18.cpuPrefetchWorkers} -Dtd18.cpuPrefetchDepth=${td18.cpuPrefetchDepth} -Dtd18.cpuPrefetchMaxTriples=${td18.cpuPrefetchMaxTriples} -Dtd18.cpuStatsPeriodSeconds=${td18.cpuStatsPeriodSeconds} -Dtd18.twistedBraceletWorkers=${td18.twistedBraceletWorkers} -Dtd18.certificateDb=${td18.certificateDb} -Dtd18.certificateFlushSeconds=${td18.certificateFlushSeconds} -Dtd18.certificateQueueCapacity=${td18.certificateQueueCapacity} -Dtd18.certificateLookupBatchSize=${td18.certificateLookupBatchSize} -Dtd18.reconstructionBufferKeys=${td18.reconstructionBufferKeys} ${exec.mainClass} ${td18.args}</commandlineArgs>
                         </configuration>
                     </execution>
                 </executions>

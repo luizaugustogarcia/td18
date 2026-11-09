@@ -69,10 +69,12 @@ public final class WitnessEmitter {
                     var result = options.resumeWork == null
                             ? JointAvoidance.resolve(endpoints, work,
                                     pair -> settle(pair, 9, writer, null, true),
-                                    pair -> settle(pair, 10, writer, null, true), WitnessSearch::prefetchCpu)
+                                    pair -> settle(pair, 10, writer, null, true), WitnessSearch::prefetchCpu,
+                                    WitnessEmitter::lookupReconstructionBatch)
                             : JointAvoidance.resume(options.resumeWork, work,
                                     pair -> settle(pair, 9, writer, null, true),
-                                    pair -> settle(pair, 10, writer, null, true), WitnessSearch::prefetchCpu);
+                                    pair -> settle(pair, 10, writer, null, true), WitnessSearch::prefetchCpu,
+                                    WitnessEmitter::lookupReconstructionBatch);
                     writer.flush();
                     log.info("Final reconstruction: {}", result);
                     if (result.unresolved() != 0) throw new IllegalStateException("Unresolved reconstructed roots: " + result.unresolved());
@@ -86,6 +88,14 @@ public final class WitnessEmitter {
             WitnessSearch.shutdownGpuStats();
             DirectTwistedBraceletGenerator.shutdownExecutor();
         }
+    }
+
+    private static boolean[] lookupReconstructionBatch(List<DiskStateSet.State> states) {
+        if (states.isEmpty()) return new boolean[0];
+        int budget = states.getFirst().maximumMoves();
+        for (var state : states) if (state.maximumMoves() != budget)
+            throw new IllegalStateException("A reconstruction lookup batch must have one obligation budget");
+        return WitnessSearch.lookupBatch(states.stream().map(DiskStateSet.State::pair).toList(), budget);
     }
 
     /** Returns true only for a replayed complete witness or a persisted known-diameter closure. */

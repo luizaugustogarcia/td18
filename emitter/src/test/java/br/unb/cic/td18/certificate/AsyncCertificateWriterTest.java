@@ -52,6 +52,39 @@ class AsyncCertificateWriterTest {
             assertTrue(writer.find(pair(),2).isEmpty()); assertEquals(moves,writer.find(pair(),3).orElseThrow());
         }
     }
+    @Test void multiGetPreservesMissingDuplicateAndOverBudgetPositions(@TempDir Path directory) {
+        var closure = CyclicTargetPair.of(new MulticyclePermutation("(0 1 2)(3 4 5)"),Cycle.of(0,1,2,3,4,5));
+        var missing = CyclicTargetPair.of(new MulticyclePermutation(Cycle.of(0,1,2,3,4)),Cycle.of(0,1,2,3,4));
+        var requests = List.of(missing, pair(), closure, pair(), missing);
+        try (var writer = new AsyncCertificateWriter(directory,60)) {
+            writer.enqueue(pair(), List.of(Cycle.of(0,1,2),Cycle.of(1,0,2),Cycle.of(0,1,2)));
+            writer.enqueueClosure(closure,List.of(Cycle.of(0,1,2)),2);
+            writer.flush();
+            assertTrue(writer.findResults(List.of(),2).isEmpty());
+            var results = writer.findResults(requests,2);
+            assertEquals(List.of(false,false,true,false,false),results.stream().map(java.util.Optional::isPresent).toList());
+            assertEquals(SortingCertificate.Kind.DIAMETER_CLOSURE,results.get(2).orElseThrow().kind());
+            assertEquals(List.of(false,true,true,true,false),writer.findResults(requests,3).stream()
+                    .map(java.util.Optional::isPresent).toList());
+            for(int i=0;i<requests.size();i++) assertEquals(writer.findResult(requests.get(i),2),results.get(i));
+        }
+    }
+    @Test void multiGetRejectsCorruptCertificates(@TempDir Path directory) throws Exception {
+        try (var writer = new AsyncCertificateWriter(directory,60)) {
+            writer.enqueue(pair(),List.of(Cycle.of(0,1,2))); writer.flush();
+        }
+        var handles = new ArrayList<org.rocksdb.ColumnFamilyHandle>();
+        try (var options = new org.rocksdb.DBOptions(); var familyOptions = new org.rocksdb.ColumnFamilyOptions();
+             var database = RocksDB.open(options,directory.toString(),List.of(
+                     new org.rocksdb.ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY,familyOptions),
+                     new org.rocksdb.ColumnFamilyDescriptor("obstructions".getBytes(java.nio.charset.StandardCharsets.UTF_8),familyOptions)),handles)) {
+            try { database.put(handles.getFirst(),CertificateCodec.keyFor(pair()),new byte[]{42}); }
+            finally { handles.forEach(org.rocksdb.ColumnFamilyHandle::close); }
+        }
+        try (var writer = new AsyncCertificateWriter(directory,60)) {
+            assertThrows(IllegalArgumentException.class,()->writer.findResults(List.of(pair()),10));
+        }
+    }
     @Test void closureRemovesObstructionAndReopensWithItsActualBudget(@TempDir Path directory) {
         try (var writer = new AsyncCertificateWriter(directory,60)) {
             writer.enqueueObstruction(pair(),10); writer.flush();

@@ -121,9 +121,23 @@ finishes all callbacks before its deduplicated successor set is sealed;
 worker failures prevent successful completion. Reconstruction progress reports
 completed and total classes separately for the intermediate and root waves.
 
+Reconstruction buffers up to 1,048,576 unique canonical keys per disk set,
+configured with td18.reconstructionBufferKeys. RocksDB deduplicates across
+all flushed buffers. Before dispatch, the intermediate and root waves perform
+multiGet lookups in batches of 262,144 classes, configured with
+td18.certificateLookupBatchSize. Every returned witness is replayed and
+checked against that wave's budget. Cache hits are counted as completed and
+never enter the sorting worker queue; only misses are submitted. Each miss
+still receives the ordinary fresh lookup when its worker starts, so a witness
+written after the bulk read can also avoid search. Final partial batches and
+missing records remain part of the obligation inventory. Progress reports
+cached classes separately, and each bulk lookup logs requested and reusable
+counts. Both buffer sizes must be positive and keep memory use bounded.
+
 A separate CPU pool searches ahead of each GPU wave and persists replayed
 witnesses so the GPU scan can reuse them. This pool never waits on CUDA; a CPU
 miss leaves every GPU obligation intact. Its bounded queue holds 256 classes.
+Its input is filtered by the same large multiGet batches before CPU dispatch.
 td18.cpuPrefetchWorkers=auto uses all available CPU cores (zero disables it);
 td18.cpuPrefetchDepth defaults to ten, capped at the obligation budget, and
 td18.cpuPrefetchMaxTriples defaults to 16,777,216 per class. Its completed and

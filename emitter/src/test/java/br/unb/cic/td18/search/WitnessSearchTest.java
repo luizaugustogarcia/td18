@@ -42,6 +42,20 @@ class WitnessSearchTest {
                     () -> CpuPrefixSearch.search(pair(), 2, 10, 16777216));
         } finally { Thread.interrupted(); }
     }
+
+    @Test void largeBatchReplaysEveryHitBeforeDispatch(@TempDir Path path) {
+        try(var writer=new AsyncCertificateWriter(path,60)) {
+            WitnessSearch.installWriter(writer);
+            try {
+                assertTrue(WitnessSearch.prefetchCpu(pair(),2));writer.flush();
+                var batch=java.util.Collections.nCopies(4096,pair());
+                var hits=WitnessSearch.lookupBatch(batch,2);
+                assertEquals(4096,hits.length);
+                for(boolean hit:hits)assertTrue(hit);
+                for(boolean hit:WitnessSearch.lookupBatch(batch,1))assertFalse(hit);
+            } finally {WitnessSearch.uninstallWriter(writer);}
+        }
+    }
     @Test
     void cpuClosureIsPersistedReplayedAndNotACompleteWitness(@TempDir Path path) {
         try (var writer = new AsyncCertificateWriter(path,60)) {

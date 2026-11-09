@@ -65,7 +65,10 @@ markers cannot omit obligations.
 
 Inverse generation runs across the available CPU cores; intermediate and
 root searches use the configured td18.twistedBraceletWorkers pool with
-bounded queues. A sealed intermediate checkpoint can resume through
+bounded queues. Each wave globally deduplicates its reconstruction keys, then
+replays previously stored witnesses through multiGet batches before sending
+only cache misses to search. Default buffers hold 1,048,576 reconstruction
+keys and 262,144 lookup classes. A sealed intermediate checkpoint can resume through
 tools/td18 avoidance with --resume-work=PATH; see the operations guide for
 the checked inventory and fresh-work requirements.
 

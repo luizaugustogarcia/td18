@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -113,14 +114,34 @@ public final class AsyncCertificateWriter implements AutoCloseable {
         if (closed) throw new IllegalStateException("Certificate writer is closed");
         if (maximumMoves < 0 || maximumMoves > 10) throw new IllegalArgumentException("Budget must be 0..10");
         try {
-            byte[] encoded = database.get(witnesses, CertificateCodec.keyFor(pair));
-            if (encoded == null) return Optional.empty();
-            var result = CertificateCodec.decodeResult(encoded);
-            int required = CertificateValidator.requiredBudget(pair, result);
-            if (required > obligationBudget(pair.getBeta().size()))
-                throw new IllegalArgumentException("Sorting result does not close its obligation budget");
-            return required <= maximumMoves ? Optional.of(result) : Optional.empty();
+            return checkedResult(pair, maximumMoves, database.get(witnesses, CertificateCodec.keyFor(pair)));
         } catch (RocksDBException error) { throw new IllegalStateException("Cannot read sorting result", error); }
+    }
+
+    /** Position-preserving bulk lookup; every hit is replayed against its actual obligation budget. */
+    public List<Optional<SortingCertificate>> findResults(List<CyclicTargetPair> pairs, int maximumMoves) {
+        throwIfFailed();
+        if (closed) throw new IllegalStateException("Certificate writer is closed");
+        if (maximumMoves < 0 || maximumMoves > 10) throw new IllegalArgumentException("Budget must be 0..10");
+        if (pairs.isEmpty()) return List.of();
+        var keys = pairs.stream().map(CertificateCodec::keyFor).toList();
+        try {
+            var encoded = database.multiGetAsList(Collections.nCopies(keys.size(), witnesses), keys);
+            if (encoded.size() != pairs.size()) throw new IllegalStateException("Incomplete certificate multiGet response");
+            var results = new ArrayList<Optional<SortingCertificate>>(pairs.size());
+            for (int i = 0; i < pairs.size(); i++)
+                results.add(checkedResult(pairs.get(i), maximumMoves, encoded.get(i)));
+            return List.copyOf(results);
+        } catch (RocksDBException error) { throw new IllegalStateException("Cannot bulk-read sorting results", error); }
+    }
+
+    private static Optional<SortingCertificate> checkedResult(CyclicTargetPair pair, int maximumMoves, byte[] encoded) {
+        if (encoded == null) return Optional.empty();
+        var result = CertificateCodec.decodeResult(encoded);
+        int required = CertificateValidator.requiredBudget(pair, result);
+        if (required > obligationBudget(pair.getBeta().size()))
+            throw new IllegalArgumentException("Sorting result does not close its obligation budget");
+        return required <= maximumMoves ? Optional.of(result) : Optional.empty();
     }
 
     public void forEachObstruction(Consumer<byte[]> consumer) {

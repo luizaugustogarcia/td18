@@ -58,6 +58,26 @@ class JointAvoidanceTest {
         assertThrows(IllegalArgumentException.class, () -> ReconstructionCheckpoint.read(directory));
     }
 
+    @Test void bulkCacheHitsAvoidAllIntermediateSearchAndRootReconstruction(@TempDir Path directory) throws Exception {
+        Path source=Files.createDirectory(directory.resolve("source"));
+        try(var endpoints=new DiskStateSet(source.resolve("endpoint-residuals"));
+            var intermediates=new DiskStateSet(source.resolve("intermediates"))) {
+            endpoints.seal();
+            for(var pair:pairs(18,4).values())intermediates.add(pair,9);
+            new ReconstructionCheckpoint(0,intermediates.seal()).write(source);
+        }
+        var lookedUp=new AtomicLong();
+        var result=JointAvoidance.resume(source,Files.createDirectory(directory.resolve("resumed")),
+                pair->{fail("Cached intermediates must not be searched");return false;},
+                pair->{fail("Cached intermediates must not be reconstructed");return false;},null,batch->{
+                    var hits=new boolean[batch.size()];Arrays.fill(hits,true);
+                    for(var state:batch){assertEquals(18,state.pair().getBeta().size());assertEquals(9,state.maximumMoves());}
+                    lookedUp.addAndGet(batch.size());return hits;
+                });
+        assertEquals(4,lookedUp.get());assertEquals(4,result.intermediates());
+        assertEquals(0,result.propagatedIntermediates());assertEquals(0,result.roots());assertEquals(0,result.unresolved());
+    }
+
     private static void awaitParallel(CountDownLatch barrier) {
         barrier.countDown();
         try { assertTrue(barrier.await(5, TimeUnit.SECONDS), "Reconstruction searches must overlap"); }

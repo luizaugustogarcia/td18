@@ -36,6 +36,8 @@ nohup ./tools/td18 emit -B -Dstyle.color=never \
     -Dtd18.cpuPrefixDepth="${TD18_CPU_PREFIX_DEPTH:-4}" \
     -Dtd18.cpuPrefixMaxTriples=8192 \
     -Dtd18.certificateQueueCapacity=1048576 \
+    -Dtd18.certificateLookupBatchSize=262144 \
+    -Dtd18.reconstructionBufferKeys=1048576 \
     -Dtd18.certificateFlushSeconds=5 \
     -Dtd18.certificateDb=/workspace/td18/certificates \
     -Dtd18.args=--phase=all \

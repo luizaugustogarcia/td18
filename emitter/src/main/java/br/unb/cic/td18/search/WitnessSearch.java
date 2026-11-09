@@ -12,9 +12,12 @@ import br.unb.cic.td18.joint.KnownDiameters;
 
 import java.util.List;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** The only route from a sorting search result to a persisted certificate. */
 public final class WitnessSearch {
+    private static final Logger log = LoggerFactory.getLogger(WitnessSearch.class);
     private static volatile AsyncCertificateWriter certificateWriter;
     private static volatile boolean gpuInitialized;
 
@@ -83,6 +86,19 @@ public final class WitnessSearch {
         if (result.isEmpty()) return false;
         persist(pair, result.orElseThrow(), maximumMoves, writer);
         return true;
+    }
+
+    /** Replays a large batch before any of its cache misses enter a sorting queue. */
+    public static boolean[] lookupBatch(List<CyclicTargetPair> inputs, int maximumMoves) {
+        var writer = certificateWriter;
+        if (writer == null) throw new IllegalStateException("Sorting requires a proof-scoped certificate writer");
+        var pairs = inputs.stream().map(CyclicTargetPair::canonicalRepresentative).toList();
+        var results = writer.findResults(pairs, maximumMoves);
+        var covered = new boolean[results.size()];
+        long hits = 0;
+        for (int i = 0; i < covered.length; i++) if (results.get(i).isPresent()) { covered[i] = true; hits++; }
+        log.info("Certificate multiGet: classes={}, reusable={}, budget={}", covered.length, hits, maximumMoves);
+        return covered;
     }
 
     private static SearchResult persist(CyclicTargetPair pair, SortingCertificate result,
