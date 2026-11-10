@@ -86,6 +86,16 @@ obstruction marker is present. Regeneration also makes sidecar manifests
 unnecessary as proof inputs. A longer valid witness does not close a smaller
 budget; an incorrect witness is rejected.
 
+Independent rank-placement regeneration is divided into disjoint prefix
+subtrees across all checker CPUs. Direct twisted-bracelet generation and both
+inverse waves are likewise parallel. Certificate keys are read with large,
+position-preserving RocksDB multiGet batches; every returned record is still
+decoded and replayed independently in parallel before it can discharge an
+obligation. Checker reconstruction sets use large bounded in-memory key
+buffers followed by disk-backed global deduplication. Parallel scheduling and
+batching change only throughput, not the generated inventories or acceptance
+conditions.
+
 ## Persistence
 
 The certificate database has two RocksDB column families. The default family

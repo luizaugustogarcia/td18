@@ -6,6 +6,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -15,14 +22,73 @@ import java.util.function.Consumer;
  * cycles and twisted canonical comparisons reject only irrevocable prefixes.
  */
 public final class IndependentJointRootGenerator {
+    private static final Runnable NO_CANCELLATION = () -> { };
     private IndependentJointRootGenerator() { }
     public static void generateResiduals(final int[] partition, final Consumer<CyclicTargetPair> consumer) {
-        new Enumeration(partition, Objects.requireNonNull(consumer)).run();
+        new Enumeration(partition, NO_CANCELLATION, Objects.requireNonNull(consumer)).run();
+    }
+    /** Generates disjoint rank-placement prefix subtrees on every requested CPU. */
+    public static void generateResidualsConcurrently(final int[] partition, final int workers,
+                                                     final Runnable cancellationCheck,
+                                                     final Consumer<CyclicTargetPair> consumer) {
+        if (workers < 1) throw new IllegalArgumentException("Positive CPU worker count required");
+        Objects.requireNonNull(cancellationCheck); Objects.requireNonNull(consumer);
+        final var failure = new AtomicReference<Throwable>();
+        final Runnable cancel = () -> {
+            final var error = failure.get();
+            if (error != null) throw propagate(error);
+            cancellationCheck.run();
+        };
+        final var template = new Enumeration(partition, cancel, consumer);
+        final var pool = new ThreadPoolExecutor(workers, workers, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(Math.max(256, workers * 16)),
+                Thread.ofPlatform().daemon(true).name("independent-joint-", 0).factory(),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        final List<Future<?>> jobs = new ArrayList<>();
+        try {
+            // Depth five yields tens of thousands of disjoint N=19 subtrees, avoiding
+            // the severe tail imbalance of the much larger shallow branches.
+            template.frontierDepth = Math.min(5, template.n - 1);
+            template.frontier = branch -> jobs.add(pool.submit(() -> {
+                try {
+                    final var enumeration = new Enumeration(template, branch);
+                    enumeration.checkCancellation();
+                    enumeration.place(branch.rank(), branch.used());
+                    enumeration.checkCancellation();
+                } catch (final RuntimeException | Error error) {
+                    failure.compareAndSet(null, error);
+                    throw error;
+                }
+            }));
+            template.run();
+            for (final var job : jobs) job.get();
+            cancel.run();
+        } catch (final ExecutionException error) {
+            throw propagate(failure.get() == null ? error.getCause() : failure.get());
+        } catch (final InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException("Independent joint generation interrupted");
+        } finally {
+            pool.shutdownNow();
+            boolean interrupted = Thread.interrupted();
+            for (;;) {
+                try { if (pool.awaitTermination(1, TimeUnit.SECONDS)) break; }
+                catch (final InterruptedException error) { interrupted = true; }
+            }
+            if (interrupted) Thread.currentThread().interrupt();
+        }
+    }
+    private static RuntimeException propagate(final Throwable failure) {
+        if (failure instanceof Error error) throw error;
+        if (failure instanceof RuntimeException error) return error;
+        return new IllegalStateException("Independent joint generation failed", failure);
     }
     private record Triple(int a, int b, int c) {
         int depth() { return Math.max(a, Math.max(b, c)); }
     }
     private record Rule(Triple first, List<Triple> seconds) { }
+    private record Branch(int rank, int used, int[] position, int[] image, int[] inverse,
+                          int[] target, int edges) { }
     private static final class Enumeration {
         final int n;
         final int[] parts, algebraic, predecessor, cycleOrigin, cycleLength, equalOrigin;
@@ -30,10 +96,14 @@ public final class IndependentJointRootGenerator {
         final List<Triple>[] immediate;
         final List<Rule>[] joint;
         final byte[] orders, transformed;
+        final Runnable cancellationCheck;
         final Consumer<CyclicTargetPair> consumer;
         int edges;
+        int frontierDepth;
+        Consumer<Branch> frontier;
         @SuppressWarnings("unchecked")
-        Enumeration(final int[] partition, final Consumer<CyclicTargetPair> consumer) {
+        Enumeration(final int[] partition, final Runnable cancellationCheck,
+                    final Consumer<CyclicTargetPair> consumer) {
             this.parts = partition.clone(); Arrays.sort(parts);
             for (int i = 0; i < parts.length / 2; i++) {
                 final int value = parts[i]; parts[i] = parts[parts.length - 1 - i]; parts[parts.length - 1 - i] = value;
@@ -42,7 +112,7 @@ public final class IndependentJointRootGenerator {
             if (n < 3 || n > 19 || parts.length == 0 || parts[parts.length - 1] < 2
                     || Arrays.stream(parts).filter(x -> x % 2 == 0).count() % 2 != 0)
                 throw new IllegalArgumentException("Expected an even fixed-point-free partition of 3..19 symbols");
-            this.consumer = consumer;
+            this.cancellationCheck = cancellationCheck; this.consumer = consumer;
             algebraic = new int[n]; predecessor = new int[n]; cycleOrigin = new int[n]; cycleLength = new int[n];
             equalOrigin = new int[n]; Arrays.fill(equalOrigin, -1);
             position = new int[n]; image = new int[n]; inverse = new int[n]; target = new int[n];
@@ -94,6 +164,17 @@ public final class IndependentJointRootGenerator {
                 for (int i = 0; i < n; i++) transformed[key*n + writing[i]] = (byte)i;
             }
         }
+        Enumeration(final Enumeration template, final Branch branch) {
+            n = template.n; parts = template.parts; algebraic = template.algebraic;
+            predecessor = template.predecessor; cycleOrigin = template.cycleOrigin;
+            cycleLength = template.cycleLength; equalOrigin = template.equalOrigin;
+            immediate = template.immediate; joint = template.joint; orders = template.orders;
+            transformed = template.transformed; cancellationCheck = template.cancellationCheck;
+            consumer = template.consumer;
+            position = branch.position().clone(); image = branch.image().clone();
+            inverse = branch.inverse().clone(); target = branch.target().clone();
+            edges = branch.edges();
+        }
         int triple(final int a, final int b, final int c) { return (a*n+b)*n+c; }
         boolean ordered(final Triple t) { return orders[triple(position[t.a], position[t.b], position[t.c])] != 0; }
         boolean predicates(final int depth) {
@@ -111,7 +192,12 @@ public final class IndependentJointRootGenerator {
         }
         void run() { position[0] = 0; place(1,1); }
         void place(final int rank, final int used) {
-            if (Thread.currentThread().isInterrupted()) throw new IllegalStateException("Interrupted root regeneration");
+            checkCancellation();
+            if (frontier != null && rank == frontierDepth) {
+                frontier.accept(new Branch(rank, used, position.clone(), image.clone(), inverse.clone(),
+                        target.clone(), edges));
+                return;
+            }
             if (rank == n) {
                 if (JointMoves.totallyUnoriented(image, JointMoves.identity(n))) return;
                 final byte[] encoded = new byte[(5*n+7)/8];
@@ -135,6 +221,11 @@ public final class IndependentJointRootGenerator {
                 if (secondAdded) removeEdge(predecessor[rank]);
                 if (firstEdge) removeEdge(rank);
             }
+        }
+        void checkCancellation() {
+            if (Thread.currentThread().isInterrupted())
+                throw new CancellationException("Interrupted root regeneration");
+            cancellationCheck.run();
         }
         boolean addEdge(final int rank) {
             final int from = position[rank], to = position[algebraic[rank]];

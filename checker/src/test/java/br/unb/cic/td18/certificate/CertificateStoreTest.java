@@ -32,6 +32,9 @@ class CertificateStoreTest {
         database(path.resolve("db"),CertificateCodec.resultFor(SortingCertificate.complete(List.of(Cycle.of(0,1,2)))),true);
         try(final var store=new CertificateStore(path.resolve("db"))) {
             assertEquals(1,store.require(PAIR,1).size());
+            final var missing=CyclicTargetPair.of(new MulticyclePermutation(Cycle.of(0,1,2,3,4)),Cycle.of(0,1,2,3,4));
+            assertArrayEquals(new boolean[]{true,false,true},store.findAll(List.of(PAIR,missing,PAIR),1));
+            assertArrayEquals(new boolean[]{false,false},store.findAll(List.of(PAIR,missing),0));
             assertFalse(store.hasObstruction(PAIR));
         }
     }
@@ -47,6 +50,7 @@ class CertificateStoreTest {
         database(path.resolve("db"),new byte[]{2,0},true);
         try(final var store=new CertificateStore(path.resolve("db"))) {
             assertThrows(IllegalArgumentException.class,()->store.find(PAIR,10));
+            assertThrows(IllegalArgumentException.class,()->store.findAll(List.of(PAIR),10));
         }
     }
     @Test void longerValidWitnessIsUnavailableAtSmallerBudget(@TempDir final Path path) throws Exception {

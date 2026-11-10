@@ -73,6 +73,8 @@ public final class DirectTwistedBraceletGenerator {
         EXECUTOR.shutdown();
     }
 
+    public static int configuredWorkerCount() { return WORKER_COUNT; }
+
     public static void generateRepresentatives(final int[] partition,
                                         final boolean[] orientedByPart,
                                         final Consumer<CyclicTargetPair> consumer) {

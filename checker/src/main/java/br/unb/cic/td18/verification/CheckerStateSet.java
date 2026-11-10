@@ -2,6 +2,8 @@ package br.unb.cic.td18.verification;
 
 import br.unb.cic.td18.joint.JointInverseReconstruction;
 import br.unb.cic.td18.certificate.CertificateCodec;
+import br.unb.cic.td18.runtime.BoundedTasks;
+import br.unb.cic.td18.runtime.CheckerParallelism;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -13,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.rocksdb.FlushOptions;
 import org.rocksdb.Options;
@@ -30,16 +33,15 @@ import org.rocksdb.WriteOptions;
 final class CheckerStateSet implements AutoCloseable {
     private static final byte VERSION = 1;
     private static final byte[] EMPTY = {};
-    private static final int BUFFER_KEYS = 16_384;
-    private static final int BATCH_SIZE = 64;
 
     static {
         RocksDB.loadLibrary();
     }
 
+    private final int bufferKeys = CheckerParallelism.reconstructionBufferKeys();
     private final Options options = new Options().setCreateIfMissing(true)
-            .setWriteBufferSize(32L << 20).setMaxWriteBufferNumber(2)
-            .setMaxBackgroundJobs(2).setMaxOpenFiles(128);
+            .setWriteBufferSize(128L << 20).setMaxWriteBufferNumber(4)
+            .setMaxBackgroundJobs(Math.min(8, CheckerParallelism.workers())).setMaxOpenFiles(512);
     private final WriteOptions writes = new WriteOptions().setDisableWAL(true);
     private final RocksDB database;
     private final Set<ByteBuffer> pending = new HashSet<>();
@@ -74,7 +76,7 @@ final class CheckerStateSet implements AutoCloseable {
                 throw new IllegalStateException("Cannot add to a sealed checker set");
             }
             pending.add(ByteBuffer.wrap(key));
-            if (pending.size() >= BUFFER_KEYS) {
+            if (pending.size() >= bufferKeys) {
                 flushPending();
             }
         }
@@ -135,9 +137,10 @@ final class CheckerStateSet implements AutoCloseable {
     void forEachBatch(final Consumer<List<JointInverseReconstruction.SearchState>> consumer) {
         final Inventory expected = seal();
         long count = 0;
+        final int batchSize = CheckerParallelism.lookupBatchSize();
         try (final var reads = new ReadOptions().setFillCache(false);
              final var iterator = database.newIterator(reads)) {
-            var batch = new ArrayList<JointInverseReconstruction.SearchState>(BATCH_SIZE);
+            var batch = new ArrayList<JointInverseReconstruction.SearchState>(batchSize);
             for (iterator.seek(new byte[]{VERSION}); iterator.isValid(); iterator.next()) {
                 final byte[] key = iterator.key();
                 requireKey(key, iterator.value());
@@ -145,9 +148,9 @@ final class CheckerStateSet implements AutoCloseable {
                 batch.add(new JointInverseReconstruction.SearchState(
                         Byte.toUnsignedInt(key[1]), CertificateCodec.pairForKey(
                         Arrays.copyOfRange(key, 3, key.length), Byte.toUnsignedInt(key[2]))));
-                if (batch.size() == BATCH_SIZE) {
+                if (batch.size() == batchSize) {
                     consumer.accept(List.copyOf(batch));
-                    batch = new ArrayList<>(BATCH_SIZE);
+                    batch = new ArrayList<>(batchSize);
                 }
             }
             iterator.status();
@@ -159,6 +162,37 @@ final class CheckerStateSet implements AutoCloseable {
         }
         if (count != expected.count()) {
             throw new IllegalStateException("Checker scan did not visit every generated state");
+        }
+    }
+
+    /** Streams all sealed states through bounded parallel callbacks. */
+    void forEachConcurrently(final int workers,
+                             final Consumer<JointInverseReconstruction.SearchState> consumer) {
+        try (final var tasks = new BoundedTasks(workers, "checker-reconstruction-")) {
+            forEachBatch(batch -> {
+                tasks.check();
+                for (final var state : batch) tasks.submit(() -> consumer.accept(state));
+            });
+        }
+    }
+
+    /** Performs one bulk lookup per large batch, then parallelizes every missing-state callback. */
+    void forEachConcurrently(final int workers,
+                             final Function<List<JointInverseReconstruction.SearchState>, boolean[]> lookup,
+                             final Consumer<JointInverseReconstruction.SearchState> present,
+                             final Consumer<JointInverseReconstruction.SearchState> missing) {
+        try (final var tasks = new BoundedTasks(workers, "checker-reconstruction-")) {
+            forEachBatch(batch -> {
+                tasks.check();
+                final boolean[] hits = lookup.apply(batch);
+                if (hits == null || hits.length != batch.size())
+                    throw new IllegalStateException("Incomplete reconstruction batch lookup");
+                for (int i = 0; i < hits.length; i++) {
+                    final var state = batch.get(i);
+                    if (hits[i]) present.accept(state);
+                    else tasks.submit(() -> missing.accept(state));
+                }
+            });
         }
     }
 

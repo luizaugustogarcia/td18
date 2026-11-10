@@ -8,11 +8,13 @@ import br.unb.cic.td18.joint.JointInverseReconstruction;
 import br.unb.cic.td18.joint.SupportClearing;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.runtime.ProjectPaths;
+import br.unb.cic.td18.runtime.CheckerParallelism;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.atomic.AtomicLong;
 
 /** CPU-only regeneration of all requested obligations, followed by witness replay. */
 public final class CertificateChecker {
@@ -24,6 +26,10 @@ public final class CertificateChecker {
         final var endpoints = JointInventory.endpoints();
         System.out.printf("joint-selection inventory checked: rootPartitions=%d endpointAnnotations=%d elementaryEndpoints=%d%n",
                 inventory.size(),endpoints.size(),endpoints.stream().filter(JointInventory.Endpoint::elementaryClosure).count());
+        System.out.printf("checker parallelism: workers=%d braceletWorkers=%d lookupBatch=%d lookupPipelines=%d reconstructionBufferKeys=%d%n",
+                CheckerParallelism.workers(), DirectTwistedBraceletGenerator.configuredWorkerCount(),
+                CheckerParallelism.lookupBatchSize(), CheckerParallelism.lookupPipelines(),
+                CheckerParallelism.reconstructionBufferKeys());
         if (options.structuralOnly) {
             System.out.println("Structural inventory checks only; sorting certificates and final avoidance remain unchecked.");
             return;
@@ -45,22 +51,29 @@ public final class CertificateChecker {
                            final VerificationProgress progress) {
         final var unoriented = new LongAdder();
         progress.phase(() -> "root partition " + row.number() + " totally unoriented: regenerated=" + unoriented.sum());
-        DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(row.partition(),new boolean[row.partition().length],
-                () -> { }, pair -> { certificates.require(pair,10); unoriented.increment(); });
+        try (final var verifier = required(certificates, 10)) {
+            DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(row.partition(),
+                    new boolean[row.partition().length], verifier::check, pair -> {
+                        unoriented.increment(); verifier.accept(pair);
+                    });
+        }
         if (unoriented.sum() != row.unorientedClasses()) throw new IllegalStateException("Totally unoriented root count mismatch: partition="+row.number());
-        final long[] oriented = {0}, cleared = {0};
-        progress.phase(() -> "root partition " + row.number() + " oriented joint residuals: regenerated=" + oriented[0]);
-        IndependentJointRootGenerator.generateResiduals(row.partition(),pair -> {
-            oriented[0]++;
-            if (SupportClearing.closes(pair)) { cleared[0]++; return; }
-            certificates.require(pair,10);
-        });
-        if (oriented[0] != row.jointResidualClasses() || cleared[0] != row.supportClearingClasses()
-                || oriented[0]-cleared[0] != row.orientedClasses())
+        final var oriented = new LongAdder(); final var cleared = new LongAdder();
+        progress.phase(() -> "root partition " + row.number() + " oriented joint residuals: regenerated=" + oriented.sum());
+        try (final var verifier = required(certificates, 10)) {
+            IndependentJointRootGenerator.generateResidualsConcurrently(row.partition(), CheckerParallelism.workers(),
+                    verifier::check, pair -> {
+                        oriented.increment();
+                        if (SupportClearing.closes(pair)) { cleared.increment(); return; }
+                        verifier.accept(pair);
+                    });
+        }
+        if (oriented.sum() != row.jointResidualClasses() || cleared.sum() != row.supportClearingClasses()
+                || oriented.sum()-cleared.sum() != row.orientedClasses())
             throw new IllegalStateException("Oriented root count mismatch: partition=" + row.number()
-                    + " generated=" + oriented[0] + " cleared=" + cleared[0]);
+                    + " generated=" + oriented.sum() + " cleared=" + cleared.sum());
         System.out.printf("root partition %d verified: unoriented=%d jointResiduals=%d supportCleared=%d directOriented=%d%n",
-                row.number(),unoriented.sum(),oriented[0],cleared[0],oriented[0]-cleared[0]);
+                row.number(),unoriented.sum(),oriented.sum(),cleared.sum(),oriented.sum()-cleared.sum());
     }
     static void verifyEndpoint(final JointInventory.Endpoint endpoint, final CertificateStore certificates,
                                final CheckerStateSet residuals, final VerificationProgress progress) {
@@ -70,11 +83,12 @@ public final class CertificateChecker {
                 endpoint.partition(),endpoint.orientedByPart());
         final var generated = new LongAdder(); final var residual = new LongAdder();
         progress.phase(() -> "endpoint " + endpoint.number() + ": regenerated=" + generated.sum() + " residual=" + residual.sum());
-        DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(endpoint.partition(),endpoint.orientedByPart(),
-                () -> { }, pair -> {
-                    generated.increment();
-                    if (checkEndpointPair(pair,certificates,residuals)) residual.increment();
-                });
+        try (final var verifier = new CertificateBatchVerifier(certificates, 8, pair -> {
+            residuals.add(new JointInverseReconstruction.SearchState(8, pair)); residual.increment();
+        })) {
+            DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(endpoint.partition(),endpoint.orientedByPart(),
+                    verifier::check, pair -> { generated.increment(); verifier.accept(pair); });
+        }
         if (generated.sum() != expected) throw new IllegalStateException(
                 "Endpoint generation count disagrees with Burnside: endpoint=" + endpoint.number()
                         + " generated=" + generated.sum() + " expected=" + expected);
@@ -89,28 +103,46 @@ public final class CertificateChecker {
     }
     static void verifyAvoidance(final CertificateStore certificates, final CheckerStateSet endpoints,
                                 final Path work, final VerificationProgress progress) {
+        final int workers = CheckerParallelism.workers();
         try (final var intermediate = new CheckerStateSet(work.resolve("intermediate-preimages"));
              final var roots = new CheckerStateSet(work.resolve("root-preimages"))) {
-            progress.phase("regenerating gain-two inverse supports");
-            endpoints.forEachBatch(batch -> batch.forEach(state -> JointInverseReconstruction.intermediates(state.pair(),
-                    parent -> intermediate.add(new JointInverseReconstruction.SearchState(9,parent)))));
+            final long endpointCount = endpoints.seal().count();
+            final var endpointsDone = new AtomicLong();
+            progress.phase(() -> "regenerating gain-two inverse supports: endpoints="
+                    + endpointsDone.get() + "/" + endpointCount);
+            endpoints.forEachConcurrently(workers, state -> {
+                JointInverseReconstruction.intermediates(state.pair(),
+                        parent -> intermediate.add(new JointInverseReconstruction.SearchState(9,parent)));
+                endpointsDone.incrementAndGet();
+            });
             final long intermediateCount = intermediate.seal().count();
-            final long[] closed = {0};
-            progress.phase("screening " + intermediateCount + " intermediate classes and regenerating gain-one inverse supports");
-            intermediate.forEachBatch(batch -> batch.forEach(state -> {
-                if (certificates.find(state.pair(),9).isPresent()) { closed[0]++; return; }
+            final var closed = new LongAdder(); final var propagated = new LongAdder();
+            final var intermediatesDone = new AtomicLong();
+            progress.phase(() -> "screening intermediates: completed=" + intermediatesDone.get() + "/"
+                    + intermediateCount + " closures=" + closed.sum() + " propagated=" + propagated.sum());
+            intermediate.forEachConcurrently(workers,
+                    batch -> certificates.findAll(batch.stream().map(JointInverseReconstruction.SearchState::pair).toList(), 9),
+                    state -> { closed.increment(); intermediatesDone.incrementAndGet(); }, state -> {
+                propagated.increment();
                 JointInverseReconstruction.roots(state.pair(),parent -> roots.add(new JointInverseReconstruction.SearchState(10,parent)));
-            }));
+                intermediatesDone.incrementAndGet();
+            });
             final long rootCount = roots.seal().count();
-            final long[] checked = {0};
-            progress.phase(() -> "avoidance roots: verified=" + checked[0] + "/" + rootCount);
-            roots.forEachBatch(batch -> batch.forEach(state -> {
-                certificates.require(state.pair(),10);
-                checked[0]++;
-            }));
+            final var checked = new AtomicLong();
+            progress.phase(() -> "avoidance roots: verified=" + checked.get() + "/" + rootCount);
+            roots.forEachConcurrently(workers,
+                    batch -> certificates.findAll(batch.stream().map(JointInverseReconstruction.SearchState::pair).toList(), 10),
+                    state -> checked.incrementAndGet(), state -> { throw missing(state.pair(), 10); });
             System.out.printf("final avoidance verified: endpointResiduals=%d intermediates=%d intermediateClosures=%d roots=%d%n",
-                    endpoints.seal().count(),intermediateCount,closed[0],rootCount);
+                    endpointCount,intermediateCount,closed.sum(),rootCount);
         }
+    }
+    private static CertificateBatchVerifier required(final CertificateStore certificates, final int maximumMoves) {
+        return new CertificateBatchVerifier(certificates, maximumMoves, pair -> { throw missing(pair, maximumMoves); });
+    }
+    private static IllegalStateException missing(final CyclicTargetPair pair, final int maximumMoves) {
+        return new IllegalStateException("Missing sorting certificate: classKey="
+                + pair.extendedToricClassKey() + ", maximumMoves=" + maximumMoves);
     }
     private static void usage() {
         System.out.println("CertificateChecker [--phase=roots|endpoints|avoidance|all] [--partitions=FIRST-LAST]"

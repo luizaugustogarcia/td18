@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import static org.junit.jupiter.api.Assertions.*;
 
 class IndependentJointRootGeneratorTest {
@@ -17,10 +18,19 @@ class IndependentJointRootGeneratorTest {
         for (int n=3;n<=9;n++) {
             final Set<String> actual=new HashSet<>();
             for (final var partition:Partitions.generateValidPartitions(n)) {
+                final Set<String> forPartition=new HashSet<>();
                 IndependentJointRootGenerator.generateResiduals(partition,pair->{
                     assertTrue(JointMoves.residual(pair));
-                    assertTrue(actual.add(key(pair)),"Duplicate emitted class");
+                    final var key=key(pair);
+                    assertTrue(actual.add(key),"Duplicate emitted class");
+                    assertTrue(forPartition.add(key));
                 });
+                final Set<String> parallel=ConcurrentHashMap.newKeySet();
+                IndependentJointRootGenerator.generateResidualsConcurrently(partition,4,()->{},pair->{
+                    assertTrue(JointMoves.residual(pair));
+                    assertTrue(parallel.add(key(pair)),"Duplicate parallel class");
+                });
+                assertEquals(forPartition,parallel,"Parallel prefix split mismatch");
             }
             final Set<String> expected=new HashSet<>();
             final int[] p=JointMoves.identity(n);
@@ -35,7 +45,7 @@ class IndependentJointRootGeneratorTest {
     }
     @Test void nineteenCycleRegeneratesAll667ResidualClasses() {
         final Set<String> actual=new HashSet<>();
-        IndependentJointRootGenerator.generateResiduals(new int[]{19},pair->{
+        IndependentJointRootGenerator.generateResidualsConcurrently(new int[]{19},4,()->{},pair->{
             assertTrue(JointMoves.residual(pair));
             assertTrue(actual.add(key(pair)));
         });

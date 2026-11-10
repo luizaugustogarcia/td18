@@ -301,6 +301,20 @@ Every result is replayed before acceptance. Complete records must reach
 identity. Closure records must satisfy the actual move count plus the known
 diameter after contraction. A valid result needing a larger budget is a miss
 at a smaller budget; malformed or incorrect records reject.
+
+The checker uses all processors available to its JVM by default.
+td18.checkerWorkers sets the independent joint-generation, inverse-generation,
+and certificate-replay worker count; td18.twistedBraceletWorkers separately
+sets direct twisted-bracelet generation. Independent oriented-root generation
+splits disjoint rank-placement prefix subtrees across the checker workers.
+Certificate reads use RocksDB multiGet in batches of 262,144, configured by
+td18.certificateLookupBatchSize. Each logical batch is sharded across all
+checker workers for concurrent native multiGet calls, and the returned records
+are then replayed in parallel on the same bounded pool.
+Up to td18.certificateLookupPipelines batches overlap generation (four by
+default). The independent
+inverse waves use the same large lookup batches and bounded parallel callbacks.
+td18.checkerStatsPeriodSeconds controls progress output and defaults to 60.
 The queues and disk buffer have these defaults:
 
 | Buffer | Capacity | Configuration |
@@ -308,7 +322,8 @@ The queues and disk buffer have these defaults:
 | Pending certificate writes | 16,384 entries | td18.certificateQueueCapacity |
 | Pending oriented-root search tasks | 256 tasks | Fixed bound in the emitter |
 | Buffered unique keys per emitter disk set | 1,048,576 keys | td18.reconstructionBufferKeys |
-| Buffered unique keys per checker disk set | 16,384 keys | Fixed bound in checker |
+| Buffered unique keys per checker disk set | 1,048,576 keys | td18.reconstructionBufferKeys |
+| Certificate lookup batch | 262,144 classes | td18.certificateLookupBatchSize |
 
 The certificate writer drains under queue pressure and flushes every five
 seconds by default; td18.certificateFlushSeconds controls the period. The

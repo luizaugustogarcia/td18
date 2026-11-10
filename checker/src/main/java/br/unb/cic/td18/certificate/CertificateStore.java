@@ -6,9 +6,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import br.unb.cic.td18.runtime.CheckerParallelism;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -28,6 +34,9 @@ public final class CertificateStore implements AutoCloseable {
     private final ColumnFamilyOptions obstructionOptions = new ColumnFamilyOptions();
     private final ReadOptions reads = new ReadOptions().setFillCache(false);
     private final ArrayList<ColumnFamilyHandle> handles = new ArrayList<>();
+    private final int workers = CheckerParallelism.workers();
+    private final ExecutorService replayWorkers = Executors.newFixedThreadPool(workers,
+            Thread.ofPlatform().daemon(true).name("certificate-replay-", 0).factory());
     private final RocksDB database;
 
     public CertificateStore(final Path directory) {
@@ -61,6 +70,45 @@ public final class CertificateStore implements AutoCloseable {
         CertificateValidator.validate(canonical, result, canonical.getBeta().size() == 16 ? 8 : canonical.getBeta().size() == 18 ? 9 : 10);
         return CertificateValidator.requiredBudget(canonical, result) <= maximumMoves ? Optional.of(result.moves()) : Optional.empty();
     }
+    /** Position-preserving RocksDB multiGet followed by parallel independent replay of every hit. */
+    public boolean[] findAll(final List<CyclicTargetPair> pairs, final int maximumMoves) {
+        if (maximumMoves < 0) throw new IllegalArgumentException("Negative move budget");
+        if (pairs.isEmpty()) return new boolean[0];
+        final var canonical = new CyclicTargetPair[pairs.size()];
+        final var keys = new byte[pairs.size()][];
+        parallelRanges(pairs.size(), (first, last) -> {
+            for (int i = first; i < last; i++) {
+                canonical[i] = pairs.get(i).canonicalRepresentative();
+                keys[i] = CertificateCodec.keyFor(canonical[i]);
+            }
+        });
+        final var encoded = new byte[pairs.size()][];
+        parallelRanges(pairs.size(), (first, last) -> {
+            final var keySlice = Arrays.asList(keys).subList(first, last);
+            final List<byte[]> values;
+            try {
+                values = database.multiGetAsList(
+                        Collections.nCopies(keySlice.size(), handles.get(0)), keySlice);
+            } catch (final RocksDBException failure) {
+                throw new IllegalStateException("Cannot bulk-read certificates", failure);
+            }
+            if (values.size() != keySlice.size())
+                throw new IllegalStateException("Incomplete certificate multiGet response");
+            for (int i = first; i < last; i++) encoded[i] = values.get(i - first);
+        });
+        final var present = new boolean[pairs.size()];
+        parallelRanges(pairs.size(), (first, last) -> {
+            for (int i = first; i < last; i++) {
+                final byte[] value = encoded[i];
+                if (value == null) continue;
+                final var result = CertificateCodec.decodeResult(value);
+                final var pair = canonical[i];
+                CertificateValidator.validate(pair, result, obligationBudget(pair.getBeta().size()));
+                present[i] = CertificateValidator.requiredBudget(pair, result) <= maximumMoves;
+            }
+        });
+        return present;
+    }
     public List<Optional<List<Cycle>>> find(final CyclicTargetPair[] pairs, final int maximumMoves) {
         final var result = new ArrayList<Optional<List<Cycle>>>(pairs.length);
         for (final var pair : pairs) result.add(find(pair, maximumMoves));
@@ -88,6 +136,35 @@ public final class CertificateStore implements AutoCloseable {
         try { return database.get(family, reads, key); }
         catch (final RocksDBException failure) { throw new IllegalStateException("Cannot read certificate", failure); }
     }
-    @Override public void close() { handles.forEach(ColumnFamilyHandle::close); database.close(); closeOptions(); }
+    private static int obligationBudget(final int domain) {
+        return domain == 16 ? 8 : domain == 18 ? 9 : 10;
+    }
+    private void parallelRanges(final int size, final RangeAction action) {
+        final int taskCount = Math.min(workers, size);
+        final int chunk = (size + taskCount - 1) / taskCount;
+        final var futures = new ArrayList<Future<?>>(taskCount);
+        for (int first = 0; first < size; first += chunk) {
+            final int from = first, to = Math.min(size, first + chunk);
+            futures.add(replayWorkers.submit(() -> action.run(from, to)));
+        }
+        try {
+            for (final var future : futures) future.get();
+        } catch (final InterruptedException failure) {
+            futures.forEach(future -> future.cancel(true));
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Certificate replay interrupted", failure);
+        } catch (final ExecutionException failure) {
+            futures.forEach(future -> future.cancel(true));
+            final var cause = failure.getCause();
+            if (cause instanceof Error fatal) throw fatal;
+            if (cause instanceof RuntimeException runtime) throw runtime;
+            throw new IllegalStateException("Certificate replay failed", cause);
+        }
+    }
+    @FunctionalInterface private interface RangeAction { void run(int first, int last); }
+    @Override public void close() {
+        replayWorkers.shutdownNow();
+        handles.forEach(ColumnFamilyHandle::close); database.close(); closeOptions();
+    }
     private void closeOptions() { reads.close(); witnessOptions.close(); obstructionOptions.close(); options.close(); }
 }
