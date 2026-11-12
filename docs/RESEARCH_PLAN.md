@@ -12,8 +12,10 @@ Validate the cyclic-target convention, fixed-point contraction, twisted
 class correspondence, and independently established diameter premises.
 Check the complete consecutive-triple characterization of moves creating
 at least two fixed points, including even-length algebraic cycles. Every
-qualifying gain-one first move must be considered. Totally unoriented states
-have no structural outgoing edge at any depth.
+qualifying gain-one first move must be considered, including totally unoriented
+roots with even-length cycles. Totally unoriented all-odd roots have no qualifying
+first move. Totally unoriented successors have no second move creating at least
+two fixed points. Only gain patterns (1,2) and (1,3) are selected at depth two.
 
 Independently reproduce the 53 fixed-point-free even partitions of 19 and
 the 104 fixed-point-free even endpoint annotations on 16 symbols with
@@ -26,7 +28,8 @@ both implementations, including the complete inverse construction.
 
 ## 2. Check counts and generation
 
-The completed root inventory is:
+The census, oriented inventory, and new unoriented residual inventory are
+complete. Independent arbitrary-support regeneration agrees in all 53 rows:
 
 | Category | Classes |
 | --- | ---: |
@@ -34,7 +37,8 @@ The completed root inventory is:
 | Oriented joint residuals before support clearing | 37,858,324 |
 | Support-cleared residuals | 4,249,763 |
 | Remaining oriented roots | 33,608,561 |
-| Direct root obligations | 248,082,611 |
+| Totally unoriented residuals R | 3,447,696 |
+| Direct root obligations R + O | 37,056,257 |
 
 All 53 partitions completed in the native count. Complete native and Java
 class sets agree for domains 3 through 10. Singleton-19 symmetry checks agree
@@ -56,10 +60,16 @@ Exit criterion: complete independently checked generation counts for all
 root and endpoint scopes, in versioned artifacts with deterministic keys.
 Counting alone cannot discharge a sorting obligation.
 
+
+The Java R counter and independent checker agree in every partition. Versioned
+partition artifacts are in data/unoriented-joint-residuals-v1/ and
+data/unoriented-joint-residuals-checker-v1/. Joint-2 removes 211,026,354
+former direct unoriented obligations, or 98.39% of U. Row 53 removes all
+4,178,724 of its former direct unoriented obligations.
+
 ## 3. Discharge direct roots and endpoints
 
-All 248,082,611 direct roots, including the 214,474,050 totally unoriented
-roots and 33,608,561 remaining oriented roots, require a persisted complete
+All 37,056,257 direct roots require a persisted complete
 witness or checked known-diameter closure within ten moves. Each endpoint outside the 52
 elementary types needs a checked result within eight moves or final inverse
 coverage. Reused TD(16) witnesses must be replayed; a partial source database
@@ -88,7 +98,7 @@ exact forward gain two, and odd-length-cycle increase two. Deduplicate valid
 
 For every remaining predecessor, restore one fixed point in each gap and
 reverse every support containing it and two original symbols. Check the
-actual qualifying gain-one edge and retain valid oriented roots. Deduplicate
+actual qualifying gain-one edge and retain valid roots of either orientation. Deduplicate
 root classes on disk and require budget-ten closure or complete witnesses.
 Forward replay, gap enumeration, and transport through class representatives
 must establish that every selected root path is covered. Missing obstruction

@@ -31,7 +31,7 @@ import org.rocksdb.WriteOptions;
  * Sealing ends writes before the checker streams the resulting set.
  */
 final class CheckerStateSet implements AutoCloseable {
-    private static final byte VERSION = 1;
+    private static final byte VERSION = 2;
     private static final byte[] EMPTY = {};
 
     static {

@@ -163,7 +163,7 @@ public final class CheckJointResiduals {
             result.validPairs++;
             final var analysis = JointReductionAnalysis.analyze(omega, beta);
             result.routes.merge(analysis.route(), 1L, Math::addExact);
-            if (analysis.route() == JointReductionAnalysis.Route.TOTALLY_UNORIENTED
+            if (JointReductionAnalysis.isTotallyUnoriented(omega, beta)
                     || analysis.hasFavorablePrefix()) return;
             result.residualRawPairs++;
             result.representatives.computeIfAbsent(pair.extendedToricClassKey(),
@@ -211,7 +211,7 @@ public final class CheckJointResiduals {
                         "Representative is outside the declared cycle partition");
                 final CyclicTargetPair pair = validatedPair(omega, beta);
                 final var analysis = JointReductionAnalysis.analyze(omega, beta);
-                if (analysis.route() == JointReductionAnalysis.Route.TOTALLY_UNORIENTED) {
+                if (JointReductionAnalysis.isTotallyUnoriented(omega, beta)) {
                     throw new IllegalArgumentException("Totally unoriented pair in oriented residual file");
                 }
                 if (analysis.hasFavorablePrefix()) throw new IllegalArgumentException(

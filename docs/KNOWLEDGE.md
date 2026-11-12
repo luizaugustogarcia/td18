@@ -1,5 +1,11 @@
 # Mathematical knowledge and references
 
+Joint-2 includes totally unoriented roots with even-length cycles. All-odd
+totally unoriented roots and all totally unoriented successors stop for the
+reasons proved in the source paper. The active direct count is R + O; R counts
+unoriented residuals. All 53 rows are checked, with R = 3,447,696. See
+[WORKFLOW.md](WORKFLOW.md) for Java counting and the versioned artifact formats.
+
 [The TD(18) paper](td18-reduction-count.tex) specifies joint selection and the
 complete root inventory. The [shared paper](../../td/docs/paper/main.tex),
 Section sec:twisted-bracelets, supplies the bracelet framework and established
@@ -61,7 +67,8 @@ identity, rotation, and reflection terms. A class count is not a sorting result.
 
 ## Joint selection
 
-Totally unoriented roots remain direct ten-move obligations. Every other root
+Totally unoriented all-odd roots remain direct ten-move obligations. Roots
+with even-length cycles enter joint selection. Every eligible root
 first tests moves creating at least two fixed points, which close by
 1 + TD(16) = 10. Otherwise inspect every qualifying first move creating one
 fixed point. After contraction, an oriented successor can use a second move
@@ -94,7 +101,7 @@ prop:td16-odd-cycle-reduction certifies their local sequences, and each obeys
 (k+1)/2 + TD(18-k) = 10. These explicit patterns remove 4,249,763 roots.
 The length-nine power 5 is not included; no length-fifteen clearing is assumed.
 
-The completed direct total is 248,082,611 roots. In particular, only 667
+The active R + O total is 37,056,257. In particular, only 667
 classes of the oriented 19-cycle partition have no favorable prefix: two
 have no qualifying first move and 665 do. None is a proved sorting failure.
 Endpoint residuals contribute additional final-phase reconstructed roots.

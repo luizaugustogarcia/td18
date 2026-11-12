@@ -20,8 +20,9 @@ class WitnessEmitterTest {
         int[] partition = {3,2,2};
         long u = DirectTwistedBraceletGenerator.countRepresentatives(partition,new boolean[3]);
         var oriented = JointRootGenerator.count(partition);
+        long r = JointRootGenerator.countUnorientedResiduals(partition);
         assertTrue(u > 0);
-        var row = new JointInventory.Root(1,partition,u,oriented.jointResidualClasses(),0,oriented.jointResidualClasses());
+        var row = new JointInventory.Root(1,partition,u,oriented.jointResidualClasses(),0,oriented.jointResidualClasses(),r);
         var complete = new LongAdder();
         try (var progress = new WitnessEmitter.Progress()) {
             var result = WitnessEmitter.emitRoot(row,(pair,budget) -> {
@@ -29,9 +30,9 @@ class WitnessEmitterTest {
                 complete.increment();
                 return false;
             },progress);
-            assertEquals(u+oriented.jointResidualClasses(),complete.sum());
-            assertEquals(u+oriented.jointResidualClasses(),result.unresolved());
-            var wrong = new JointInventory.Root(1,partition,u+1,oriented.jointResidualClasses(),0,oriented.jointResidualClasses());
+            assertEquals(r+oriented.jointResidualClasses(),complete.sum());
+            assertEquals(r+oriented.jointResidualClasses(),result.unresolved());
+            var wrong = new JointInventory.Root(1,partition,u+1,oriented.jointResidualClasses(),0,oriented.jointResidualClasses(),r);
             assertThrows(IllegalStateException.class, () -> WitnessEmitter.emitRoot(wrong,(p,b) -> true,progress));
         }
     }

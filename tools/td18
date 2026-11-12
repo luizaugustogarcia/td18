@@ -9,7 +9,8 @@ CPU validation:
   test         Run emitter and checker CPU tests (CUDA smoke tests are opt-in)
   inventory    Validate the 53 root partitions and 104 endpoint annotations
   structure    Check the source inventory without reading sorting certificates
-  count        Count root classes and endpoint classes on all available CPU cores
+  count        Check root and endpoint class counts on all available CPU cores
+  count-r      Count totally unoriented joint residuals in Java
 
 Computation:
   emit         Generate roots/endpoints, emit witnesses, and reconstruct residuals
@@ -66,6 +67,8 @@ case "$command" in
                     args+=(-Dexec.args=--structural-only)
                 fi
                 ;;
+    count-r)    args=(-pl emitter compile exec:java@cpu-cli
+                     -Dexec.mainClass=br.unb.cic.td18.CountTD18UnorientedResiduals) ;;
     count)      args=(-pl emitter compile exec:java@cpu-cli
                      -Dexec.mainClass=br.unb.cic.td18.CountTD18Bracelets) ;;
     emit)       args=(-pl emitter -Pgpu compile exec:exec) ;;

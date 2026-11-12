@@ -1,8 +1,22 @@
 # Computation workflow
 
+Totally unoriented roots now participate in joint-2 selection when they contain
+even-length cycles. All-odd totally unoriented roots have no qualifying first
+move; totally unoriented successors cannot supply the second gain. Two-step
+prefixes must have gains (1,2) or (1,3). Let U be the full unoriented census and
+R its residual count. The active direct obligation count is R + O, with O = J - C.
+All 53 R counts are independently checked: R = 3,447,696 and R + O = 37,056,257.
+Emission and proof checking reject missing or pending counts.
+
+Count R with the Java command CountTD18UnorientedResiduals. Its per-partition
+reports are versioned, deterministic resume boundaries. Use --publish to update
+the explicit paper rows after counting; --n supports small-domain checks, which
+cannot be published to the production inventory. Run the command through Maven
+or JShell using the emitter classpath. Generated artifacts remain untracked.
+
 The route is specified in [the paper](td18-reduction-count.tex). Counting,
-sorting, and proof verification are separate stages. The completed root count
-is 248,082,611; the additional final reconstruction count is not yet known.
+sorting, and proof verification are separate stages. The completed direct root
+count is 37,056,257. The additional final reconstruction count is not yet known.
 
 ## 1. Validate the mathematical inventory
 
@@ -20,9 +34,21 @@ The checker uses its own inventory and generation code.
 ## 2. Count the generated classes
 
 ~~~bash
+tools/td18 count-r '-Dexec.args=--publish'
 tools/td18 count -Dexec.args=--phase=roots
 tools/td18 count -Dexec.args=--phase=endpoints
 ~~~
+
+Independently regenerate every R count using the checker and JShell:
+
+~~~bash
+mvn -pl checker -am compile
+jshell --class-path checker/target/classes tools/audit/CheckUnorientedResidualCounts.jsh
+~~~
+
+The audit checks every paper row and writes versioned partition reports in
+data/unoriented-joint-residuals-checker-v1/. It reads no emitter artifact.
+Count checking does not discharge sorting witnesses or inverse obligations.
 
 Counting uses all available CPU cores by default and performs no sorting
 search. For each root partition it checks the totally unoriented count,

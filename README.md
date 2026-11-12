@@ -1,14 +1,30 @@
 # TD(18) by joint selection of two reductions
 
+Totally unoriented roots now participate in joint-2 selection when they contain
+even-length cycles. All-odd totally unoriented roots have no qualifying first
+move; totally unoriented successors cannot supply the second gain. Two-step
+prefixes must have gains (1,2) or (1,3). Let U be the full unoriented census and
+R its residual count. The active direct obligation count is R + O, with O = J - C.
+All 53 R counts are independently checked. Direct obligations total 37,056,257;
+the reduction removes 211,026,354 former direct unoriented obligations.
+Emission and proof checking reject missing or pending counts.
+
+Count R with the Java command CountTD18UnorientedResiduals. Its per-partition
+reports are versioned, deterministic resume boundaries. Use --publish to update
+the explicit paper rows after counting; --n supports small-domain checks, which
+cannot be published to the production inventory. Run the command through Maven
+or JShell using the emitter classpath. Generated artifacts remain untracked.
+
 This repository implements the conditional proof route in
 [the source paper](docs/td18-reduction-count.tex). It jointly selects an
 applicable first transposition and a favorable second transposition, directly
 generates the classes left without such a prefix, and treats endpoint
 sorting failures by final inverse reconstruction.
 
-The completed count gives **248,082,611 direct root classes**:
-214,474,050 totally unoriented classes and 33,608,561 oriented classes after
-support clearing. The 19-cycle partition contributes 667 classes.
+The completed count gives **37,056,257 direct root classes**:
+3,447,696 totally unoriented residuals and 33,608,561 oriented classes after
+support clearing. Joint-2 filters 98.39% of the 214,474,050-class unoriented
+census. The 19-cycle partition contributes 667 classes.
 The 104 endpoint types include 52 elementary closures; the other 52 require
 checked eight-move results or final reconstruction. Endpoint failure counts
 are not assumed upfront. Reconstructed roots are additional final-phase work.

@@ -1,5 +1,11 @@
 # Computational operations
 
+Joint-2 includes totally unoriented roots with even-length cycles. All-odd
+totally unoriented roots and all totally unoriented successors stop for the
+reasons proved in the source paper. The active direct count is R + O; R counts
+unoriented residuals. All 53 rows are checked, with R = 3,447,696. See
+[WORKFLOW.md](WORKFLOW.md) for Java counting and the versioned artifact formats.
+
 Use [the workflow](WORKFLOW.md) for stage order and
 [the research plan](RESEARCH_PLAN.md) for completion criteria. Run commands
 from the repository root. JDK 21, Maven, and Bash are required; counting and
@@ -10,7 +16,6 @@ checking run on CPU. CUDA is needed only for native sorting searches.
 ~~~bash
 mvn -pl emitter -am test
 mvn -pl checker -am test
-python3 -B -m unittest discover -s tools/audit -p 'test_*.py'
 tools/td18 inventory
 tools/td18 structure
 ~~~
@@ -38,7 +43,7 @@ tools/td18 count '-Dexec.args=--phase=roots --partitions=1-1 --workers=4'
 
 Root row 1 is partition (19), with 667 oriented residual classes and no
 totally unoriented or support-cleared classes. Full root counts must agree
-with every paper row. The completed total is 248,082,611 direct roots;
+with every paper row. The active direct-root total R + O is 37,056,257;
 additional final inverse work is not included. Production Java regeneration
 has reproduced every oriented residual, support-clearing, and remaining
 oriented count in all 53 partitions; the complete artifact is
@@ -253,8 +258,8 @@ library path if any prefix misses. Add
 Sampling and canonicalization are timed separately from search. Up to 2,000
 sampled classes are used for warmup and excluded from the timed result.
 Compare identical partitions, sample sizes, worker counts and VM properties.
-Use both unoriented and joint scopes: 214,474,050 of the 248,082,611 direct
-roots are totally unoriented. A deterministic prefix is not a random sample
+Use both unoriented and joint scopes: 3,447,696 of the 37,056,257 direct
+roots are totally unoriented residuals. A deterministic prefix is not a random sample
 or an exhaustive sorting check; its rate cannot predict the full run.
 
 To monitor a complete run through a log file:
@@ -285,7 +290,7 @@ certificate replay does not initialize a sorting device.
 ## Certificate format and independent checking
 
 The RocksDB schema has two column families. The default family reserves the
-UTF-8 entry td18-schema = joint-selection-v2. Other entries map raw canonical
+UTF-8 entry td18-schema = joint-selection-v3. Other entries map raw canonical
 instance keys to complete witnesses or known-diameter closures. The obstructions family stores raw keys
 with empty values. Keys encode symbols with five bits and implicitly use
 the standard current cycle; each move is encoded by three five-bit symbols.

@@ -2,9 +2,12 @@
 \usepackage[T1]{fontenc}
 \usepackage[margin=25mm]{geometry}
 \usepackage{amsmath,amssymb,amsthm,booktabs,longtable}
+\usepackage[hyphens]{url}
 \usepackage[hidelinks]{hyperref}
 \newcommand{\TD}{\operatorname{TD}}
-\newcommand{\jointrow}[6]{#1 & $(#2)$ & #3 & #4 & #5 & #6\\}
+\newcommand{\jointrow}[6]{#1 & $(#2)$ & #3 & \csname residual#1\endcsname & #4 & #5 & #6\\}
+\newcommand{\pending}{\textit{pending}}
+\newcommand{\unorientedresidualrow}[2]{\expandafter\gdef\csname residual#1\endcsname{#2}}
 \newtheorem{proposition}{Proposition}
 \newtheorem{lemma}{Lemma}
 \newtheorem{theorem}{Theorem}
@@ -22,12 +25,15 @@ diameter. Otherwise, every qualifying first transposition with gain one is
 examined for a second gain of at least two. Favorable pairs either close by
 a known diameter or reach a $16$-symbol endpoint with eight moves remaining.
 We directly generate classes without a favorable prefix and apply
-budget-valid support clearing. The complete count gives $214\,474\,050$
-totally unoriented roots and $33\,608\,561$ remaining oriented roots, or
-$248\,082\,611$ direct root obligations. Endpoint classes without a checked
+budget-valid support clearing. Totally unoriented roots containing
+even-length cycles participate in selection. Their census is
+$214\,474\,050$ and their checked residual count is $3\,447\,696$.
+The unchanged oriented
+residual count after support clearing is $33\,608\,561$.
+Endpoint classes without a checked
 eight-move discharge are treated at the end by inverse reconstruction and
 ten-move root verification. Their number is not an input to the argument.
-The count is complete; exhaustive sorting certificates and end-to-end proof
+Exhaustive sorting certificates and end-to-end proof
 verification remain pending. This document does not establish $\TD(18)=10$.
 \end{abstract}
 
@@ -96,9 +102,10 @@ diameter of the remaining domain.
 Let a \emph{root} be a fixed-point-free valid pair on $19$ symbols.
 Apply the following rule.
 \begin{enumerate}
-\item A totally unoriented root is a direct obligation with budget ten.
-No structural reduction is applied to it.
-\item Otherwise, seek any transposition of gain at least two. Contraction
+\item A totally unoriented root containing only odd-length cycles is a
+direct obligation with budget ten. It has no qualifying first move.
+Totally unoriented roots containing even-length cycles enter the tests below.
+\item Seek any transposition of gain at least two. Contraction
 leaves at most $17$ symbols, so $1+\TD(16)=10$ closes the root.
 \item If none exists, examine every qualifying first transposition of gain
 exactly one. Contract its fixed point, giving an $18$-symbol successor.
@@ -108,8 +115,8 @@ at least two. A gain of three leaves $15$ symbols and closes by
 $2+\TD(14)=10$. A gain of two leaves $16$ symbols with budget eight.
 Prefer a gain-three closure if one exists; otherwise choose a gain-two
 endpoint if one exists.
-\item If no favorable prefix exists, retain the oriented root. Apply the
-support-clearing test below; every remaining root is a direct
+\item If no favorable prefix exists, retain the root. Apply the support-clearing
+test below only when the root is oriented; every remaining root is a direct
 budget-ten obligation.
 \end{enumerate}
 A \emph{favorable prefix} means an immediate move of gain at least two,
@@ -117,9 +124,10 @@ or a qualifying gain-one move followed by a move of gain at least two.
 An \emph{oriented joint residual} is an oriented root without such a
 prefix. This includes roots without any qualifying first move. The rule
 examines actual applicable transpositions, including supports in even-length
-cycles and supports meeting several cycles. Totally unoriented states
-receive no structural reductions at any depth; known-diameter closure is
-still permitted.
+cycles and supports meeting several cycles. Totally unoriented roots with
+even-length cycles are tested. Totally unoriented successors have no second
+move creating at least two fixed points and are stopped. Known-diameter
+closure is still permitted.
 
 \begin{lemma}[Complete short-move test]
 \label{lem:fast}
@@ -146,6 +154,36 @@ cannot hide a favorable second move. A gain-one first move can be found
 by inspecting every applicable triple and checking its gain and
 odd-length-cycle increase. Equivalently, inspect supports
 $(a,\omega(a),c)$: every created fixed point supplies such an edge.
+
+
+\begin{lemma}[Totally unoriented first moves]
+\label{lem:unoriented-first}
+A fixed-point-free totally unoriented valid pair has a qualifying first
+move if and only if it contains even-length cycles. Such cycles occur in
+pairs. Having only odd-length cycles is therefore a root stop condition;
+it is not a stop condition for oriented roots.
+\end{lemma}
+\begin{proof}
+A gain-one move has, up to cyclic writing, support
+$(a,\omega(a),c)$. In an unoriented cycle the two consecutive algebraic
+symbols occur in reverse support order in $\beta$. A third symbol from
+that same cycle cannot make this triple applicable. Thus $c$ lies in a
+different cycle. Let their lengths be $k$ and $l$. The move replaces them
+by one fixed point and a cycle of length $k+l-1$. The odd-length-cycle
+count increases by two exactly when both $k$ and $l$ are even.
+Conversely, the shared framework~\cite{framework},
+\nolinkurl{prop:even-pair-reduction} supplies an applicable qualifying
+move for any two even-length cycles. Evenness of $\omega$ ensures an even
+number of such cycles.
+\end{proof}
+
+For example, let two algebraic $2$-cycles be $(a\ c)(b\ d)$ and let
+$a,b,c,d$ occur in this order around $\beta$. The transposition
+$(a\ b\ c)$ replaces these cycles by $(a)(b\ c\ d)$; the latter
+$3$-cycle agrees with the successor current-cycle order. A second
+transposition fixes its three symbols. This is a gain-$(1,3)$ prefix.
+Two moves creating only two fixed points in total are not selected: the
+contracted remainder does not fit the remaining known-diameter budget.
 
 \subsection{The endpoint inventory}
 \label{sec:endpoints}
@@ -239,8 +277,9 @@ In code, \nolinkurl{TwistedBraceletKey} identifies candidate orbits and
 The fixed-content generator compares standardized prefixes under rotations
 and twisted reflections, rejects forced proper target cycles, and emits
 one representative per realizable orbit; see \cite{framework},
-\nolinkurl{thm:twisted-generation-correctness}. Totally unoriented roots use
-all-unoriented annotations; endpoints use each prescribed annotation.
+\nolinkurl{thm:twisted-generation-correctness}. Totally unoriented residual roots use the constrained joint generator with
+unoriented support order enforced on every completed cycle. Endpoints use
+each prescribed fixed-content annotation.
 
 For an independent count, fix $\beta=(0\ 1\ \cdots\ N-1)$. Let $I$
 count realizable permutations of the annotated type, $R_\nu$ those
@@ -277,7 +316,19 @@ The least surviving writing is unique per candidate orbit. Reject forced
 proper target cycles early; at every leaf require a full target and reject
 totally unoriented pairs. The output is exactly the oriented joint residual
 class stream. Support clearing gives the final oriented direct-root stream.
-These constraints act during prefix construction.
+These constraints act during prefix construction. The totally unoriented
+stream uses the same forbidden predicates and symmetry tests, and enforces
+reverse current-cycle order whenever an algebraic support is completely
+assigned. Its output is exactly the totally unoriented residual stream.
+
+For this stream, the independent checker keeps the largest-cycle anchor and
+places the remaining even-length cycles before the other odd-length cycles.
+Increasing anchor positions are enforced for every repeated length, including
+cycles separated by this order. Permuting disjoint algebraic cycle labels
+induces a bijection of rank placements with identical actual algebraic images.
+The same largest-cycle anchors and twisted comparisons select the orbit
+representatives, and every forbidden support is tested once fully determined.
+Thus the placement order changes when a prefix can be rejected, not the class set.
 
 \section{Complete root counts}
 \label{sec:counts}
@@ -286,36 +337,104 @@ nonincreasing partitions of $19$ into parts at least two gives $53$.
 Table~\ref{tab:roots} is the complete inventory, including zero rows.
 Let $U$ count totally unoriented root classes, $J$ oriented joint residual
 classes before support clearing, $C$ the cleared subset, and $O=J-C$ the
-remaining oriented roots. Each row contributes $U+O$ direct obligations.
+remaining oriented roots. Let $R$ count totally unoriented roots with no
+favorable prefix. Each row contributes $R+O$ direct obligations.
 Rows are partitions, not annotated state types.
-The exhaustive count completed all partitions and gives
+The selection-independent census and unchanged oriented counts are
 \[
  U=214\,474\,050,\quad J=37\,858\,324,\quad
  C=4\,249\,763,\quad O=33\,608\,561,
 \]
 \[
- \boxed{U+O=248\,082\,611.}
+ R=3\,447\,696,\qquad R+O=37\,056\,257.
 \]
 Of the $J$ classes, $17\,632\,046$ have no qualifying first move and
 $20\,226\,278$ have qualifying moves but no favorable pair. Partition
 $(19)$ contributes $667$: two without a qualifying first move and $665$
 with such moves but no favorable pair. These are structural availability
-counts, not sorting-failure counts. The total excludes roots reconstructed
+counts, not sorting-failure counts. The new $R$ values are recorded by an explicit
+\texttt{unorientedresidualrow} for every partition. All-odd rows have
+$R=U$ by Lemma~\ref{lem:unoriented-first}, and zero-census rows have $R=0$.
+All $53$ rows have been counted by the Java residual generator and checked
+independently. Emission and proof verification reject
+pending counts. The superseded direct total $U+O$ is not an active route count.
+The direct total excludes roots reconstructed
 from endpoint failures, whose final-phase count remains to be established.
 
+
+Independent arbitrary-support regeneration agrees with $R$ in every one of
+the $53$ partitions. The reduction removes $211\,026\,354$ former direct
+unoriented obligations, or $98.39\%$ of $U$. Row $53$, of type
+$(3,2,2,2,2,2,2,2,2)$, has $U=4\,178\,724$ and $R=0$.
+These counts do not discharge any sorting certificate or inverse obligation.
+
+\unorientedresidualrow{1}{0}
+\unorientedresidualrow{2}{0}
+\unorientedresidualrow{3}{0}
+\unorientedresidualrow{4}{0}
+\unorientedresidualrow{5}{0}
+\unorientedresidualrow{6}{0}
+\unorientedresidualrow{7}{0}
+\unorientedresidualrow{8}{0}
+\unorientedresidualrow{9}{0}
+\unorientedresidualrow{10}{0}
+\unorientedresidualrow{11}{0}
+\unorientedresidualrow{12}{0}
+\unorientedresidualrow{13}{0}
+\unorientedresidualrow{14}{0}
+\unorientedresidualrow{15}{0}
+\unorientedresidualrow{16}{0}
+\unorientedresidualrow{17}{28}
+\unorientedresidualrow{18}{0}
+\unorientedresidualrow{19}{43}
+\unorientedresidualrow{20}{0}
+\unorientedresidualrow{21}{0}
+\unorientedresidualrow{22}{35}
+\unorientedresidualrow{23}{0}
+\unorientedresidualrow{24}{44}
+\unorientedresidualrow{25}{0}
+\unorientedresidualrow{26}{0}
+\unorientedresidualrow{27}{0}
+\unorientedresidualrow{28}{544}
+\unorientedresidualrow{29}{0}
+\unorientedresidualrow{30}{0}
+\unorientedresidualrow{31}{4862}
+\unorientedresidualrow{32}{0}
+\unorientedresidualrow{33}{2730}
+\unorientedresidualrow{34}{96726}
+\unorientedresidualrow{35}{0}
+\unorientedresidualrow{36}{0}
+\unorientedresidualrow{37}{0}
+\unorientedresidualrow{38}{3090}
+\unorientedresidualrow{39}{0}
+\unorientedresidualrow{40}{144669}
+\unorientedresidualrow{41}{0}
+\unorientedresidualrow{42}{6366}
+\unorientedresidualrow{43}{13910}
+\unorientedresidualrow{44}{1151518}
+\unorientedresidualrow{45}{0}
+\unorientedresidualrow{46}{101666}
+\unorientedresidualrow{47}{0}
+\unorientedresidualrow{48}{0}
+\unorientedresidualrow{49}{29}
+\unorientedresidualrow{50}{0}
+\unorientedresidualrow{51}{0}
+\unorientedresidualrow{52}{1921436}
+\unorientedresidualrow{53}{0}
+
 {\small
-\begin{longtable}{@{}rlrrrr@{}}
+\begin{longtable}{@{}rlrrrrr@{}}
 \caption{Complete root-partition inventory.}\label{tab:roots}\\
 \toprule
-No. & Partition & $U$ & $J$ & $C$ & $O$\\
+No. & Partition & $U$ & $R$ & $J$ & $C$ & $O$\\
 \midrule
 \endfirsthead
 \toprule
-No. & Partition & $U$ & $J$ & $C$ & $O$\\
+No. & Partition & $U$ & $R$ & $J$ & $C$ & $O$\\
 \midrule
 \endhead
 \midrule
-\multicolumn{6}{r}{Continued on next page}\\
+\multicolumn{7}{r}{Continued on next page}\\
 \endfoot
 \bottomrule
 \endlastfoot
@@ -373,10 +492,10 @@ No. & Partition & $U$ & $J$ & $C$ & $O$\\
 \jointrow{52}{3,3,3,3,3,2,2}{19999584}{0}{0}{0}
 \jointrow{53}{3,2,2,2,2,2,2,2,2}{4178724}{0}{0}{0}
 \midrule
-\multicolumn{2}{l}{Total} & 214474050 & 37858324 & 4249763 & 33608561\\
+\multicolumn{2}{l}{Total} & 214474050 & 3447696 & 37858324 & 4249763 & 33608561\\
 \end{longtable}}
 
-The generated format \nolinkurl{td18-joint-selection-summary-v2} records all
+The previous oriented audit \nolinkurl{td18-joint-selection-summary-v2} records all
 $53$ partition keys and counts in
 \nolinkurl{data/joint-reduction-audit/summary-v2.json}. Generated artifacts
 remain untracked. Native counting and independent Java generation agree
@@ -395,6 +514,23 @@ The versioned complete artifact is
 \nolinkurl{data/joint-reduction-audit/java-production-counts-v1.jsonl}.
 This validates the Java counting implementation; it does not supply sorting
 witnesses or complete the independent proof check.
+
+
+The Java command \nolinkurl{CountTD18UnorientedResiduals} counts $R$ using the
+constrained generator. It writes one deterministic partition report with
+format {\small \nolinkurl{td18-unoriented-joint-residual-count-v1}}, the domain,
+partition number and key, exact count, implementation, and completeness flag.
+Malformed, incomplete, mismatched, or superseded reports are rejected.
+The optional publication step updates only the corresponding explicit $R$ row.
+These reports contain counts, not sorting witnesses.
+
+The independent checker audit
+\nolinkurl{tools/audit/CheckUnorientedResidualCounts.jsh} regenerates all
+$53$ residual counts using arbitrary first and second supports. Its
+versioned reports in \nolinkurl{data/unoriented-joint-residuals-checker-v1/}
+record the domain, partition number and key, count, implementation, and
+completeness flag. Count-only regeneration visits the same accepted leaves
+as class emission, without decoding or retaining representatives.
 
 \section{Final reconstruction from endpoint failures}
 \label{sec:avoidance}
@@ -419,8 +555,7 @@ also closes every root path reaching that predecessor after one move.
 Propagate every other class.
 \item Restore one fixed point in every cyclic gap of each propagated
 $18$-symbol predecessor. Reverse every support containing that symbol and
-any two original symbols. Retain valid fixed-point-free roots that are not
-totally unoriented and whose exact forward replay is qualifying with gain one.
+any two original symbols. Retain valid fixed-point-free roots of either orientation and whose exact forward replay is qualifying with gain one.
 \item Deduplicate roots by extended-toric class. Each needs a persisted
 known-diameter closure or a complete sorting witness within ten transpositions. Such a
 root witness starts at the root and uses the full root budget.
@@ -443,8 +578,8 @@ Permuting only restored labels bijects supports and preserves pair classes,
 so the chosen restored-label order loses no class. Forward replay admits
 the actual edge. The first move likewise uses its newly fixed symbol and
 two others, so its actual gap and support occur in the second wave.
-Both predecessors pass the non-totally-unoriented test by the selection
-rule. Taking a class representative transports moves and gap choices
+Only the gain-two intermediate must be non-totally-unoriented, since it
+admits the second move; the gain-one root may be totally unoriented. Taking a class representative transports moves and gap choices
 bijectively. A complete endpoint result costs at most $2+8=10$ from the
 root, and an intermediate result costs at most $1+9=10$. Otherwise the
 independently verified root result uses at most ten moves.
@@ -478,7 +613,7 @@ Its search depth is bounded by the full obligation budget.
 A search miss under these restrictions is not a lower bound.
 
 The database has two column families. In the default family, the reserved
-UTF-8 key \nolinkurl{td18-schema} has value \nolinkurl{joint-selection-v2};
+UTF-8 key \nolinkurl{td18-schema} has value \nolinkurl{joint-selection-v3};
 other entries map raw canonical instance keys to sorting-result records.
 The \nolinkurl{obstructions} family maps raw keys to empty values. Instance
 symbols use five bits, and the standard current cycle is implicit in the raw

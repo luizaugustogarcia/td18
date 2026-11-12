@@ -46,8 +46,13 @@
 - First test all moves creating at least two fixed points. Otherwise inspect
   every qualifying gain-one first move and every gain-at-least-two second
   move. Include supports within even-length cycles and across cycles.
-- At every depth, totally unoriented states receive no structural reduction.
-  Use a known-diameter closure when it fits; otherwise retain the obligation.
+- Totally unoriented roots containing only odd-length cycles have no qualifying
+  first move. Test roots with even-length cycles. Stop totally unoriented
+  successors because they have no second move creating at least two fixed
+  points. Retain every root without a favorable (1,2) or (1,3) prefix.
+- Keep the selection-independent unoriented census U separate from the new
+  unoriented residual count R. Direct root obligations total R + O; reject
+  pending R counts. The gain-one inverse wave admits roots of either orientation.
 - Use only the paper's explicit budget-valid support-clearing patterns.
 - Endpoint sorting failures are final-phase obligations; never assume a
   predicted obstruction list or count.

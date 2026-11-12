@@ -1,5 +1,11 @@
 # Architecture
 
+Joint-2 includes totally unoriented roots with even-length cycles. All-odd
+totally unoriented roots and all totally unoriented successors stop for the
+reasons proved in the source paper. The active direct count is R + O; R counts
+unoriented residuals. All 53 rows are checked, with R = 3,447,696. See
+[WORKFLOW.md](WORKFLOW.md) for Java counting and the versioned artifact formats.
+
 The mathematical contract is [the source paper](td18-reduction-count.tex).
 The workflow has three boundaries: exhaustive class generation, sorting
 search, and independent certificate verification.
@@ -18,15 +24,16 @@ and explicit support-clearing patterns. The analysis tests every qualifying
 first move and all second moves creating at least two fixed points. It does
 not select a cycle type before testing move availability.
 
-The fixed-content bracelet generator handles totally unoriented roots and
-annotated endpoints. The constrained root generator fixes algebraic cycle
+The fixed-content bracelet generator handles annotated endpoints. Totally
+unoriented residual roots use the constrained generator with reverse
+current-cycle support order enforced at every completed cycle. The constrained root generator fixes algebraic cycle
 labels, assigns current-cycle positions, and prunes favorable-prefix
 constraints during recursion. Both enforce twisted symmetry and full-target
 realizability before emitting a class.
 
 ## Emitter
 
-The emitter directly generates totally unoriented roots and oriented joint
+The emitter directly generates totally unoriented residual roots and oriented joint
 residuals, validates the paper counts, and applies the cited support-clearing
 closures. Every other direct root is searched with budget ten. Endpoints use
 eight and reconstructed intermediates use nine.
@@ -99,7 +106,7 @@ conditions.
 ## Persistence
 
 The certificate database has two RocksDB column families. The default family
-contains the UTF-8 schema entry td18-schema = joint-selection-v2 and raw
+contains the UTF-8 schema entry td18-schema = joint-selection-v3 and raw
 canonical instance keys mapped to complete witnesses or diameter closures. The obstructions family
 maps raw keys to empty values. The standard current cycle is implicit in the
 five-bit key, so pairs are canonicalized before writing. Each transposition

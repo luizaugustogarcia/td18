@@ -16,13 +16,19 @@ public final class JointInventory {
     public static final int ENDPOINT_COUNT = 104;
     private JointInventory() { }
     public record Root(int number, int[] partition, long unorientedClasses,
-                       long jointResidualClasses, long supportClearingClasses, long orientedClasses) {
+                       long jointResidualClasses, long supportClearingClasses, long orientedClasses, long unorientedResidualClasses) {
         public Root {
             partition = partition.clone();
+            if (unorientedResidualClasses < -1 || unorientedResidualClasses > unorientedClasses)
+                throw new IllegalArgumentException("Invalid unoriented residual count");
             if (number < 1 || unorientedClasses < 0 || jointResidualClasses < 0
                     || supportClearingClasses < 0 || orientedClasses < 0
                     || jointResidualClasses - supportClearingClasses != orientedClasses)
                 throw new IllegalArgumentException("Inconsistent root count");
+        }
+        public boolean countsComplete() { return unorientedResidualClasses >= 0; }
+        public void requireCompleteCounts() {
+            if (!countsComplete()) throw new IllegalStateException("Pending unoriented joint residual counts: partition=" + number);
         }
         @Override public int[] partition() { return partition.clone(); }
     }
@@ -37,6 +43,7 @@ public final class JointInventory {
         }
     }
     public static List<Root> read(final Path paper) throws IOException {
+        final var residuals = UnorientedResidualInventory.read(paper, 53);
         final var syntax = Pattern.compile("^\\\\jointrow\\{([0-9]+)}\\{([0-9,]+)}\\{([0-9]+)}\\{([0-9]+)}\\{([0-9]+)}\\{([0-9]+)}\\s*(?:%.*)?$");
         final var rows = new ArrayList<Root>();
         for (final var line : Files.readAllLines(paper)) {
@@ -47,7 +54,7 @@ public final class JointInventory {
             }
             rows.add(new Root(Integer.parseInt(m.group(1)), Arrays.stream(m.group(2).split(","))
                     .mapToInt(Integer::parseInt).toArray(), Long.parseLong(m.group(3)),
-                    Long.parseLong(m.group(4)), Long.parseLong(m.group(5)), Long.parseLong(m.group(6))));
+                    Long.parseLong(m.group(4)), Long.parseLong(m.group(5)), Long.parseLong(m.group(6)), residuals.get(Integer.parseInt(m.group(1)))));
         }
         final var expected = Partitions.generateValidPartitions(19);
         if (rows.size() != ROOT_COUNT || expected.size() != ROOT_COUNT)

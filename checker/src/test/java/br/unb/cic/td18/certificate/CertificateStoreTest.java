@@ -22,7 +22,7 @@ class CertificateStoreTest {
             try (final var db = RocksDB.open(options,path.toString(),List.of(
                     new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY,first),
                     new ColumnFamilyDescriptor("obstructions".getBytes(StandardCharsets.UTF_8),second)),handles)) {
-                if(marker) db.put(handles.get(0),"td18-schema".getBytes(StandardCharsets.UTF_8),"joint-selection-v2".getBytes(StandardCharsets.UTF_8));
+                if(marker) db.put(handles.get(0),"td18-schema".getBytes(StandardCharsets.UTF_8),"joint-selection-v3".getBytes(StandardCharsets.UTF_8));
                 if(value!=null) db.put(handles.get(0),CertificateCodec.keyFor(PAIR),value);
                 handles.forEach(ColumnFamilyHandle::close);
             }

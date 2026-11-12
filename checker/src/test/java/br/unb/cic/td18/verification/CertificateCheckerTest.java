@@ -23,7 +23,7 @@ class CertificateCheckerTest {
             try(final var database=RocksDB.open(options,directory.toString(),List.of(
                     new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY,first),
                     new ColumnFamilyDescriptor("obstructions".getBytes(StandardCharsets.UTF_8),second)),handles)) {
-                database.put(handles.get(0),"td18-schema".getBytes(StandardCharsets.UTF_8),"joint-selection-v2".getBytes(StandardCharsets.UTF_8));
+                database.put(handles.get(0),"td18-schema".getBytes(StandardCharsets.UTF_8),"joint-selection-v3".getBytes(StandardCharsets.UTF_8));
                 handles.forEach(ColumnFamilyHandle::close);
             }
         }

@@ -142,7 +142,9 @@ on 16 symbols with 3-norm at most seven. Empty types are checked explicitly.
 Oriented joint residual roots are counted by their constrained direct
 generator: the favorable-prefix predicates do not depend only on an annotated
 type. These contribute 37,858,324 classes before support clearing and
-33,608,561 afterward. The complete direct-root total is 248,082,611.
+33,608,561 afterward. The constrained Java unoriented residual count is
+R = 3,447,696, independently regenerated in every partition. The active
+direct-root total is R + O = 37,056,257.
 See [the paper](td18-reduction-count.tex) for the predicates, generation
 argument, all 53 partition counts, and final reconstruction obligations.
 No sorting-failure count is an input to Burnside counting or joint selection.
