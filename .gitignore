@@ -4,6 +4,8 @@
 
 # Generated computational artifacts
 certificates/
+certificates-pruned*/
+certificates.superseded-*/
 data/
 checkpoints/
 avoidance-work/
