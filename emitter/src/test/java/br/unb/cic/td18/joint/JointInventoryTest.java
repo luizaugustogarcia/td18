@@ -22,9 +22,9 @@ class JointInventoryTest {
         assertEquals(37_858_324L, rows.stream().mapToLong(JointInventory.Root::jointResidualClasses).sum());
         assertEquals(4_249_763L, rows.stream().mapToLong(JointInventory.Root::supportClearingClasses).sum());
         assertEquals(33_608_561L, rows.stream().mapToLong(JointInventory.Root::orientedClasses).sum());
-        assertTrue(rows.stream().anyMatch(row -> !row.countsComplete()));
-        for (var row : rows) if (!row.countsComplete())
-            assertThrows(IllegalStateException.class, row::directClasses);
+        assertTrue(rows.stream().allMatch(JointInventory.Root::countsComplete));
+        assertEquals(3_447_696L, rows.stream().mapToLong(JointInventory.Root::unorientedResidualClasses).sum());
+        assertEquals(37_056_257L, rows.stream().mapToLong(JointInventory.Root::directClasses).sum());
         assertArrayEquals(new int[]{19}, rows.getFirst().partition());
         rows.getFirst().partition()[0] = 1;
         assertArrayEquals(new int[]{19}, rows.getFirst().partition());
