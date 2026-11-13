@@ -17,7 +17,7 @@
         <td18.gpuBudgetMB>1024</td18.gpuBudgetMB>
         <td18.gpuQueueCapacity></td18.gpuQueueCapacity>
         <td18.gpuStatsPeriodSeconds>10</td18.gpuStatsPeriodSeconds>
-        <td18.cpuPrefixDepth>3</td18.cpuPrefixDepth>
+        <td18.cpuPrefixJvmArgument></td18.cpuPrefixJvmArgument>
         <td18.cpuPrefixMaxTriples>8192</td18.cpuPrefixMaxTriples>
         <td18.reconstructionCpuPrefixMillis>10</td18.reconstructionCpuPrefixMillis>
         <td18.cpuStatsPeriodSeconds>${td18.gpuStatsPeriodSeconds}</td18.cpuStatsPeriodSeconds>
@@ -53,7 +53,7 @@
                         <goals><goal>exec</goal></goals>
                         <configuration>
                             <executable>java</executable>
-                            <commandlineArgs>-classpath %classpath -Djava.library.path=${project.build.directory}/native -Dtd18.gpuDevices=${td18.gpuDevices} -Dtd18.gpuSlots=${td18.gpuSlots} -Dtd18.gpuBudgetMB=${td18.gpuBudgetMB} -Dtd18.gpuQueueCapacity=${td18.gpuQueueCapacity} -Dtd18.gpuStatsPeriodSeconds=${td18.gpuStatsPeriodSeconds} -Dtd18.cpuPrefixDepth=${td18.cpuPrefixDepth} -Dtd18.cpuPrefixMaxTriples=${td18.cpuPrefixMaxTriples} -Dtd18.reconstructionCpuPrefixMillis=${td18.reconstructionCpuPrefixMillis} -Dtd18.cpuStatsPeriodSeconds=${td18.cpuStatsPeriodSeconds} -Dtd18.twistedBraceletWorkers=${td18.twistedBraceletWorkers} -Dtd18.certificateDb=${td18.certificateDb} -Dtd18.certificateFlushSeconds=${td18.certificateFlushSeconds} -Dtd18.certificateQueueCapacity=${td18.certificateQueueCapacity} -Dtd18.certificateLookupBatchSize=${td18.certificateLookupBatchSize} -Dtd18.reconstructionBufferKeys=${td18.reconstructionBufferKeys} ${exec.mainClass} ${td18.args}</commandlineArgs>
+                            <commandlineArgs>-classpath %classpath -Djava.library.path=${project.build.directory}/native -Dtd18.gpuDevices=${td18.gpuDevices} -Dtd18.gpuSlots=${td18.gpuSlots} -Dtd18.gpuBudgetMB=${td18.gpuBudgetMB} -Dtd18.gpuQueueCapacity=${td18.gpuQueueCapacity} -Dtd18.gpuStatsPeriodSeconds=${td18.gpuStatsPeriodSeconds} ${td18.cpuPrefixJvmArgument} -Dtd18.cpuPrefixMaxTriples=${td18.cpuPrefixMaxTriples} -Dtd18.reconstructionCpuPrefixMillis=${td18.reconstructionCpuPrefixMillis} -Dtd18.cpuStatsPeriodSeconds=${td18.cpuStatsPeriodSeconds} -Dtd18.twistedBraceletWorkers=${td18.twistedBraceletWorkers} -Dtd18.certificateDb=${td18.certificateDb} -Dtd18.certificateFlushSeconds=${td18.certificateFlushSeconds} -Dtd18.certificateQueueCapacity=${td18.certificateQueueCapacity} -Dtd18.certificateLookupBatchSize=${td18.certificateLookupBatchSize} -Dtd18.reconstructionBufferKeys=${td18.reconstructionBufferKeys} ${exec.mainClass} ${td18.args}</commandlineArgs>
                         </configuration>
                     </execution>
                 </executions>
@@ -69,6 +69,15 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>cpu-prefix-depth</id>
+            <activation>
+                <property><name>td18.cpuPrefixDepth</name></property>
+            </activation>
+            <properties>
+                <td18.cpuPrefixJvmArgument>-Dtd18.cpuPrefixDepth=${td18.cpuPrefixDepth}</td18.cpuPrefixJvmArgument>
+            </properties>
+        </profile>
         <profile>
             <id>gpu</id>
             <build>

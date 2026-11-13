@@ -27,13 +27,17 @@ cmake -S emitter/src/native -B emitter/target/native \
 # Reconstructed classes get at most 10 ms in the CPU prefix before the full
 # original obligation falls through to CUDA.
 # Reuse certificates on subsequent runs; no existing data is deleted.
+cpu_prefix_args=()
+if [[ -n ${TD18_CPU_PREFIX_DEPTH:-} ]]; then
+    cpu_prefix_args+=("-Dtd18.cpuPrefixDepth=$TD18_CPU_PREFIX_DEPTH")
+fi
 nohup ./tools/td18 emit -B -Dstyle.color=never \
     -Dtd18.gpuDevices=0,1,2,3 \
     -Dtd18.gpuSlots=8 \
     -Dtd18.gpuBudgetMB=1792 \
     -Dtd18.gpuQueueCapacity=64 \
     -Dtd18.twistedBraceletWorkers=192 \
-    -Dtd18.cpuPrefixDepth="${TD18_CPU_PREFIX_DEPTH:-4}" \
+    "${cpu_prefix_args[@]}" \
     -Dtd18.cpuPrefixMaxTriples=8192 \
     -Dtd18.reconstructionCpuPrefixMillis="${TD18_RECONSTRUCTION_CPU_PREFIX_MILLIS:-10}" \
     -Dtd18.certificateQueueCapacity=1048576 \

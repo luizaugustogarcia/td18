@@ -173,7 +173,9 @@ The GPU search checks identity and the known-diameter bound at every depth
 up to the obligation budget. It permits odd-length-cycle gains zero and two.
 For direct roots and endpoints, a CPU prefix first tries the same exits, using actual applicable transpositions
 with odd-length-cycle gains zero and two. Its defaults are depth three and
-a shared support budget of 8,192 per obligation. Set td18.cpuPrefixDepth=0 or
+a shared support budget of 8,192 per obligation. The depth default is defined
+in Java; Maven and the server launcher pass a depth only for an explicit
+override. Set td18.cpuPrefixDepth=0 or
 td18.cpuPrefixMaxTriples=0 to disable prefix expansion; initial identity and
 diameter checks still apply. Neither fixed-point gain ordering nor the prefix
 limits remove any full GPU obligation. Totally unoriented states receive no
