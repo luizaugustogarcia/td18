@@ -128,6 +128,12 @@ or proof coverage counts.
 
 ## Budgets and persistence
 
+The next restart on the P100 server uses `td18.gpuSlots=16` and
+`td18.gpuBudgetMB=896`. This preserves the existing 14 GiB aggregate GPU
+queue allocation per device while doubling concurrent search slots. Prepared
+overrides are recorded in `logs/next-run-settings.json`; active run settings
+continue to describe the current execution.
+
 | State | Symbols | Budget |
 | --- | ---: | ---: |
 | Direct/final root | 19 | 10 |

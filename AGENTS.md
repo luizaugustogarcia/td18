@@ -81,6 +81,11 @@
 
 ## Engineering
 
+- For the next reconstruction restart on 200.20.15.153, use 16 GPU slots per
+  device and 896 MiB of queue memory per slot. Apply the prepared overrides
+  in logs/next-run-settings.json; do not restart the current run just to change
+  this setting. The total queue allocation remains 14 GiB per P100.
+
 - Run Java computations through JShell and use all available CPU cores.
   Keep CPU-bound runs saturated with useful work, bounded queues and enough
   independent prefix tasks. Check actual utilization and adjust task granularity
