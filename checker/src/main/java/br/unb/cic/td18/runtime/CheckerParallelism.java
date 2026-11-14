@@ -16,6 +16,14 @@ public final class CheckerParallelism {
         return positiveProperty("td18.reconstructionBufferKeys", 1_048_576);
     }
 
+    public static int writeBatchEntries() {
+        String configured = System.getProperty("td18.dbWriteBatchEntries");
+        int entries = configured == null ? 524_288 : Integer.parseInt(configured.trim());
+        if (entries < 1) throw new IllegalArgumentException(
+                "td18.dbWriteBatchEntries must be positive");
+        return entries;
+    }
+
     public static int lookupPipelines() {
         return positiveProperty("td18.certificateLookupPipelines", Math.min(4, workers()));
     }

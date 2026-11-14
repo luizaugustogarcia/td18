@@ -108,7 +108,11 @@ buffer and sorted SST files. Producers never acquire a shared insertion
 monitor or perform disk writes. Semaphores bound queued batches; producers
 wait only when their destination queue is full. The default uses up to eight
 writers, a 16-million-key aggregate deduplication window and 1,024 queued
-batches, distributed across shards. Each flush sorts distinct keys in unsigned
+batches, distributed across shards. All database writers honor
+`td18.dbWriteBatchEntries` (524,288 entries by default); an inverse writer
+flushes at the smaller of that limit and its share of the deduplication buffer.
+Certificate and independent checker-state writers use the same property for
+their RocksDB `WriteBatch` entry limits. Each inverse flush sorts distinct keys in unsigned
 byte order, builds an SST outside the shared database write path, then ingests
 it with global sequence numbers enabled. Duplicate keys across tables have
 the same empty value and remain one set entry. SST construction bypasses WAL

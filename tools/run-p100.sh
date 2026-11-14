@@ -30,6 +30,7 @@ jvm_options=(
     "-R-Dtd18.reconstructionInverseWorkers=$cpu_workers"
     "-R-Dtd18.certificateDb=$project_root/certificates"
     -R-Dtd18.certificateFlushSeconds=5 -R-Dtd18.certificateQueueCapacity=1048576
+    -R-Dtd18.dbWriteBatchEntries=524288
     -R-Dtd18.certificateLookupBatchSize=262144
     -R-Dtd18.reconstructionBufferKeys=67108864 -R-Dtd18.reconstructionWriters=64
     -R-Dtd18.reconstructionQueueBatches=32768 -R-Dtd18.reconstructionGeneratedBatchKeys=65536
@@ -54,6 +55,7 @@ settings={
     'gpuDevices':[1,2,3],'gpuSlots':16,'gpuBudgetMB':896,'gpuQueueCapacity':64,
     'gpuIntermediateDepths':[8,9],'gpuIntermediateMillis':0,'gpuFinalDepth':10,'gpuFinalMillis':0,
     'walEnabled':False,'javaHeapGiB':128,
+    'dbWriteBatchEntries':524288,'certificateQueueCapacity':1048576,
     'reconstructionWriters':64,'reconstructionBufferKeys':67108864,
     'reconstructionGeneratedBatchKeys':65536,'reconstructionQueueBatches':32768,
     'reconstructionInverseWorkers':int(sys.argv[4]),
@@ -66,5 +68,5 @@ settings={
 }
 (root/'logs/run-settings.json').write_text(json.dumps(settings,indent=2,sort_keys=True)+chr(10))
 PY
-printf 'INFO Full emission from scratch: devices=1,2,3, slots/device=16, queue MiB/slot=896, WAL=disabled, work=%s\n' "$run_work"
+printf 'INFO Full emission from scratch: devices=1,2,3, slots/device=16, queue MiB/slot=896, database batch entries=524288, WAL=disabled, work=%s\n' "$run_work"
 exec ./tools/td18 emit --phase=all "--work=$run_work"

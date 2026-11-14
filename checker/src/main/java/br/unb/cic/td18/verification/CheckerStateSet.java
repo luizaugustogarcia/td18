@@ -40,6 +40,7 @@ final class CheckerStateSet implements AutoCloseable {
     }
 
     private final int bufferKeys = CheckerParallelism.reconstructionBufferKeys();
+    private final int writeBatchEntries = Math.min(CheckerParallelism.writeBatchEntries(), bufferKeys);
     private final Options options = new Options().setCreateIfMissing(true)
             .setWriteBufferSize(128L << 20).setMaxWriteBufferNumber(4)
             .setMaxBackgroundJobs(Math.min(8, CheckerParallelism.workers())).setMaxOpenFiles(512);
@@ -77,7 +78,7 @@ final class CheckerStateSet implements AutoCloseable {
                 throw new IllegalStateException("Cannot add to a sealed checker set");
             }
             pending.add(ByteBuffer.wrap(key));
-            if (pending.size() >= bufferKeys) {
+            if (pending.size() >= writeBatchEntries) {
                 flushPending();
             }
         }

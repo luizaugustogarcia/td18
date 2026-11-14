@@ -3,6 +3,7 @@ package br.unb.cic.td18.certificate;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.avoidance.ReconstructionProgress;
 import br.unb.cic.td18.permutation.Cycle;
+import br.unb.cic.td18.runtime.DatabaseWriteBatching;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -41,7 +42,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
     private final Semaphore pendingSlots;
     private final AtomicInteger publishers = new AtomicInteger();
     private static final int STOPPED = Integer.MIN_VALUE;
-    private static final int WRITE_BATCH_ENTRIES = 65536;
+    private final int writeBatchEntries;
     private final LongAdder accepted = new LongAdder(), persisted = new LongAdder();
     private final ScheduledExecutorService executor;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
@@ -53,6 +54,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
         if (flushSeconds <= 0) throw new IllegalArgumentException("Positive flush period required");
         int capacity = Integer.getInteger("td18.certificateQueueCapacity", 1048576);
         if (capacity < 1) throw new IllegalArgumentException("Positive certificate queue capacity required");
+        writeBatchEntries = Math.min(DatabaseWriteBatching.entries(), capacity);
         pendingSlots = new Semaphore(capacity);
         Path absolute = directory.toAbsolutePath();
         boolean existing = Files.isRegularFile(absolute.resolve("CURRENT"));
@@ -221,9 +223,9 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     private void drain(boolean flush) throws RocksDBException {
         synchronized (drainLock) {
-            var entries = new ArrayList<Entry>(WRITE_BATCH_ENTRIES);
+            var entries = new ArrayList<Entry>(writeBatchEntries);
             for (;;) {
-                for (int i=0;i<WRITE_BATCH_ENTRIES;i++) {
+                for (int i=0;i<writeBatchEntries;i++) {
                     var entry=pending.poll(); if (entry==null) break; entries.add(entry);
                 }
                 if (entries.isEmpty()) break;

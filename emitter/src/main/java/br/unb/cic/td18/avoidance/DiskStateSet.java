@@ -3,6 +3,7 @@ package br.unb.cic.td18.avoidance;
 import br.unb.cic.td18.certificate.CertificateCodec;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.runtime.BoundedTasks;
+import br.unb.cic.td18.runtime.DatabaseWriteBatching;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -31,6 +32,7 @@ public final class DiskStateSet implements AutoCloseable {
     private static final int ADMISSION_STOPPED = Integer.MIN_VALUE;
     static { RocksDB.loadLibrary(); }
     private final int bufferKeys = positiveProperty("td18.reconstructionBufferKeys", 16777216);
+    private final int writeBatchEntries = DatabaseWriteBatching.entries();
     private final Options options;
     private final Path stagingDirectory;
     private final RocksDB database;
@@ -98,7 +100,7 @@ public final class DiskStateSet implements AutoCloseable {
             database = opened;
             for (int i = 0; i < writerCount; i++) {
                 var pending = new HashSet<ByteBuffer>();
-                int limit = ceilingDivide(bufferKeys, writerCount);
+                int limit = Math.min(writeBatchEntries, ceilingDivide(bufferKeys, writerCount));
                 writers[i] = new StateSetWriter(ceilingDivide(queueBatches, writerCount),
                         "reconstruction-writer-" + directory.getFileName() + "-" + i, keys -> {
                     for (byte[] key : keys) {

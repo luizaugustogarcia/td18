@@ -156,7 +156,16 @@ against the explicit requested budget. A valid longer result is a miss for a
 smaller budget. Malformed results are errors. Intrinsic witnesses are independent of the route and reusable after replay;
 checkpoints must match the exact active route and format.
 
-Certificate persistence uses `td18.certificateQueueCapacity` and
+All database writers use `td18.dbWriteBatchEntries`, defaulting to 524,288
+entries (512 Ki entries). This limits certificate `WriteBatch` entries,
+inverse-state external SST keys per writer, and independent checker-state
+`WriteBatch` keys. Smaller certificate queues or per-writer reconstruction
+buffers further limit batch sizes. Final partial batches still drain at
+completed persistence boundaries. A certificate entry can produce both a
+witness put and an obstruction delete, so entries do not count individual
+RocksDB operations. Both hardware launchers explicitly select 524,288 entries.
+
+Certificate persistence also uses `td18.certificateQueueCapacity` and
 `td18.certificateFlushSeconds`. Inverse sets use
 `td18.reconstructionBufferKeys` and batched reads controlled by
 `td18.certificateLookupBatchSize`. Queues and in-memory key buffers are

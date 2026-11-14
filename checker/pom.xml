@@ -36,6 +36,10 @@
                 <configuration>
                     <systemProperties>
                         <systemProperty>
+                            <key>td18.dbWriteBatchEntries</key>
+                            <value>${td18.dbWriteBatchEntries}</value>
+                        </systemProperty>
+                        <systemProperty>
                             <key>td18.certificateDb</key>
                             <value>${td18.certificateDb}</value>
                         </systemProperty>
