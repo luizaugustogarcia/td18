@@ -72,6 +72,21 @@ the reconstruction pipeline's unresolved GPU count includes both outcomes.
 A wave completes only after all CPU work and GPU results have joined and its
 coverage counts agree. Increasing queue capacity does not increase GPU capacity.
 
+For a reproducible GPU comparison, use
+`tools/audit/BenchmarkGpuSearch.jsh`. It samples an immutable handoff queue,
+reports both completed searches and successful certificates per second,
+and replays every successful witness. See [CUDA throughput measurements](GPU_PERFORMANCE.md)
+for the checked P100 comparison and slot sweep.
+The capped search also combines the zero-move allowance with the invariant
+that rank-decreasing moves preserve all-odd cycle structure. Its table-driven
+subtree rejection leaves the class unresolved and preserves every inverse
+obligation; the source paper proves the rule. A zero move here preserves the
+odd-length-cycle count, independently of its fixed-symbol gain.
+GPU consumers also perform inverse reconstruction after a miss. Low native
+queue occupancy can therefore indicate CPU generation or disk-set contention.
+Inverse generation batches 256 canonicalized keys per monitor acquisition;
+all partial batches finish before sealing.
+
 ## Budgets and persistence
 
 | State | Symbols | Budget |

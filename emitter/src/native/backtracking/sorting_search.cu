@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstring>
 #include <cmath>
 #include <mutex>
 #include <stdexcept>
@@ -21,7 +22,7 @@ namespace {
         return n < 4 ? 0 : n * (n - 1) * (n - 2) * (n - 3) / 24;
     }
 
-    struct BacktrackingNode {
+    struct alignas(4) BacktrackingNode {
         uint8_t depth;
         uint8_t oddCycles;
         uint8_t fixedPoints;
@@ -61,6 +62,7 @@ namespace {
         int maxDepth; // Full budget for diameter closures and admissible pruning.
         int searchDepth; // Maximum number of moves actually explored.
         int knownDiameters[MAX_N + 1];
+        int maxAllOddClosureRank; // Optimistic maximum rank closing with zero slack.
 
         int queueCount;
         BacktrackingQueue *queues;
@@ -166,6 +168,31 @@ namespace {
 
     // ─── Device helper functions ─────────────────────────────────────────────────
 
+    // Same PTX mapping as libcu++'s device-scoped relaxed atomic loads. Use
+    // explicit instructions because CUDA 11.3 (P100) lacks cuda::atomic_ref.
+    // These polls need no acquire: queue locks protect nodes and stream
+    // completion publishes the result payload to the host. Unlike atomicAdd
+    // with zero, a load does not serialize a write on every polling warp.
+    __device__ __forceinline__ int load_relaxed(const int *address) {
+        int value;
+#if __CUDA_ARCH__ >= 700
+        asm volatile("ld.relaxed.gpu.b32 %0, [%1];" : "=r"(value) : "l"(address) : "memory");
+#else
+        asm volatile("ld.volatile.b32 %0, [%1];" : "=r"(value) : "l"(address) : "memory");
+#endif
+        return value;
+    }
+
+    __device__ __forceinline__ unsigned long long load_relaxed(const unsigned long long *address) {
+        unsigned long long value;
+#if __CUDA_ARCH__ >= 700
+        asm volatile("ld.relaxed.gpu.b64 %0, [%1];" : "=l"(value) : "l"(address) : "memory");
+#else
+        asm volatile("ld.volatile.b64 %0, [%1];" : "=l"(value) : "l"(address) : "memory");
+#endif
+        return value;
+    }
+
     __device__ __forceinline__ void acquire_lock(int *lock) {
         while (atomicCAS(lock, 0, 1) != 0);
     }
@@ -177,7 +204,7 @@ namespace {
     __device__ __forceinline__ bool owner_pop(BacktrackingQueue &q, BacktrackingNode &node) {
         acquire_lock(&q.lock);
         if (q.size <= 0) { release_lock(&q.lock); return false; }
-        q.tail = (q.tail + q.capacity - 1) % q.capacity;
+        q.tail = q.tail == 0 ? q.capacity - 1 : q.tail - 1;
         node = q.nodes[q.tail];
         q.size--;
         __threadfence();
@@ -190,7 +217,7 @@ namespace {
         acquire_lock(&q.lock);
         if (q.size <= 0) { release_lock(&q.lock); return false; }
         node = q.nodes[q.head];
-        q.head = (q.head + 1) % q.capacity;
+        q.head = q.head + 1 == q.capacity ? 0 : q.head + 1;
         q.size--;
         __threadfence();
         release_lock(&q.lock);
@@ -201,7 +228,7 @@ namespace {
         if (atomicAdd(&q.size, 0) >= q.capacity) return false;
         acquire_lock(&q.lock);
         if (q.size >= q.capacity) { release_lock(&q.lock); return false; }
-        q.head = (q.head + q.capacity - 1) % q.capacity;
+        q.head = q.head == 0 ? q.capacity - 1 : q.head - 1;
         q.nodes[q.head] = node;
         q.size++;
         __threadfence();
@@ -219,10 +246,10 @@ namespace {
     __device__ __forceinline__ bool warp_should_stop(const DeviceSearchContext &ctx) {
         int shouldStop = 0;
         if (threadIdx.x == 0) {
-            shouldStop = (atomicAdd(ctx.foundFlag, 0) != 0
-                        || atomicAdd(ctx.overflowFlag, 0) != 0) ? 1 : 0;
+            shouldStop = (load_relaxed(ctx.foundFlag) != 0
+                        || load_relaxed(ctx.overflowFlag) != 0) ? 1 : 0;
             if (!shouldStop && ctx.maximumNanos != 0) {
-                shouldStop = atomicAdd(ctx.timeoutFlag, 0) != 0;
+                shouldStop = load_relaxed(ctx.timeoutFlag) != 0;
                 if (!shouldStop && device_time_nanos() - *ctx.startedAtNanos >= ctx.maximumNanos) {
                     atomicExch(ctx.timeoutFlag, 1);
                     shouldStop = 1;
@@ -249,6 +276,21 @@ namespace {
             if (size & 1) count++;
         }
         return count;
+    }
+
+    __device__ __forceinline__ bool has_even_length_cycle(const uint8_t *omega, const int n) {
+        uint64_t visited = 0;
+        for (int first = 0; first < n; ++first) {
+            if (visited & (1ULL << first)) continue;
+            int current = first, length = 0;
+            do {
+                visited |= 1ULL << current;
+                ++length;
+                current = omega[current];
+            } while (current != first);
+            if ((length & 1) == 0) return true;
+        }
+        return false;
     }
 
     // Incremental odd-cycle delta when applying 3-cycle (a b c) to omega.
@@ -431,7 +473,7 @@ namespace {
                 }
                 const int rootLimit = min(localCapacity, queueRoots);
                 for (int rootIndex = 0; rootIndex < rootLimit; ++rootIndex) {
-                    if (atomicAdd(ctx.foundFlag, 0) != 0) break;
+                    if (load_relaxed(ctx.foundFlag) != 0) break;
                     const int fwdTripleIndex = queueIndex + rootIndex * queueCount;
                     const int tripleIndex = reverseTripleOrder
                         ? (tripleCount - 1 - fwdTripleIndex)
@@ -516,6 +558,9 @@ namespace {
         __shared__ uint8_t sh_active_positions[MAX_N];
         __shared__ AlgebraicCycleMetadata<MAX_N> sh_cycle_metadata;
         __shared__ BacktrackingNode sh_children[WARP_SIZE];
+        // The whole warp expands one parent. Keeping its variable-indexed
+        // move history here avoids a separate local-memory array per lane.
+        __shared__ BacktrackingNode node;
 #if __CUDA_ARCH__ >= 700
         unsigned idleBackoff = 64;
 #endif
@@ -524,7 +569,6 @@ namespace {
         while (true) {
             if (warp_should_stop(ctx)) return;
 
-            BacktrackingNode node;
             bool hasNode = false;
 
             if (lane == 0) {
@@ -550,7 +594,7 @@ namespace {
             if (!foundNode) {
                 int noWork = 0;
                 if (lane == 0) {
-                    noWork = atomicAdd(ctx.outstandingWork, 0ULL) == 0 ? 1 : 0;
+                    noWork = load_relaxed(ctx.outstandingWork) == 0 ? 1 : 0;
                 }
                 noWork = __shfl_sync(0xFFFFFFFF, noWork, 0);
                 if (noWork != 0) return;
@@ -564,16 +608,12 @@ namespace {
             idleBackoff = 64;
 #endif
 
-            node.depth = (uint8_t)__shfl_sync(0xFFFFFFFF, lane == 0 ? node.depth : 0, 0);
+            // Queue removal writes the shared parent from lane zero. Publish
+            // those writes before any lane reads the state or move history.
+            __syncwarp(0xFFFFFFFF);
             if (node.depth == 0 || node.depth > ctx.searchDepth || node.depth > MAX_DEPTH) {
                 if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
                 continue;
-            }
-            node.oddCycles = (uint8_t)__shfl_sync(0xFFFFFFFF, lane == 0 ? static_cast<int>(node.oddCycles) : 0, 0);
-            node.fixedPoints = (uint8_t)__shfl_sync(0xFFFFFFFF, lane == 0 ? static_cast<int>(node.fixedPoints) : 0, 0);
-            node.betaStart = (uint8_t)__shfl_sync(0xFFFFFFFF, lane == 0 ? static_cast<int>(node.betaStart) : 0, 0);
-            for (int d = 0; d < node.depth; ++d) {
-                node.moves[d] = static_cast<PackedMove>(__shfl_sync(0xFFFFFFFF, lane == 0 ? node.moves[d] : 0, 0));
             }
 
             const int parentOddCycles = node.oddCycles;
@@ -592,6 +632,23 @@ namespace {
             if (node.depth >= ctx.searchDepth || !can_still_reach(ctx, parentOddCycles, node.depth)) {
                 if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
                 continue;
+            }
+
+            // With no zero-move allowance left, every continuing move must
+            // lower rank (n - oddCycles)/2 by one. An all-odd permutation then
+            // stays all odd (Muehle--Nadeau, Corollary 3.3). At rank r > 0 its
+            // contracted domain has at least 2r+1 symbols. If even the lowest
+            // rank reachable before the exploration cap exceeds every rank
+            // admitting a diameter closure, this entire subtree is unresolved.
+            // The host derives the threshold from the actual diameter table.
+            if (ctx.maxDepth - ctx.searchDepth > ctx.maxAllOddClosureRank
+                    && node.depth + (ctx.n - parentOddCycles) / 2 == ctx.maxDepth) {
+                int allOdd = 0;
+                if (lane == 0) allOdd = !has_even_length_cycle(node.omega, ctx.n);
+                if (__shfl_sync(0xFFFFFFFF, allOdd, 0)) {
+                    if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
+                    continue;
+                }
             }
 
             // Store parent omega in shared memory, reconstruct beta via rho invariant
@@ -622,9 +679,6 @@ namespace {
                     if (sh_parent_omega[symbol] != symbol)
                         sh_active_positions[active++] = static_cast<uint8_t>(pos);
                 }
-                // Every candidate support uses the same parent permutation.
-                // Trace its cycles once instead of three times per support.
-                build_cycle_metadata(sh_parent_omega, ctx.n, sh_cycle_metadata);
             }
             __syncwarp(0xFFFFFFFF);
 
@@ -677,6 +731,29 @@ namespace {
                 if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
                 continue;
             }
+            // At an exploration cap, no child can be expanded. The fast scan
+            // above tested every support gaining at least two fixed symbols.
+            // Skip general enumeration only when neither gain zero nor gain
+            // one can close using the actual full-budget diameter table.
+            // This also handles unknown diameters without assuming a bound.
+            if (childDepth == ctx.searchDepth) {
+                bool lowGainCanClose = false;
+                for (int gain = 0; gain <= 1; ++gain) {
+                    const int remaining = ctx.n - node.fixedPoints - gain;
+                    if (remaining < 0) continue;
+                    const int diameter = ctx.knownDiameters[remaining];
+                    lowGainCanClose |= remaining == 0 || (ctx.allowDiameterClosure
+                            && diameter != INT_MAX && diameter <= ctx.maxDepth - childDepth);
+                }
+                if (!lowGainCanClose) {
+                    if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
+                    continue;
+                }
+            }
+            // Only general support enumeration needs cycle metadata. Terminal
+            // nodes and fast closures above avoid this serial cycle traversal.
+            if (lane == 0) build_cycle_metadata(sh_parent_omega, ctx.n, sh_cycle_metadata);
+            __syncwarp(0xFFFFFFFF);
             const int activeCount = ctx.n - node.fixedPoints;
             const int activeTriples = combinations_of_three(activeCount);
             const int activeOffset = triple_table_offset(activeCount);
@@ -775,6 +852,9 @@ namespace {
                     }
                     __syncwarp(0xFFFFFFFF);
 
+                    BacktrackingQueue &q = ctx.queues[warpId];
+                    int pushed = 0;
+                    int firstQueueIndex = 0;
                     if (lane == 0) {
                         // Reserve every child before publishing any queue entry.
                         // The active parent remains counted until the entire
@@ -783,20 +863,44 @@ namespace {
                         atomicAdd(ctx.outstandingWork,
                                   static_cast<unsigned long long>(pushCount));
 
-                        // Batch push to owner queue under single lock
-                        BacktrackingQueue &q = ctx.queues[warpId];
+                        // Retain the owner lock while all lanes copy its batch.
+                        // No stealer can observe a partly initialized entry.
                         acquire_lock(&q.lock);
-                        int pushed = 0;
-                        for (int c = pushCount - 1; c >= 0; --c) {
-                            if (q.size < q.capacity) {
-                                q.nodes[q.tail] = sh_children[c];
-                                q.tail = (q.tail + 1) % q.capacity;
-                                q.size++;
-                                pushed++;
-                            } else {
-                                break;
-                            }
-                        }
+                        pushed = min(pushCount, q.capacity - q.size);
+                        firstQueueIndex = q.tail;
+                    }
+                    pushed = __shfl_sync(0xFFFFFFFF, pushed, 0);
+                    firstQueueIndex = __shfl_sync(0xFFFFFFFF, firstQueueIndex, 0);
+
+                    static_assert(alignof(BacktrackingNode) >= alignof(uint32_t),
+                                  "Cooperative queue copies require aligned nodes");
+                    static_assert(sizeof(BacktrackingNode) % sizeof(uint32_t) == 0,
+                                  "Cooperative queue copies require whole words");
+                    constexpr int wordsPerNode = sizeof(BacktrackingNode) / sizeof(uint32_t);
+                    for (int word = lane; word < pushed * wordsPerNode; word += WARP_SIZE) {
+                        const int entry = word / wordsPerNode;
+                        const int wordInNode = word - entry * wordsPerNode;
+                        int queueIndex = firstQueueIndex + entry;
+                        if (queueIndex >= q.capacity) queueIndex -= q.capacity;
+                        // Consecutive destinations retain the original reverse
+                        // child order. memcpy preserves object representations
+                        // without aliasing a BacktrackingNode through uint32_t.
+                        uint32_t value;
+                        memcpy(&value,
+                               reinterpret_cast<const char *>(&sh_children[pushCount - 1 - entry])
+                                       + wordInNode * sizeof(uint32_t), sizeof(value));
+                        memcpy(reinterpret_cast<char *>(&q.nodes[queueIndex])
+                                       + wordInNode * sizeof(uint32_t), &value, sizeof(value));
+                    }
+                    // Each copying lane publishes its own global stores before
+                    // lane zero updates queue metadata and releases the lock.
+                    if (pushed > 0) __threadfence();
+                    __syncwarp(0xFFFFFFFF);
+                    if (lane == 0) {
+                        int nextQueueIndex = firstQueueIndex + pushed;
+                        if (nextQueueIndex >= q.capacity) nextQueueIndex -= q.capacity;
+                        q.tail = nextQueueIndex;
+                        q.size += pushed;
                         if (pushed > 0) __threadfence();
                         release_lock(&q.lock);
 
@@ -1028,6 +1132,21 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
     host.queueCount = queueCount;
     host.allowDiameterClosure = allowDiameterClosure ? 1 : 0;
     std::copy(knownDiameters.begin(), knownDiameters.end(), host.knownDiameters);
+    // Identity has rank zero. Any nonidentity all-odd state of rank r has
+    // at least 2r+1 nonfixed symbols. Relax all other partition constraints,
+    // so this maximum remains safe for every supplied diameter table.
+    host.maxAllOddClosureRank = 0;
+    if (allowDiameterClosure) {
+        for (int rank = 1; rank <= MAX_DEPTH; ++rank) {
+            for (int domain = 2 * rank + 1; domain <= n; ++domain) {
+                const int diameter = knownDiameters[domain];
+                if (diameter != INT_MAX && diameter <= rank) {
+                    host.maxAllOddClosureRank = rank;
+                    break;
+                }
+            }
+        }
+    }
 
     // Compute rho_inv for beta reconstruction via the invariant:
     // rho = omega0 ∘ beta_func, where beta_func is the function form of the cycle beta0.

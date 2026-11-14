@@ -24,7 +24,8 @@ public final class ErikssonAvoidance {
         try (var afterTwo=new DiskStateSet(work.resolve("after-two"))) {
             endpoints.forEachConcurrently(workers(),state -> {
                 require(state,0);
-                ErikssonInverseReconstruction.preimages(state.pair(),2,parent -> afterTwo.add(parent,ErikssonRoute.ROOT_BUDGET-2));
+                afterTwo.addGenerated(ErikssonRoute.ROOT_BUDGET-2,
+                        output -> ErikssonInverseReconstruction.preimages(state.pair(),2,output));
             });
             var checkpoint=new ErikssonCheckpoint(ErikssonCheckpoint.Stage.AFTER_TWO,count,afterTwo.seal(),-1,-1);
             checkpoint.write(work);
@@ -56,8 +57,9 @@ public final class ErikssonAvoidance {
             ReconstructionPipeline.process(states,work.resolve("after-two-search.queue"),workers(),
                     ReconstructionPipeline.configuredGpuWorkers(),checked(lookup,1),cpu,gpu,state -> {
                 require(state,1);
-                for (int gain:new int[]{2,3}) ErikssonInverseReconstruction.preimages(state.pair(),gain,
-                        parent -> afterOne.add(parent,ErikssonRoute.ROOT_BUDGET-1));
+                afterOne.addGenerated(ErikssonRoute.ROOT_BUDGET-1,output -> {
+                    for (int gain:new int[]{2,3}) ErikssonInverseReconstruction.preimages(state.pair(),gain,output);
+                });
             });
             var next=new ErikssonCheckpoint(ErikssonCheckpoint.Stage.AFTER_ONE,checkpoint.endpoints(),checkpoint.afterTwo(),afterOne.seal(),-1);
             next.write(work); return afterOne(next,afterOne,work,cpu,gpu,lookup);
@@ -71,7 +73,8 @@ public final class ErikssonAvoidance {
                     ReconstructionPipeline.configuredGpuWorkers(),checked(lookup,2),cpu,gpu,state -> {
                 require(state,2);
                 int gain=state.pair().getBeta().size()==ErikssonRoute.ROOT_SYMBOLS-1 ? 1:0;
-                ErikssonInverseReconstruction.preimages(state.pair(),gain,parent -> roots.add(parent,ErikssonRoute.ROOT_BUDGET));
+                roots.addGenerated(ErikssonRoute.ROOT_BUDGET,
+                        output -> ErikssonInverseReconstruction.preimages(state.pair(),gain,output));
             });
             var next=new ErikssonCheckpoint(ErikssonCheckpoint.Stage.ROOTS,checkpoint.endpoints(),checkpoint.afterTwo(),checkpoint.afterOne(),roots.seal());
             next.write(work); return roots(next,roots,work,cpu,gpu,lookup);

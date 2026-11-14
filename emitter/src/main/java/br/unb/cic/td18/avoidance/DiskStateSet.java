@@ -19,6 +19,7 @@ import org.rocksdb.*;
 public final class DiskStateSet implements AutoCloseable {
     private static final byte VERSION = 2;
     private static final byte[] EMPTY = {};
+    private static final int GENERATED_BATCH_KEYS = 256;
     static { RocksDB.loadLibrary(); }
     private final int bufferKeys = positiveProperty("td18.reconstructionBufferKeys", 1048576);
     private final Options options = new Options().setCreateIfMissing(true)
@@ -28,6 +29,7 @@ public final class DiskStateSet implements AutoCloseable {
     private final HashSet<ByteBuffer> pending = new HashSet<>();
     private long size = -1;
     private boolean closed;
+    private Throwable generationFailure;
     private final boolean readOnly;
 
     public record State(CyclicTargetPair pair, int maximumMoves) {
@@ -79,11 +81,47 @@ public final class DiskStateSet implements AutoCloseable {
         var state = new State(pair.canonicalRepresentative(), maximumMoves);
         byte[] key = encode(state);
         synchronized (this) {
-            requireOpen();
-            if (readOnly || size >= 0) throw new IllegalStateException("State set is sealed");
-            pending.add(ByteBuffer.wrap(key));
-            if (pending.size() >= bufferKeys) flushPending();
+            requireWritable();
+            addEncoded(key);
         }
+    }
+
+    /**
+     * Inserts one synchronous generation with bounded, method-local key batches.
+     * Canonicalization stays outside the disk monitor, and the final partial batch
+     * is inserted before return. The generator must not retain or concurrently use
+     * its output callback. Callers must join all generators before sealing.
+     * A failed generation makes the incomplete set unsealable.
+     */
+    public void addGenerated(int maximumMoves, Consumer<Consumer<CyclicTargetPair>> generator) {
+        if (maximumMoves < 1 || maximumMoves > 10) throw new IllegalArgumentException("Budget must be 1..10");
+        java.util.Objects.requireNonNull(generator);
+        synchronized (this) { requireWritable(); }
+        var batch = new ArrayList<byte[]>(GENERATED_BATCH_KEYS);
+        try {
+            generator.accept(pair -> {
+                batch.add(encode(new State(pair.canonicalRepresentative(), maximumMoves)));
+                if (batch.size() == GENERATED_BATCH_KEYS) {
+                    addEncodedBatch(batch);
+                    batch.clear();
+                }
+            });
+            if (!batch.isEmpty()) addEncodedBatch(batch);
+        } catch (RuntimeException | Error failure) {
+            synchronized (this) { if (generationFailure == null) generationFailure = failure; }
+            throw failure;
+        }
+    }
+
+    private synchronized void addEncodedBatch(List<byte[]> batch) {
+        requireWritable();
+        for (byte[] key : batch) addEncoded(key);
+    }
+
+    /** Called only while holding this set's monitor. */
+    private void addEncoded(byte[] key) {
+        pending.add(ByteBuffer.wrap(key));
+        if (pending.size() >= bufferKeys) flushPending();
     }
 
     static byte[] encode(State state) {
@@ -103,6 +141,7 @@ public final class DiskStateSet implements AutoCloseable {
 
     public synchronized long seal() {
         requireOpen();
+        requireSuccessfulGeneration();
         if (size >= 0) return size;
         if (!readOnly) flushPending();
         long count = 0;
@@ -186,6 +225,14 @@ public final class DiskStateSet implements AutoCloseable {
     }
 
     private void requireOpen() { if (closed) throw new IllegalStateException("State set is closed"); }
+    private void requireSuccessfulGeneration() {
+        if (generationFailure != null) throw new IllegalStateException("Reconstruction generation failed", generationFailure);
+    }
+    private void requireWritable() {
+        requireOpen();
+        requireSuccessfulGeneration();
+        if (readOnly || size >= 0) throw new IllegalStateException("State set is sealed");
+    }
     @Override public synchronized void close() {
         if (closed) return;
         closed = true; database.close(); writes.close(); options.close();

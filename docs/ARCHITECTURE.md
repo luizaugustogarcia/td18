@@ -66,6 +66,38 @@ cyclic-target pair. Deleting the adjacent inverse moves preserves any later
 closure and saves two moves, so the skip preserves existence of a certificate
 within the obligation budget.
 
+Each CUDA warp keeps its parent state in shared memory and cooperatively
+copies child batches into its locked queue. Every copying lane fences its
+writes before the owner publishes queue metadata; all children are counted
+before publication. Stop and completion polls use device-scoped relaxed
+loads, with the libcu++ PTX mapping for Pascal and later architectures.
+They do not publish queue entries or witness payloads.
+
+At an exploration cap, the consecutive-support scan first tests all moves
+gaining at least two fixed symbols. If neither gain zero nor gain one can
+close with the actual remaining obligation budget and known-diameter table,
+general support enumeration is unnecessary: no child can be expanded and
+no untested support can close. The result remains unresolved when the scan
+fails. Cycle metadata is built only for nodes needing general enumeration.
+This changes work per node without changing the represented search tree,
+the exploration cap, or any closure budget.
+
+The paper's capped all-odd lemma supplies an additional subtree rejection.
+When the current 3-norm equals the remaining full budget, a successful
+continuation has no zero moves available (zero means no change in the
+odd-length-cycle count). If all cycles have odd length, every remaining
+rank-decreasing move preserves that property. The kernel checks whether the
+exploration cap can reach any rank at which the actual known-diameter table
+permits an all-odd remainder to close. If it cannot, the subtree is unresolved.
+Fixed points count as odd-length cycles; an even-length cycle disables this
+rejection. Full-depth final-root searches are unaffected by this test.
+
+Inverse generation batches up to 256 canonicalized keys per callback before
+acquiring the disk-set monitor. The buffer is local to one synchronous
+generation, and its final partial batch is inserted before return. A failed
+generation prevents sealing. All generators join before the wave is sealed;
+the key format, deduplication and disk flush thresholds are unchanged.
+
 Sealed checkpoints are versioned computation state. The latest-wave count,
 route and budgets are validated on resume. Intrinsic certificates remain
 route-independent and are replayed at the requested budget. Counts, successful
