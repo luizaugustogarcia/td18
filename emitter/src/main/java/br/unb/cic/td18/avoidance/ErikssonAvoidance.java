@@ -1,6 +1,7 @@
 package br.unb.cic.td18.avoidance;
 
 import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
+import br.unb.cic.td18.base.GpuDeviceLayout;
 import br.unb.cic.td18.joint.ErikssonRoute;
 import br.unb.cic.td18.model.CyclicTargetPair;
 import java.nio.file.Path;
@@ -20,6 +21,12 @@ public final class ErikssonAvoidance {
     public static Result resolve(DiskStateSet endpoints,Path work,BiPredicate<CyclicTargetPair,Integer> cpu,
                                  BiPredicate<CyclicTargetPair,Integer> gpu,
                                  Function<List<DiskStateSet.State>,boolean[]> lookup) {
+        return resolve(endpoints,work,cpu,gpu,lookup,gpu);
+    }
+    public static Result resolve(DiskStateSet endpoints,Path work,BiPredicate<CyclicTargetPair,Integer> cpu,
+                                 BiPredicate<CyclicTargetPair,Integer> gpu,
+                                 Function<List<DiskStateSet.State>,boolean[]> lookup,
+                                 BiPredicate<CyclicTargetPair,Integer> prefetchGpu) {
         long count=endpoints.seal();
         try (var afterTwo=new DiskStateSet(work.resolve("after-two"))) {
             endpoints.forEachConcurrently(workers(),state -> {
@@ -29,7 +36,7 @@ public final class ErikssonAvoidance {
             });
             var checkpoint=new ErikssonCheckpoint(ErikssonCheckpoint.Stage.AFTER_TWO,count,afterTwo.seal(),-1,-1);
             checkpoint.write(work);
-            return afterTwo(checkpoint,afterTwo,work,cpu,gpu,lookup);
+            return afterTwo(checkpoint,afterTwo,work,cpu,gpu,lookup,prefetchGpu);
         }
     }
     public static Result resume(Path source,Path work,BiPredicate<CyclicTargetPair,Integer> discharge,
@@ -39,20 +46,27 @@ public final class ErikssonAvoidance {
     public static Result resume(Path source,Path work,BiPredicate<CyclicTargetPair,Integer> cpu,
                                 BiPredicate<CyclicTargetPair,Integer> gpu,
                                 Function<List<DiskStateSet.State>,boolean[]> lookup) {
+        return resume(source,work,cpu,gpu,lookup,gpu);
+    }
+    public static Result resume(Path source,Path work,BiPredicate<CyclicTargetPair,Integer> cpu,
+                                BiPredicate<CyclicTargetPair,Integer> gpu,
+                                Function<List<DiskStateSet.State>,boolean[]> lookup,
+                                BiPredicate<CyclicTargetPair,Integer> prefetchGpu) {
         var checkpoint=ErikssonCheckpoint.read(source);
         String name=checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_TWO ? "after-two":checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_ONE ? "after-one":"roots";
         long count=checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_TWO ? checkpoint.afterTwo():checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_ONE ? checkpoint.afterOne():checkpoint.roots();
         try (var states=DiskStateSet.openSealed(source.resolve(name),count)) {
             return switch (checkpoint.stage()) {
-                case AFTER_TWO -> afterTwo(checkpoint,states,work,cpu,gpu,lookup);
-                case AFTER_ONE -> afterOne(checkpoint,states,work,cpu,gpu,lookup);
+                case AFTER_TWO -> afterTwo(checkpoint,states,work,cpu,gpu,lookup,prefetchGpu);
+                case AFTER_ONE -> afterOne(checkpoint,states,work,cpu,gpu,lookup,prefetchGpu);
                 case ROOTS -> roots(checkpoint,states,work,cpu,gpu,lookup);
             };
         }
     }
     private static Result afterTwo(ErikssonCheckpoint checkpoint,DiskStateSet states,Path work,
                                     BiPredicate<CyclicTargetPair,Integer> cpu,BiPredicate<CyclicTargetPair,Integer> gpu,
-                                    Function<List<DiskStateSet.State>,boolean[]> lookup) {
+                                    Function<List<DiskStateSet.State>,boolean[]> lookup,
+                                    BiPredicate<CyclicTargetPair,Integer> prefetchGpu) {
         try (var afterOne=new DiskStateSet(work.resolve("after-one"))) {
             ReconstructionPipeline.process(states,work.resolve("after-two-search.queue"),workers(),
                     ReconstructionPipeline.configuredGpuWorkers(),checked(lookup,1),cpu,gpu,state -> {
@@ -62,21 +76,26 @@ public final class ErikssonAvoidance {
                 });
             });
             var next=new ErikssonCheckpoint(ErikssonCheckpoint.Stage.AFTER_ONE,checkpoint.endpoints(),checkpoint.afterTwo(),afterOne.seal(),-1);
-            next.write(work); return afterOne(next,afterOne,work,cpu,gpu,lookup);
+            next.write(work); return afterOne(next,afterOne,work,cpu,gpu,lookup,prefetchGpu);
         }
     }
     private static Result afterOne(ErikssonCheckpoint checkpoint,DiskStateSet states,Path work,
                                     BiPredicate<CyclicTargetPair,Integer> cpu,BiPredicate<CyclicTargetPair,Integer> gpu,
-                                    Function<List<DiskStateSet.State>,boolean[]> lookup) {
-        try (var prefetch=new RootPrefetch(ReconstructionPipeline.configuredGpuWorkers(),gpu);
+                                    Function<List<DiskStateSet.State>,boolean[]> lookup,
+                                    BiPredicate<CyclicTargetPair,Integer> prefetchGpu) {
+        var layout=new GpuDeviceLayout(
+                GpuDeviceLayout.parseDevices(System.getProperty("td18.gpuDevices","0")),
+                Integer.getInteger("td18.gpuSlots",7));
+        try (var prefetch=new RootPrefetch(layout.totalSlots(),prefetchGpu);
              var roots=new DiskStateSet(work.resolve("roots"),prefetch::publish)) {
+            prefetch.activate();
             ReconstructionPipeline.process(states,work.resolve("after-one-search.queue"),workers(),
                     ReconstructionPipeline.configuredGpuWorkers(),checked(lookup,2),cpu,gpu,state -> {
                 require(state,2);
                 int gain=state.pair().getBeta().size()==ErikssonRoute.ROOT_SYMBOLS-1 ? 1:0;
                 roots.addGenerated(ErikssonRoute.ROOT_BUDGET,
                         output -> ErikssonInverseReconstruction.preimages(state.pair(),gain,output));
-            },prefetch::activate);
+            });
             var next=new ErikssonCheckpoint(ErikssonCheckpoint.Stage.ROOTS,checkpoint.endpoints(),checkpoint.afterTwo(),checkpoint.afterOne(),roots.seal());
             prefetch.finish();
             next.write(work); return roots(next,roots,work,cpu,gpu,lookup);

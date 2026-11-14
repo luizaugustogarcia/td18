@@ -113,6 +113,40 @@ class WitnessSearchTest {
         }
     }
 
+    @Test void advisoryGpuSlicesPreserveFullDepthAndDoNotChangeFinalSearchLimits(@TempDir Path path) {
+        String previous = System.getProperty("td18.rootPrefetchGpuMillis");
+        String previousCpu = System.getProperty("td18.cpuPrefixDepth");
+        System.clearProperty("td18.rootPrefetchGpuMillis");
+        System.setProperty("td18.cpuPrefixDepth", "-1");
+        try (var writer = new AsyncCertificateWriter(path, 60)) {
+            WitnessSearch.installWriter(writer);
+            try {
+                var result = WitnessSearch.searchGpuPrefetch(pair(), 10, (input, budget, timeout, depth) -> {
+                    assertEquals(10, budget); assertEquals(10, depth); assertEquals(100, timeout);
+                    return new GPUSortingSearch.SearchOutcome(GPUSortingSearch.Disposition.TIMED_OUT, java.util.List.of());
+                });
+                assertEquals(WitnessSearch.Disposition.RESIDUAL, result.disposition());
+                WitnessSearch.searchReconstructedGpu(pair(), 10, (input, budget, timeout, depth) -> {
+                    assertEquals(10, budget); assertEquals(10, depth); assertEquals(0, timeout);
+                    return new GPUSortingSearch.SearchOutcome(GPUSortingSearch.Disposition.RESIDUAL, java.util.List.of());
+                });
+                writer.flush();
+                assertTrue(writer.findResult(pair(), 10).isEmpty());
+                writer.forEachObstruction(key -> fail("An advisory timeout cannot persist an obstruction"));
+                for (String invalid : new String[]{"0", "-1", "invalid", Long.toString(Long.MAX_VALUE)}) {
+                    System.setProperty("td18.rootPrefetchGpuMillis", invalid);
+                    assertThrows(IllegalArgumentException.class, () -> WitnessSearch.searchGpuPrefetch(pair(), 10,
+                            (input, budget, timeout, depth) -> { fail("Invalid time slice must not dispatch"); return null; }));
+                }
+            } finally { WitnessSearch.uninstallWriter(writer); }
+        } finally {
+            if (previous == null) System.clearProperty("td18.rootPrefetchGpuMillis");
+            else System.setProperty("td18.rootPrefetchGpuMillis", previous);
+            if (previousCpu == null) System.clearProperty("td18.cpuPrefixDepth");
+            else System.setProperty("td18.cpuPrefixDepth", previousCpu);
+        }
+    }
+
     @Test void reconstructionDepthDefaultsAreValidatedAndFinalBudgetAlwaysUsesFullDepth() {
         String previous = System.getProperty("td18.reconstructionGpuDepth");
         try {

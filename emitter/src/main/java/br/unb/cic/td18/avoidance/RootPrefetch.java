@@ -99,7 +99,7 @@ public final class RootPrefetch implements AutoCloseable {
         } finally { publishers.decrementAndGet(); }
     }
 
-    /** Starts once the source GPU queue has drained. Repeated activation is harmless. */
+    /** Starts advisory workers. Repeated activation is harmless. */
     public synchronized void activate() {
         check();
         if (stopping || workers != null) return;

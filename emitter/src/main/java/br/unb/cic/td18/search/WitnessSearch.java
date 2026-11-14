@@ -61,6 +61,11 @@ public final class WitnessSearch {
         return searchReconstructedGpu(input, maximumMoves, WitnessSearch::dispatchGpu);
     }
 
+    /** Advisory full-depth GPU slice; incomplete work remains for the mandatory final scan. */
+    public static SearchResult searchGpuPrefetch(final CyclicTargetPair input, final int maximumMoves) {
+        return searchGpuPrefetch(input, maximumMoves, WitnessSearch::dispatchGpu);
+    }
+
     /** Gives the CPU prefix a wall-clock budget, then sends the untouched obligation to CUDA. */
     public static SearchResult searchWithCpuPrefixTimeout(final CyclicTargetPair input,
                                                           final int maximumMoves,
@@ -87,6 +92,14 @@ public final class WitnessSearch {
         long maximumMillis = reconstructionGpuMillis(maximumMoves);
         int maximumSearchDepth = reconstructionGpuDepth(maximumMoves);
         return searchGpu(input, maximumMoves, (pair, budget) -> dispatcher.search(pair, budget, maximumMillis, maximumSearchDepth));
+    }
+
+    static SearchResult searchGpuPrefetch(CyclicTargetPair input, int maximumMoves, TimedGpuSearch dispatcher) {
+        long configuredMillis = Long.parseLong(System.getProperty("td18.rootPrefetchGpuMillis", "100").trim());
+        if (configuredMillis <= 0) throw new IllegalArgumentException("Root-prefetch GPU time slice must be positive");
+        long maximumMillis = new GPUSortingSearch.SearchLimits(configuredMillis).maximumMillis();
+        return searchGpu(input, maximumMoves,
+                (pair, budget) -> dispatcher.search(pair, budget, maximumMillis, budget));
     }
 
     static int reconstructionGpuDepth(int maximumMoves) {

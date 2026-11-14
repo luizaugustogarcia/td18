@@ -72,9 +72,11 @@ public final class ErikssonWitnessEmitter {
                             RECONSTRUCTION_CPU_PREFIX_MILLIS);
                     var result=options.resumeWork==null
                             ? ErikssonAvoidance.resolve(endpoints,work,ErikssonWitnessEmitter::settleReconstructedCpu,
-                                    (pair,budget)->settleReconstructedGpu(pair,budget,writer),ErikssonWitnessEmitter::lookupReconstructionBatch)
+                                    (pair,budget)->settleReconstructedGpu(pair,budget,writer),ErikssonWitnessEmitter::lookupReconstructionBatch,
+                                    ErikssonWitnessEmitter::settlePrefetchedGpu)
                             : ErikssonAvoidance.resume(options.resumeWork,work,ErikssonWitnessEmitter::settleReconstructedCpu,
-                                    (pair,budget)->settleReconstructedGpu(pair,budget,writer),ErikssonWitnessEmitter::lookupReconstructionBatch);
+                                    (pair,budget)->settleReconstructedGpu(pair,budget,writer),ErikssonWitnessEmitter::lookupReconstructionBatch,
+                                    ErikssonWitnessEmitter::settlePrefetchedGpu);
                     writer.flush();
                     log.info("Final reconstruction: {}", result);
                     if (result.unresolved() != 0) throw new IllegalStateException("Unresolved reconstructed roots: " + result.unresolved());
@@ -127,6 +129,10 @@ public final class ErikssonWitnessEmitter {
         if (result.disposition() != WitnessSearch.Disposition.RESIDUAL) return true;
         writer.enqueueObstruction(pair, budget);
         return false;
+    }
+
+    static boolean settlePrefetchedGpu(CyclicTargetPair pair, int budget) {
+        return WitnessSearch.searchGpuPrefetch(pair, budget).disposition() != WitnessSearch.Disposition.RESIDUAL;
     }
 
     private static long reconstructionCpuPrefixMillis() {

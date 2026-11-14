@@ -128,8 +128,10 @@ producers. Native resources outlive every writer. The deterministic key
 format and the represented class set are unchanged.
 
 During the final inverse wave, encoded root batches also feed a bounded
-advisory GPU prefetch queue. GPU prefetch activates after the source-wave
-GPU consumers finish, overlapping full-budget root searches with continued
+advisory GPU prefetch queue. GPU prefetch starts immediately with at most one
+worker per GPU slot. Full-depth searches use a positive time slice (100 ms
+by default), filling gaps between source batches without indefinitely holding
+GPU slots needed by source checks. Early root searches overlap continued
 inverse generation and SST persistence. Queue pressure never blocks
 generation; recent-key suppression and discarded advisory work cannot omit
 obligations. Started searches finish and use the normal checked certificate

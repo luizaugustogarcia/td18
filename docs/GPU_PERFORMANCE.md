@@ -215,7 +215,10 @@ are a separate workload. Budget-10 cases always use full depth ten without
 a timeout. Generated snapshots, logs and compiled libraries stay untracked.
 
 Root searches overlap the final inverse wave through a bounded advisory
-prefetch queue. Source-wave GPU checks finish first, then GPU workers search
-encoded roots as producer batches arrive, independently of SST sorts.
+prefetch queue. Workers search encoded roots as producer batches arrive,
+independently of SST sorts and gaps between source certificate-replay batches.
+Advisory searches run at full depth in 100 ms slices by default; incomplete
+work writes no obstruction marker. Ordinary final-root searches have no
+timeout. At most one advisory worker per GPU slot limits queued competition.
 The full sealed-root scan remains mandatory; early queue drops and recent-key
 cache eviction cannot remove proof obligations.

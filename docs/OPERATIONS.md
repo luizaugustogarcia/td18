@@ -115,11 +115,14 @@ The inverse completion counter records finished generation and encoding.
 Producer remainders and queued tables must still drain before the persisted
 inventory is validated and the wave checkpoint is written.
 Root GPU prefetch consumes encoded output while reconstruction continues,
-after source-wave GPU checks finish. Its bounded RAM queue holds up to
+starting immediately with one worker per GPU slot. Its bounded RAM queue holds up to
 16,777,216 keys in 256 full producer batches; a bounded recent-key cache
 suppresses repeated early checks. Queued advisory work can be discarded
-when switching to the complete sealed-root scan. Started full-budget
-searches finish and all certificate validation stays in the normal search
+when switching to the complete sealed-root scan. Advisory searches use
+td18.rootPrefetchGpuMillis (100 ms by default, required positive), at full
+depth. Incomplete early searches write no obstruction markers. Ordinary
+final-root searches remain full depth with no timeout. All certificate
+validation stays in the normal search
 path. Early-search counts are scheduling statistics, not final inventory
 or proof coverage counts.
 
