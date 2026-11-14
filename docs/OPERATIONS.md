@@ -24,6 +24,21 @@ and `td18.gpuStatsPeriodSeconds`. CPU prefix properties are
 `td18.reconstructionCpuPrefixMillis`. Limits bound a heuristic; they do not
 remove the original sorting obligation.
 
+Reconstruction runs CPU searches and GPU dispatch in separate worker pools.
+CPU workers scan the sealed source wave without waiting for GPU capacity;
+only CPU misses enter an append-only disk queue. GPU workers drain that queue
+concurrently and reconstruct parents only after an actual GPU miss. The CPU
+depth, support limit and time allowance retain their configured values.
+`td18.reconstructionGpuWorkers` optionally controls the dispatch pool; its
+default is twice the total GPU slots plus `td18.gpuQueueCapacity`, covering
+active searches and the native dispatcher queue. These workers mostly wait
+for GPU results and do not replace the CPU pool.
+
+Progress reports identify each wave and show its total, cached results, CPU
+closures, queued cases, GPU closures, GPU misses and remaining backlog.
+A wave completes only after all CPU work and GPU results have joined and its
+coverage counts agree. Increasing queue capacity does not increase GPU capacity.
+
 ## Budgets and persistence
 
 | State | Symbols | Budget |
@@ -47,6 +62,14 @@ Certificate persistence uses `td18.certificateQueueCapacity` and
 `td18.certificateLookupBatchSize`. Queues and in-memory key buffers are
 bounded. Class keys and disk iteration are deterministic at persistence
 boundaries. `certificates/`, `data/`, `logs/` and work databases are untracked.
+
+Each handoff file has format `td-reconstruction-queue-v1`, a route/domain/budget
+header, fixed-size records containing versioned canonical class keys and their
+explicit budgets, and a final record count. An unfinished file keeps count -1.
+Queue memory is bounded independently of its disk backlog; truncated records
+and incomplete coverage are errors. Handoff files are temporary execution state,
+never proof inputs or resume sources. After interruption, resume regenerates
+the handoff from the latest complete sealed wave and replays stored certificates.
 
 Each sealed-wave checkpoint has route ID `td18-eriksson-three-v1`, explicit
 budgets and counts, and its own versioned file `eriksson-reconstruction-v1.txt`.

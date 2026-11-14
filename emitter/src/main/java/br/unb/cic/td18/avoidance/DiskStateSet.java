@@ -173,7 +173,7 @@ public final class DiskStateSet implements AutoCloseable {
         }
     }
 
-    private static State decode(byte[] key, byte[] value) {
+    static State decode(byte[] key, byte[] value) {
         if (key.length < 4 || key[0] != VERSION || value.length != 0)
             throw new IllegalStateException("Malformed reconstruction state");
         return new State(CertificateCodec.pairForKey(Arrays.copyOfRange(key, 3, key.length),
