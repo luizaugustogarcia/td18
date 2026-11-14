@@ -108,7 +108,7 @@ Writers sort their deduplication windows and build SST files independently.
 Ingestion bypasses the per-key WAL/memtable write path; overlapping keys
 retain the same empty value under global sequence numbers. Up to sixteen
 background jobs and eight subcompactions handle subsequent compaction.
-Persistence logs report table construction and completed ingestion with
+DEBUG persistence logs report table construction and completed ingestion with
 key counts, bytes and elapsed time. Failed construction or ingestion makes
 the wave unsealable; interrupted waves are regenerated from the sealed source.
 The inverse completion counter records finished generation and encoding.

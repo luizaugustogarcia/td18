@@ -190,7 +190,7 @@ public final class DiskStateSet implements AutoCloseable {
     private void flushPending(HashSet<ByteBuffer> pending) {
         if (pending.isEmpty()) return;
         long started = System.nanoTime();
-        log.info("Reconstruction persistence: building sorted table, keys={}, directory={}",
+        log.debug("Reconstruction persistence: building sorted table, keys={}, directory={}",
                 pending.size(), stagingDirectory);
         // Match RocksDB's unsigned bytewise comparator. Each shard constructs its
         // table independently, outside the database's shared memtable write path.
@@ -212,7 +212,7 @@ public final class DiskStateSet implements AutoCloseable {
             database.ingestExternalFile(List.of(path.toString()), ingest);
             Files.deleteIfExists(path);
             pending.clear();
-            log.info("Reconstruction persistence: ingested table, keys={}, bytes={}, elapsed={} ms, directory={}",
+            log.debug("Reconstruction persistence: ingested table, keys={}, bytes={}, elapsed={} ms, directory={}",
                     keys.length, bytes, (System.nanoTime() - started) / 1_000_000, stagingDirectory);
         } catch (IOException | RocksDBException failure) {
             throw new IllegalStateException("Cannot persist reconstruction state table", failure);
