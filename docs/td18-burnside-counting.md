@@ -134,25 +134,24 @@ It does not generate or decode encoding words, run a sorting search, or
 read certificates. Some constrained permutations and selected unoriented
 supports are still enumerated; this is not a closed formula for every term.
 
-Totally unoriented root classes are counted for every one of the 53 root
-partitions, with all annotations unoriented. Their total is 214,474,050.
-The same counter applies independently to the 104 annotated endpoint types
-on 16 symbols with 3-norm at most seven. Empty types are checked explicitly.
+## Active Eriksson route
 
-Oriented joint residual roots are counted by their constrained direct
-generator: the favorable-prefix predicates do not depend only on an annotated
-type. These contribute 37,858,324 classes before support clearing and
-33,608,561 afterward. The constrained Java unoriented residual count is
-R = 3,447,696, independently regenerated in every partition. The active
-direct-root total is R + O = 37,056,257.
-See [the paper](td18-reduction-count.tex) for the predicates, generation
-argument, all 53 partition counts, and final reconstruction obligations.
-No sorting-failure count is an input to Burnside counting or joint selection.
+The full endpoint cover has 74 even fixed-point-free annotated types on
+14 symbols with budget 7. The Java Burnside counter independently
+regenerated all 74 rows in the emitter and checker modules: 76,048,061
+classes in total, 61,798,462 outside elementary diameter closures.
+The active cover imposes no stricter 3-norm cutoff. Fixed points must be
+contracted before using this fixed-point-free census.
 
-Tests compare Burnside and direct generation on every annotated partition
-through nine symbols, including empty types and both even-domain reflection
-classes. They also check the independently enumerated example
-I = 9702, all nonidentity rotation terms zero, each reflection term 76,
-and B = 479 for (5 oriented, 3 unoriented, 3 unoriented).
-Counting is independent of sorting certificates: a class count establishes
-neither an eight-move endpoint result nor a ten-move root result.
+Independent active generation agrees on all 53 root partitions: 2
+direct classes after support clearing. Root selection is not determined by
+annotated type, so it uses the constrained generator rather than Burnside.
+
+The three inverse waves cover both `(1,2,2)` and `(0,3,2)` paths on both
+endpoints. Class counts are separate from witnesses within 7 moves at
+endpoints and 10 moves at roots. See [the source paper](td18-reduction-count.tex)
+and [validation](VALIDATION.md) for the checked scope and remaining work.
+
+Small-domain tests compare Burnside with direct generation through nine
+symbols, including empty types and both even-domain reflection classes.
+Counting remains separate from sorting certificates and final inverse coverage.

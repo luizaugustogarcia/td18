@@ -1,119 +1,82 @@
-# Computation workflow
+# Active Eriksson-route workflow
 
-Totally unoriented roots now participate in joint-2 selection when they contain
-even-length cycles. All-odd totally unoriented roots have no qualifying first
-move; totally unoriented successors cannot supply the second gain. Two-step
-prefixes must have gains (1,2) or (1,3). Let U be the full unoriented census and
-R its residual count. The active direct obligation count is R + O, with O = J - C.
-All 53 R counts are independently checked: R = 3,447,696 and R + O = 37,056,257.
-Emission and proof checking reject missing or pending counts.
+The [source paper](td18-reduction-count.tex) defines the active route.
+The emitter count is complete: **2 direct root classes**, after support clearing. Independent checker regeneration matches every partition. The endpoint cover contains all 74 even fixed-point-free annotated types on 14 symbols, with budget 7.
 
-Count R with the Java command CountTD18UnorientedResiduals. Its per-partition
-reports are versioned, deterministic resume boundaries. Use --publish to update
-the explicit paper rows after counting; --n supports small-domain checks, which
-cannot be published to the production inventory. Run the command through Maven
-or JShell using the emitter classpath. Generated artifacts remain untracked.
+## Validate and count
 
-The route is specified in [the paper](td18-reduction-count.tex). Counting,
-sorting, and proof verification are separate stages. The completed direct root
-count is 37,056,257. The additional final reconstruction count is not yet known.
-
-## 1. Validate the mathematical inventory
-
-~~~bash
+```bash
+tools/td18 build
 tools/td18 test
 tools/td18 inventory
-tools/td18 structure
-~~~
+tools/td18 count-roots
+tools/td18 audit-roots
+tools/td18 count-endpoints
+tools/td18 audit-endpoints
+tools/td18 endpoint-table
+```
 
-These CPU commands check the 53 root partitions, 104 endpoint annotations,
-52 oriented-3 endpoint closures, the joint-move predicates, and small-domain
-generation/reconstruction tests. A structural check does not certify sorting.
-The checker uses its own inventory and generation code.
+The root census runs all 53 partitions through JShell using all available
+CPU threads. It atomically persists versioned per-partition reports under
+`data/eriksson-root-counts-v1/`, then publishes every active paper row together.
+The independent checker uses `data/eriksson-root-counts-checker-v1/` and compares
+all counts against those rows. Repeated, malformed, incompatible or missing
+fields cannot supply a completed count. Pending active rows allow structural
+checks but block emission and proof verification.
+Endpoint counting uses the full 74-annotation cover. Reports under
+`data/eriksson-endpoint-counts-v1/` and
+`data/eriksson-endpoint-counts-checker-v1/` include the route, domain, budget,
+orientations, counts and elementary-closure flag. No additional 3-norm
+restriction is imposed. A count does not discharge a sorting obligation.
 
-## 2. Count the generated classes
+## Emit and reconstruct
 
-~~~bash
-tools/td18 count-r '-Dexec.args=--publish'
-tools/td18 count -Dexec.args=--phase=roots
-tools/td18 count -Dexec.args=--phase=endpoints
-~~~
-
-Independently regenerate every R count using the checker and JShell:
-
-~~~bash
-mvn -pl checker -am compile
-jshell --class-path checker/target/classes tools/audit/CheckUnorientedResidualCounts.jsh
-~~~
-
-The audit checks every paper row and writes versioned partition reports in
-data/unoriented-joint-residuals-checker-v1/. It reads no emitter artifact.
-Count checking does not discharge sorting witnesses or inverse obligations.
-
-Counting uses all available CPU cores by default and performs no sorting
-search. For each root partition it checks the totally unoriented count,
-the constrained oriented count before support clearing, the cleared subset,
-and the remaining oriented count against the paper. Endpoint counting uses
-the full annotated inventory. The native counting audit in
-[the operations guide](OPERATIONS.md) provides an independent implementation.
-
-## 3. Emit roots and endpoints
-
-On a configured CUDA machine:
-
-~~~bash
-tools/td18 emit -Dtd18.args=--phase=roots
-tools/td18 emit -Dtd18.args=--phase=endpoints
-~~~
-
-All direct roots use budget ten and require a persisted complete witness or
-known-diameter closure. Endpoint types with an oriented 3-cycle close by
-1 + TD(12) = 8. For the other types, the emitter replays available witnesses,
-then tries a bounded CPU prefix before searching on GPU within eight moves, checking the known-diameter exit at
-every depth. Valid TD(16)
-witnesses may be imported through --td16-db=PATH; every reused witness is
-replayed. An endpoint search miss becomes a residual for final reconstruction,
-not a proved lower bound. A missing ten-move root result remains unresolved.
-
-## 4. Resolve endpoint residuals at the end
-
-~~~bash
+```bash
+tools/td18 emit --phase=roots
+tools/td18 emit --phase=endpoints
 tools/td18 avoidance
-~~~
+```
 
-Regenerate endpoint classes without an eight-move discharge. Restore two
-fixed points and reverse the second move, search deduplicated 18-symbol
-predecessors directly on GPU within budget nine and persist successful discharges, then restore one fixed point and reverse
-the first move. Each remaining deduplicated root needs a ten-move closure
-or complete witness. All gap distributions and admissible supports are
-covered, including moves within even-length cycles. Missing obstruction
-markers cannot omit obligations.
+Direct roots use budget 10; endpoints use 7. Checked intrinsic witnesses
+can be reused only when their actual required budget fits the requested one.
+Use `--source-db=PATH` for a read-only witness source. CPU prefix misses or
+limits leave the full original GPU obligation intact. A search miss is not a
+lower bound and cannot close an obligation.
 
-Inverse generation runs across the available CPU cores; intermediate and
-root searches use the configured td18.twistedBraceletWorkers pool with
-bounded queues. Each wave globally deduplicates its reconstruction keys, then
-replays previously stored witnesses through multiGet batches before sending
-each cache miss through a CPU sorting prefix for at most the configured
-reconstruction deadline. A prefix miss or timeout sends the untouched class
-and full budget to GPU search. The former CPU helper scan is not used. Default
-buffers hold 1,048,576 reconstruction keys and 262,144 lookup classes. A
-sealed intermediate or root checkpoint can resume through tools/td18
-avoidance with --resume-work=PATH; see the operations guide for the checked
-inventory and fresh-work requirements.
+Final reconstruction first restores two fixed points, reversing the third move
+and producing 16-symbol states with budget 8. Unclosed states branch:
+restore two for a gain-two second move, or three for a gain-three second move.
+This produces 18- or 19-symbol states with budget 9. Reverse the first
+move by restoring one fixed point in the first branch, or restoring none and
+reversing every gain-zero support in the second. Both endpoints are covered,
+all gaps and supports are enumerated, and actual forward gains are replayed.
+No qualifying-move restriction is imposed on the first inverse step.
 
-The default emit phase is all: roots, endpoints, then final reconstruction.
-Rerunning regenerates the selected scope and reuses valid stored witnesses.
+All waves deduplicate valid-pair classes on disk. The latest sealed wave may
+resume with `--phase=avoidance --resume-work=PATH`; its version, route, domain,
+budget, record validity and exact count are checked. Incompatible checkpoints are
+rejected. Resume is a computation convenience, not proof verification.
 
-## 5. Independently verify the completed database
+## Verify complete coverage
 
-~~~bash
-tools/td18 verify
-~~~
+```bash
+tools/td18 verify --phase=all
+```
 
-The CPU checker independently regenerates all required classes and inverse
-waves, checks counts, replays stored complete witnesses and diameter closures.
-An absent, malformed, over-budget, or unresolved required result prevents
-completion. Sidecar files and checksums are not proof inputs.
-A phase or range selection proves only its selected scope. Only the complete
-report meeting [every exit criterion](RESEARCH_PLAN.md) permits the
-TD(18) = 10 conclusion.
+The CPU checker independently regenerates all roots, endpoint classes and all
+three inverse waves and replays the database at each actual budget. Every
+missing endpoint discharge is propagated regardless of obstruction markers.
+Any missing final root result fails verification. Ranges and partial phases
+certify only their stated scope. The final full-scope report is required for
+the conditional conclusion TD(18) = 10.
+
+## Endpoint table publication
+
+The `endpoint-table` command runs through JShell using all available processors.
+It validates every emitter/checker endpoint report pair, requires the exact
+complete annotation set, and writes the endpoint table and both table totals
+atomically into the source paper. Zero-count annotated types remain explicit.
+Missing or disagreeing reports stop publication. Rebuild the reading PDF with
+`latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=docs docs/td18-reduction-count.tex`.
+The table's final column counts classes outside elementary diameter closures,
+before individual certificate lookup; it excludes subsequent inverse workload.

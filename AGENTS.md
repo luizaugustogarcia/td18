@@ -41,26 +41,27 @@
 
 ## Joint selection and coverage
 
-- Keep all 53 paper root partitions and the independently generated 104
-  endpoint annotations consistent with the implementation.
-- First test all moves creating at least two fixed points. Otherwise inspect
-  every qualifying gain-one first move and every gain-at-least-two second
-  move. Include supports within even-length cycles and across cycles.
-- Totally unoriented roots containing only odd-length cycles have no qualifying
-  first move. Test roots with even-length cycles. Stop totally unoriented
-  successors because they have no second move creating at least two fixed
-  points. Retain every root without a favorable (1,2) or (1,3) prefix.
-- Keep the selection-independent unoriented census U separate from the new
-  unoriented residual count R. Direct root obligations total R + O; reject
-  pending R counts. The gain-one inverse wave admits roots of either orientation.
+- The active route is Eriksson reduction plus a third transposition on either
+  endpoint. Keep all 53 active root partitions and 74 full endpoint
+  annotations consistent with docs/td18-reduction-count.tex.
+- Test immediate gains at least two on either endpoint. Otherwise enumerate
+  every gain-zero/one first move and every second move producing a total of
+  three fixed symbols. Seek every third move with gain at least two. Two moves
+  producing four fixed symbols or three producing six close by known bounds.
+- Do not impose qualifying odd-cycle restrictions on first moves. Totally
+  unoriented all-odd roots still participate through gain-zero first moves.
+- Active counts are retained unoriented roots, retained oriented roots, and
+  support-cleared roots. Reject pending counts and verify every active inventory row.
 - Use only the paper's explicit budget-valid support-clearing patterns.
-- Endpoint sorting failures are final-phase obligations; never assume a
-  predicted obstruction list or count.
-- Reconstruct every compatible root by restoring two fixed points, reversing
-  the second move, restoring one fixed point, and reversing the first move.
-  Enumerate all gaps and supports and verify actual forward gains.
-- Direct roots use budget ten; endpoints use eight; intermediate GPU search
-  uses nine. Every remaining reconstructed root needs a ten-move result.
+- Endpoints have 14 symbols and budget 7; direct roots have 19
+  symbols and budget 10. All endpoint types are included, without an
+  unjustified stricter 3-norm bound. Whole-domain diameter closures are valid.
+- Reconstruct both `(1,2,2)` and `(0,3,2)` paths in three inverse waves, on both
+  endpoints. Restore two, then either two/three, then one/zero fixed symbols.
+  Enumerate all gaps/supports and replay actual forward gains. The after-two
+  and after-one budgets are 8 and 9; final roots use 10.
+- Endpoint misses are final-phase obligations. Never assume an obstruction
+  list/count, omit work through missing markers, or accept incompatible checkpoints.
 
 ## Code, documentation, and proof discipline
 
@@ -79,6 +80,11 @@
   logs, and certificates remain untracked.
 
 ## Engineering
+
+- Run Java computations through JShell and use all available CPU cores.
+  Keep CPU-bound runs saturated with useful work, bounded queues and enough
+  independent prefix tasks. Check actual utilization and adjust task granularity
+  when worker imbalance leaves cores idle.
 
 - JDK 21 is the baseline. Prefer immutable keys and deterministic iteration
   at persistence boundaries.

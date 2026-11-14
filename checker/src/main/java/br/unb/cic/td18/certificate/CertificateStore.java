@@ -24,7 +24,7 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-/** Read-only version-2 witness/obstruction schema, with independent replay. */
+/** Read-only intrinsic witness and unresolved-marker store. */
 public final class CertificateStore implements AutoCloseable {
     public static final int FORMAT_VERSION = 2;
     private static final byte[] OBSTRUCTIONS = "obstructions".getBytes(StandardCharsets.UTF_8);
@@ -67,7 +67,7 @@ public final class CertificateStore implements AutoCloseable {
         if (value == null) return Optional.empty();
         final var result = CertificateCodec.decodeResult(value);
         // Replay stored data even when the derived bound exceeds the requested budget.
-        CertificateValidator.validate(canonical, result, canonical.getBeta().size() == 16 ? 8 : canonical.getBeta().size() == 18 ? 9 : 10);
+        CertificateValidator.validate(canonical, result, obligationBudget(canonical.getBeta().size()));
         return CertificateValidator.requiredBudget(canonical, result) <= maximumMoves ? Optional.of(result.moves()) : Optional.empty();
     }
     /** Position-preserving RocksDB multiGet followed by parallel independent replay of every hit. */
@@ -137,7 +137,9 @@ public final class CertificateStore implements AutoCloseable {
         catch (final RocksDBException failure) { throw new IllegalStateException("Cannot read certificate", failure); }
     }
     private static int obligationBudget(final int domain) {
-        return domain == 16 ? 8 : domain == 18 ? 9 : 10;
+        if (domain<1 || domain>br.unb.cic.td18.joint.KnownDiameters.ROOT_SYMBOLS)
+            throw new IllegalArgumentException("Invalid certificate domain");
+        return br.unb.cic.td18.joint.KnownDiameters.MAX_BUDGET;
     }
     private void parallelRanges(final int size, final RangeAction action) {
         final int taskCount = Math.min(workers, size);
