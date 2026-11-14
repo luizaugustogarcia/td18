@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
 # Runtime profile for 200.20.15.153. Build Java and CUDA before launching.
 project_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+source "$HOME/.bashrc"
+set -euo pipefail
 cd -- "$project_root"
 export JAVA_HOME="${JAVA_HOME:-/home/luiskowada/jdk-21.0.8}"
 gcc_root="${TD18_GCC_ROOT:-/home/luiskowada/gcc-9.4}"
