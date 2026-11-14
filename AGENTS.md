@@ -91,5 +91,4 @@
 - Keep the checker independent of the emitter artifact.
 - Use disk-backed deduplication for large inverse waves and bounded queues
   for asynchronous persistence.
-- Run mvn -pl emitter -am test and mvn -pl checker -am test for CPU-side work.
-  Run CUDA-dependent tests only when the environment is configured for them.
+- Run CUDA-dependent tests only when the environment is configured for them.

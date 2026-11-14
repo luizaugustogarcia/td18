@@ -21,7 +21,7 @@ import org.rocksdb.*;
 public final class DiskStateSet implements AutoCloseable {
     private static final byte VERSION = 2;
     private static final byte[] EMPTY = {};
-    private static final int GENERATED_BATCH_KEYS = 4096;
+    private final int generatedBatchKeys = positiveProperty("td18.reconstructionGeneratedBatchKeys", 65536);
     private static final int ADMISSION_STOPPED = Integer.MIN_VALUE;
     static { RocksDB.loadLibrary(); }
     private final int bufferKeys = positiveProperty("td18.reconstructionBufferKeys", 16777216);
@@ -60,7 +60,7 @@ public final class DiskStateSet implements AutoCloseable {
         this.readOnly = readOnly;
         int writerCount = readOnly ? 0 : Math.min(bufferKeys, positiveProperty("td18.reconstructionWriters",
                 Math.min(8, Runtime.getRuntime().availableProcessors())));
-        int queueBatches = readOnly ? 0 : positiveProperty("td18.reconstructionQueueBatches", 16384);
+        int queueBatches = readOnly ? 0 : positiveProperty("td18.reconstructionQueueBatches", 1024);
         options = new Options().setCreateIfMissing(true).setWriteBufferSize(256L << 20)
                 .setMaxWriteBufferNumber(4).setMaxBackgroundJobs(Math.max(2, Math.min(8, writerCount)))
                 .setMaxOpenFiles(128);
@@ -124,11 +124,11 @@ public final class DiskStateSet implements AutoCloseable {
         if (maximumMoves < 1 || maximumMoves > 10) throw new IllegalArgumentException("Budget must be 1..10");
         java.util.Objects.requireNonNull(generator);
         beginGeneration();
-        var batch = new ArrayList<byte[]>(GENERATED_BATCH_KEYS);
+        var batch = new ArrayList<byte[]>(generatedBatchKeys);
         try {
             generator.accept(pair -> {
                 batch.add(encode(new State(pair.canonicalRepresentative(), maximumMoves)));
-                if (batch.size() == GENERATED_BATCH_KEYS) {
+                if (batch.size() == generatedBatchKeys) {
                     submit(batch);
                     batch.clear();
                 }

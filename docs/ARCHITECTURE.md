@@ -100,13 +100,13 @@ permits an all-odd remainder to close. If it cannot, the subtree is unresolved.
 Fixed points count as odd-length cycles; an even-length cycle disables this
 rejection. Full-depth final-root searches are unaffected by this test.
 
-Inverse generation batches up to 4,096 canonicalized keys per callback and
+Inverse generation batches up to 65,536 canonicalized keys per callback and
 partitions them by a deterministic hash into independent writer shards.
 Each shard has a lock-free queue and a single owner of its deduplication
 buffer and RocksDB batches. Producers never acquire a shared insertion
 monitor or perform disk writes. Semaphores bound queued batches; producers
 wait only when their destination queue is full. The default uses up to eight
-writers, a 16-million-key aggregate deduplication window and 16,384 queued
+writers, a 16-million-key aggregate deduplication window and 1,024 queued
 batches, distributed across shards. RocksDB has 256 MiB write buffers and
 four memtables, with up to eight background jobs.
 Producers first publish to every shard with free space before waiting on a

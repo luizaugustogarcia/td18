@@ -92,14 +92,15 @@ obligation; the source paper proves the rule. A zero move here preserves the
 odd-length-cycle count, independently of its fixed-symbol gain.
 GPU consumers only dispatch searches and transfer misses. The separate inverse
 pool can wait for persistence without preventing further GPU submissions.
-Inverse generation batches 4,096 canonicalized keys into independent writer
+td18.reconstructionGeneratedBatchKeys defaults to 65,536 keys.
+Inverse generation batches these canonicalized keys into independent writer
 queues; deduplication and disk writes have no global producer lock. Every
 partial batch is queued, and every writer drains and joins before sealing.
 td18.reconstructionWriters defaults to at most eight writers.
 td18.reconstructionBufferKeys defaults to 16,777,216 aggregate keys;
-td18.reconstructionQueueBatches defaults to 16,384 aggregate batches.
+td18.reconstructionQueueBatches defaults to 1,024 aggregate batches.
 Both capacities are divided across shards with rounding up. On the 128 GiB
-server, use 67,108,864 buffer keys and 65,536 queue batches. Queues remain
+server, use 67,108,864 buffer keys and 4,096 queue batches. Queues remain
 bounded, and full queues apply backpressure when storage cannot keep up.
 
 ## Budgets and persistence

@@ -143,11 +143,11 @@ The historical 256-key batching measurements above correspond to commit
 970dc43. Subsequent live snapshots still found 84 of 112 inverse workers
 blocked on its shared insertion monitor, with an empty native GPU queue.
 
-The current implementation sends 4,096-key producer batches to independent
+The current implementation sends 65,536-key producer batches to independent
 writer shards through lock-free queues. Each writer owns its deduplication
 buffer and RocksDB batches; semaphores impose bounded queue backpressure.
 There is no global producer insertion lock. The 128 GiB server uses eight
-writers, a 67,108,864-key aggregate deduplication window and 65,536 queued
+writers, a 67,108,864-key aggregate deduplication window and 4,096 queued
 batches. Each RocksDB write buffer is 256 MiB, with four memtables and up to
 eight background jobs. These are capacities, not eager Java heap allocations.
 
