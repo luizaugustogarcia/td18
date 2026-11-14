@@ -17,6 +17,16 @@ Set `TD18_JSHELL_OPTIONS` for execution-VM options, for example
 Use `tools/td18 build-gpu` for native CUDA libraries. GPU sorting is entered
 only after applicable CPU prefixes and known-diameter checks fail.
 
+Direct root and endpoint emission use `WitnessSearch.searchFresh`: their
+generators already emit one representative per valid-pair class within each
+type, so sorting begins with the CPU prefix without a preliminary certificate
+database lookup. Source imports and avoidance miss regeneration retain
+stored-certificate lookups. Reconstruction replays stored certificates with
+one bounded `multiGet` per source batch before dispatch; its CPU and GPU miss
+paths do not repeat individual `get` calls. Root prefetch also uses bulk
+lookup followed by searches of prepared misses. Every new result still passes
+certificate validation before persistence.
+
 GPU properties retain the shared machinery: `td18.gpuDevices`,
 `td18.gpuSlots`, `td18.gpuBudgetMB`, `td18.gpuQueueCapacity`,
 and `td18.gpuStatsPeriodSeconds`. CPU prefix properties are
@@ -109,7 +119,8 @@ td18.reconstructionBufferKeys defaults to 16,777,216 aggregate keys;
 td18.reconstructionQueueBatches defaults to 1,024 aggregate batches.
 Both capacities are divided across shards with rounding up. On the 128 GiB
 server, use 64 writers, 67,108,864 buffer keys and 32,768 queue batches.
-Each writer has a 1,048,576-key deduplication window. Queues remain
+Each writer has a 1,048,576-key buffer budget; the 524,288-entry database
+batch limit flushes its distinct keys earlier. Queues remain
 bounded, and full queues apply backpressure when storage cannot keep up.
 Writers sort their deduplication windows and build SST files independently.
 Ingestion bypasses the per-key WAL/memtable write path; overlapping keys

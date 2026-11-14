@@ -107,28 +107,29 @@ public final class ErikssonWitnessEmitter {
     private static boolean settle(CyclicTargetPair input, int budget,
                                   AsyncCertificateWriter writer, ReadOnlyWitnessSource source, boolean search) {
         var pair = input.canonicalRepresentative();
-        // WitnessSearch already checks this database before searching. Only
-        // read here when importing another source or regenerating misses.
+        // Direct generation is unique within each root/annotated endpoint type.
+        // Read stored witnesses only for imports or avoidance miss regeneration.
         if ((source != null || !search) && writer.find(pair, budget).isPresent()) return true;
         if (source != null) {
             var imported = source.find(pair, budget);
             if (imported.isPresent()) { writer.enqueue(pair, imported.orElseThrow()); return true; }
         }
         if (!search) return false;
-        var result = WitnessSearch.search(pair, budget);
+        var result = WitnessSearch.searchFresh(pair, budget);
         if (result.disposition() != WitnessSearch.Disposition.RESIDUAL) return true;
         writer.enqueueObstruction(pair, budget);
         return false;
     }
 
     static boolean settleReconstructedCpu(CyclicTargetPair pair, int budget) {
-        var result = WitnessSearch.searchCpu(
+        // The pipeline has already replayed this state's batch with multiGet.
+        var result = WitnessSearch.searchCpuMiss(
                 pair, budget, RECONSTRUCTION_CPU_PREFIX_MILLIS);
         return result.disposition() != WitnessSearch.Disposition.RESIDUAL;
     }
 
     static boolean settleReconstructedGpu(CyclicTargetPair pair, int budget, AsyncCertificateWriter writer) {
-        var result = WitnessSearch.searchGpu(pair, budget);
+        var result = WitnessSearch.searchGpuMiss(pair, budget);
         if (result.disposition() != WitnessSearch.Disposition.RESIDUAL) return true;
         writer.enqueueObstruction(pair, budget);
         return false;

@@ -56,9 +56,20 @@ public final class WitnessSearch {
         return search(input, maximumMoves, CpuPrefixSearch.DEFAULT_DEPTH, Long.MAX_VALUE, WitnessSearch::dispatchGpu);
     }
 
+    /** Direct root/endpoint generation supplies unique classes; search without a certificate lookup. */
+    public static SearchResult searchFresh(final CyclicTargetPair input, final int maximumMoves) {
+        return search(input, maximumMoves, CpuPrefixSearch.DEFAULT_DEPTH, Long.MAX_VALUE,
+                WitnessSearch::dispatchGpu, false);
+    }
+
     /** Reuses stored certificates and bounds intermediate CUDA work; final roots have no time cutoff. */
     public static SearchResult searchGpu(final CyclicTargetPair input, final int maximumMoves) {
         return searchReconstructedGpu(input, maximumMoves, WitnessSearch::dispatchGpu);
+    }
+
+    /** Searches a reconstruction bulk-lookup miss without another database read. */
+    public static SearchResult searchGpuMiss(final CyclicTargetPair input, final int maximumMoves) {
+        return searchReconstructedGpu(input, maximumMoves, WitnessSearch::dispatchGpu, false);
     }
 
     /** Advisory full-depth GPU slice; incomplete work remains for the mandatory final scan. */
@@ -85,6 +96,13 @@ public final class WitnessSearch {
         return search(input, maximumMoves, 5, Math.multiplyExact(maximumMillis, 1_000_000L), null);
     }
 
+    /** CPU stage for a reconstruction bulk-lookup miss; the original budget is preserved. */
+    public static SearchResult searchCpuMiss(final CyclicTargetPair input, final int maximumMoves,
+                                             final long maximumMillis) {
+        if (maximumMillis < 0) throw new IllegalArgumentException("CPU prefix timeout cannot be negative");
+        return search(input, maximumMoves, 5, Math.multiplyExact(maximumMillis, 1_000_000L), null, false);
+    }
+
     @FunctionalInterface
     interface GpuSearch { GPUSortingSearch.SearchOutcome search(CyclicTargetPair pair, int maximumMoves); }
 
@@ -94,9 +112,15 @@ public final class WitnessSearch {
     }
 
     static SearchResult searchReconstructedGpu(CyclicTargetPair input, int maximumMoves, TimedGpuSearch dispatcher) {
+        return searchReconstructedGpu(input, maximumMoves, dispatcher, true);
+    }
+
+    private static SearchResult searchReconstructedGpu(CyclicTargetPair input, int maximumMoves,
+                                                      TimedGpuSearch dispatcher, boolean lookup) {
         long maximumMillis = reconstructionGpuMillis(maximumMoves);
         int maximumSearchDepth = reconstructionGpuDepth(maximumMoves);
-        return searchGpu(input, maximumMoves, (pair, budget) -> dispatcher.search(pair, budget, maximumMillis, maximumSearchDepth));
+        return search(input, maximumMoves, CpuPrefixSearch.DEFAULT_DEPTH, -1,
+                (pair, budget) -> dispatcher.search(pair, budget, maximumMillis, maximumSearchDepth), lookup);
     }
 
     static SearchResult searchGpuPrefetch(CyclicTargetPair input, int maximumMoves, TimedGpuSearch dispatcher) {

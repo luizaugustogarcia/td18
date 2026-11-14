@@ -30,7 +30,14 @@ Endpoint classes use the existing fixed-content twisted-bracelet generator and
 Burnside counter. Both modules independently regenerate the complete annotated
 cover. Elementary diameter bounds close whole families; every other class
 requires a persisted complete witness, replayed diameter prefix, or final inverse
-coverage.
+coverage. Direct root and endpoint generation emits one representative per
+valid-pair class within each type. Ordinary emission therefore skips the
+preliminary certificate lookup and searches the generated class directly.
+Source imports and reconstruction retain certificate reuse. Reconstruction
+replays each source batch with `multiGet`; CPU and GPU sorting consume its
+misses without repeating per-class reads. Root prefetch follows the same
+bulk-lookup/miss-dispatch boundary. Every newly emitted result still follows
+the checked persistence path.
 
 `ErikssonInverseReconstruction` enumerates inverse gains zero through three on
 both endpoints, restoring all deleted fixed symbols in all gaps. The emitter
