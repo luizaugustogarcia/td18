@@ -103,12 +103,16 @@ rejection. Full-depth final-root searches are unaffected by this test.
 Inverse generation batches up to 65,536 canonicalized keys per callback and
 partitions them by a deterministic hash into independent writer shards.
 Each shard has a lock-free queue and a single owner of its deduplication
-buffer and RocksDB batches. Producers never acquire a shared insertion
+buffer and sorted SST files. Producers never acquire a shared insertion
 monitor or perform disk writes. Semaphores bound queued batches; producers
 wait only when their destination queue is full. The default uses up to eight
 writers, a 16-million-key aggregate deduplication window and 1,024 queued
-batches, distributed across shards. RocksDB has 256 MiB write buffers and
-four memtables, with up to eight background jobs.
+batches, distributed across shards. Each flush sorts distinct keys in unsigned
+byte order, builds an SST outside the shared database write path, then ingests
+it with global sequence numbers enabled. Duplicate keys across tables have
+the same empty value and remain one set entry. SST construction bypasses WAL
+and memtables; ingestion and compaction still require database coordination.
+RocksDB allows up to sixteen background jobs and eight subcompactions.
 Producers first publish to every shard with free space before waiting on a
 full shard, so one slow destination cannot prevent all other writers receiving
 the same batch's remaining partitions.

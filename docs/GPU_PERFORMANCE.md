@@ -145,11 +145,15 @@ blocked on its shared insertion monitor, with an empty native GPU queue.
 
 The current implementation sends 65,536-key producer batches to independent
 writer shards through lock-free queues. Each writer owns its deduplication
-buffer and RocksDB batches; semaphores impose bounded queue backpressure.
+buffer and sorted SST files; semaphores impose bounded queue backpressure.
 There is no global producer insertion lock. The 128 GiB server uses eight
 writers, a 67,108,864-key aggregate deduplication window and 4,096 queued
-batches. Each RocksDB write buffer is 256 MiB, with four memtables and up to
-eight background jobs. These are capacities, not eager Java heap allocations.
+batches. SST construction runs independently in each shard, bypassing the
+database WAL/memtable write path. Ingestion enables global sequence numbers
+so repeated empty-valued keys remain one set entry. Up to sixteen background
+jobs and eight subcompactions handle subsequent compaction. Queues still
+apply backpressure when persistence cannot keep up; larger buffers cannot
+remove a sustained storage limit.
 
 Sealing rejects active generators and drains and joins every writer before
 flushing and validating the persisted inventory. Writer failures propagate

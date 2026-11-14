@@ -102,6 +102,13 @@ td18.reconstructionQueueBatches defaults to 1,024 aggregate batches.
 Both capacities are divided across shards with rounding up. On the 128 GiB
 server, use 67,108,864 buffer keys and 4,096 queue batches. Queues remain
 bounded, and full queues apply backpressure when storage cannot keep up.
+Writers sort their deduplication windows and build SST files independently.
+Ingestion bypasses the per-key WAL/memtable write path; overlapping keys
+retain the same empty value under global sequence numbers. Up to sixteen
+background jobs and eight subcompactions handle subsequent compaction.
+Persistence logs report table construction and completed ingestion with
+key counts, bytes and elapsed time. Failed construction or ingestion makes
+the wave unsealable; interrupted waves are regenerated from the sealed source.
 
 ## Budgets and persistence
 

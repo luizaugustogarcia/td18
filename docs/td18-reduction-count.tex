@@ -470,7 +470,11 @@ transfers every GPU miss to an independent CPU inverse pool. Every source
 class is accounted for, every GPU result is classified, and every transferred
 inverse case is processed before the next wave is sealed. All three pools
 are joined; interrupted queues are regenerated from the sealed source wave.
-Inverse outputs use deterministic writer shards with bounded queues. Every
+Inverse outputs use deterministic writer shards with bounded queues. Shards
+sort distinct keys in unsigned byte order, build SST files independently,
+and ingest them with global sequence numbers enabled. Every repeated key
+has the same empty value, so overlapping tables represent one set entry.
+Every
 partial output batch is queued and every writer is drained and joined before
 the exact inventory is checked; a generation or persistence failure prevents
 sealing. This changes persistence scheduling without changing the valid-pair

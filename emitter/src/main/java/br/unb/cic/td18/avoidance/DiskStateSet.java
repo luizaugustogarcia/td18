@@ -16,9 +16,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.rocksdb.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Bounded disk deduplication of a regenerated wave of valid-pair classes. */
 public final class DiskStateSet implements AutoCloseable {
+    private static final Logger log = LoggerFactory.getLogger(DiskStateSet.class);
     private static final byte VERSION = 2;
     private static final byte[] EMPTY = {};
     private final int generatedBatchKeys = positiveProperty("td18.reconstructionGeneratedBatchKeys", 65536);
@@ -26,7 +29,7 @@ public final class DiskStateSet implements AutoCloseable {
     static { RocksDB.loadLibrary(); }
     private final int bufferKeys = positiveProperty("td18.reconstructionBufferKeys", 16777216);
     private final Options options;
-    private final WriteOptions writes;
+    private final Path stagingDirectory;
     private final RocksDB database;
     private final StateSetWriter[] writers;
     private final AtomicInteger admissions = new AtomicInteger();
@@ -58,13 +61,14 @@ public final class DiskStateSet implements AutoCloseable {
 
     private DiskStateSet(Path directory, boolean readOnly, long expectedCount) {
         this.readOnly = readOnly;
+        stagingDirectory = directory.resolve("sst-staging");
         int writerCount = readOnly ? 0 : Math.min(bufferKeys, positiveProperty("td18.reconstructionWriters",
                 Math.min(8, Runtime.getRuntime().availableProcessors())));
         int queueBatches = readOnly ? 0 : positiveProperty("td18.reconstructionQueueBatches", 1024);
         options = new Options().setCreateIfMissing(true).setWriteBufferSize(256L << 20)
-                .setMaxWriteBufferNumber(4).setMaxBackgroundJobs(Math.max(2, Math.min(8, writerCount)))
+                .setMaxWriteBufferNumber(4).setMaxBackgroundJobs(Math.max(2, Math.min(16, 2 * writerCount)))
+                .setMaxSubcompactions(Math.max(1, Math.min(8, writerCount)))
                 .setMaxOpenFiles(128);
-        writes = new WriteOptions().setDisableWAL(true);
         writers = new StateSetWriter[writerCount];
         RocksDB opened = null;
         try {
@@ -75,6 +79,7 @@ public final class DiskStateSet implements AutoCloseable {
                 opened = RocksDB.openReadOnly(options, directory.toString());
             } else {
                 Files.createDirectory(directory);
+                Files.createDirectory(stagingDirectory);
                 opened = RocksDB.open(options, directory.toString());
             }
             database = opened;
@@ -97,7 +102,7 @@ public final class DiskStateSet implements AutoCloseable {
                 try { writer.finish(); } catch (RuntimeException error) { failure.addSuppressed(error); }
             }
             if (opened != null) opened.close();
-            writes.close(); options.close();
+            options.close();
             throw new IllegalStateException("Cannot open reconstruction state set: " + directory, failure);
         }
     }
@@ -148,6 +153,10 @@ public final class DiskStateSet implements AutoCloseable {
         for (byte[] key : keys) {
             int hash = Arrays.hashCode(key);
             hash ^= hash >>> 16;
+            hash *= 0x7feb352d;
+            hash ^= hash >>> 15;
+            hash *= 0x846ca68b;
+            hash ^= hash >>> 16;
             int shard = powerOfTwo ? hash & (writers.length - 1) : Math.floorMod(hash, writers.length);
             partitions.get(shard).add(key);
         }
@@ -168,11 +177,34 @@ public final class DiskStateSet implements AutoCloseable {
 
     private void flushPending(HashSet<ByteBuffer> pending) {
         if (pending.isEmpty()) return;
-        try (var batch = new WriteBatch()) {
-            for (var key : pending) batch.put(key.array(), EMPTY);
-            database.write(writes, batch);
+        long started = System.nanoTime();
+        log.info("Reconstruction persistence: building sorted table, keys={}, directory={}",
+                pending.size(), stagingDirectory);
+        // Match RocksDB's unsigned bytewise comparator. Each shard constructs its
+        // table independently, outside the database's shared memtable write path.
+        byte[][] keys = new byte[pending.size()][];
+        int index = 0;
+        for (var key : pending) keys[index++] = key.array();
+        Arrays.sort(keys, Arrays::compareUnsigned);
+        try (var environment = new EnvOptions();
+             var table = new SstFileWriter(environment, options);
+             var ingest = new IngestExternalFileOptions().setMoveFiles(true)
+                     .setAllowGlobalSeqNo(true).setAllowBlockingFlush(false)) {
+            Path path = Files.createTempFile(stagingDirectory, "inverse-", ".sst");
+            table.open(path.toString());
+            for (byte[] key : keys) table.put(key, EMPTY);
+            table.finish();
+            long bytes = table.fileSize();
+            // Overlapping keys have the same empty value. Global sequence
+            // numbers preserve one exact set entry across successive tables.
+            database.ingestExternalFile(List.of(path.toString()), ingest);
+            Files.deleteIfExists(path);
             pending.clear();
-        } catch (RocksDBException failure) { throw new IllegalStateException("Cannot persist reconstruction states", failure); }
+            log.info("Reconstruction persistence: ingested table, keys={}, bytes={}, elapsed={} ms, directory={}",
+                    keys.length, bytes, (System.nanoTime() - started) / 1_000_000, stagingDirectory);
+        } catch (IOException | RocksDBException failure) {
+            throw new IllegalStateException("Cannot persist reconstruction state table", failure);
+        }
     }
 
     public synchronized long seal() {
@@ -309,6 +341,6 @@ public final class DiskStateSet implements AutoCloseable {
         stopAdmissions();
         closed = true;
         try { finishWriters(); }
-        finally { database.close(); writes.close(); options.close(); }
+        finally { database.close(); options.close(); }
     }
 }
