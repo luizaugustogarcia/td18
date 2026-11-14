@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -32,6 +33,8 @@ public final class DiskStateSet implements AutoCloseable {
     private final Path stagingDirectory;
     private final RocksDB database;
     private final StateSetWriter[] writers;
+    private final Consumer<List<byte[]>> generatedObserver;
+    private final ConcurrentHashMap<Long, ArrayList<byte[]>> producerBatches = new ConcurrentHashMap<>();
     private final AtomicInteger admissions = new AtomicInteger();
     private final AtomicReference<Throwable> generationFailure = new AtomicReference<>();
     private final AtomicReference<Throwable> persistenceFailure = new AtomicReference<>();
@@ -50,17 +53,24 @@ public final class DiskStateSet implements AutoCloseable {
     }
 
     public DiskStateSet(Path directory) {
-        this(directory, false, -1);
+        this(directory, false, -1, null);
+    }
+
+    /** Optional early-search observer; the complete persisted inventory remains authoritative. */
+    public DiskStateSet(Path directory, Consumer<List<byte[]>> generatedObserver) {
+        this(directory, false, -1, java.util.Objects.requireNonNull(generatedObserver));
     }
 
     /** Reopens a sealed checkpoint, checking every record and its exact inventory count. */
     public static DiskStateSet openSealed(Path directory, long expectedCount) {
         if (expectedCount < 0) throw new IllegalArgumentException("Nonnegative checkpoint count required");
-        return new DiskStateSet(directory, true, expectedCount);
+        return new DiskStateSet(directory, true, expectedCount, null);
     }
 
-    private DiskStateSet(Path directory, boolean readOnly, long expectedCount) {
+    private DiskStateSet(Path directory, boolean readOnly, long expectedCount,
+                         Consumer<List<byte[]>> generatedObserver) {
         this.readOnly = readOnly;
+        this.generatedObserver = generatedObserver;
         stagingDirectory = directory.resolve("sst-staging");
         int writerCount = readOnly ? 0 : Math.min(bufferKeys, positiveProperty("td18.reconstructionWriters",
                 Math.min(8, Runtime.getRuntime().availableProcessors())));
@@ -118,10 +128,11 @@ public final class DiskStateSet implements AutoCloseable {
     }
 
     /**
-     * Inserts one synchronous generation with bounded, method-local key batches.
+     * Inserts one synchronous generation into bounded, producer-thread key batches.
      * Canonicalization stays in producers; deterministic writer shards own all
-     * deduplication and disk writes. The final partial batch is queued before
-     * return. The generator must not retain or concurrently use
+     * deduplication and disk writes. Partial batches carry across generation
+     * calls on the same thread and are drained after admissions stop, before
+     * any writer finishes. The generator must not retain or concurrently use
      * its output callback. Callers must join all generators before sealing.
      * A failed generation makes the incomplete set unsealable.
      */
@@ -129,8 +140,9 @@ public final class DiskStateSet implements AutoCloseable {
         if (maximumMoves < 1 || maximumMoves > 10) throw new IllegalArgumentException("Budget must be 1..10");
         java.util.Objects.requireNonNull(generator);
         beginGeneration();
-        var batch = new ArrayList<byte[]>(generatedBatchKeys);
         try {
+            var batch = producerBatches.computeIfAbsent(Thread.currentThread().threadId(),
+                    ignored -> new ArrayList<>(generatedBatchKeys));
             generator.accept(pair -> {
                 batch.add(encode(new State(pair.canonicalRepresentative(), maximumMoves)));
                 if (batch.size() == generatedBatchKeys) {
@@ -138,7 +150,6 @@ public final class DiskStateSet implements AutoCloseable {
                     batch.clear();
                 }
             });
-            if (!batch.isEmpty()) submit(batch);
         } catch (RuntimeException | Error failure) {
             generationFailure.compareAndSet(null, failure);
             throw failure;
@@ -146,6 +157,7 @@ public final class DiskStateSet implements AutoCloseable {
     }
 
     private void submit(List<byte[]> keys) {
+        if (generatedObserver != null) generatedObserver.accept(List.copyOf(keys));
         if (writers.length == 1) { writers[0].submit(keys); return; }
         var partitions = new ArrayList<List<byte[]>>(writers.length);
         for (int i = 0; i < writers.length; i++) partitions.add(new ArrayList<>());
@@ -325,6 +337,18 @@ public final class DiskStateSet implements AutoCloseable {
     }
     private void finishWriters() {
         RuntimeException failure = null;
+        // All producers have joined and admissions have stopped. Each list was
+        // mutated by only its owner; drain every remaining list before END can
+        // reach any shard. A drain failure still joins all native-resource users.
+        for (var batch : producerBatches.values()) {
+            try {
+                if (!batch.isEmpty()) submit(batch);
+                batch.clear();
+            } catch (RuntimeException error) {
+                if (failure == null) failure = error; else failure.addSuppressed(error);
+            }
+        }
+        producerBatches.clear();
         for (var writer : writers) if (writer != null) {
             try { writer.finish(); }
             catch (RuntimeException error) {

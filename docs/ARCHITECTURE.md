@@ -100,7 +100,8 @@ permits an all-odd remainder to close. If it cannot, the subtree is unresolved.
 Fixed points count as odd-length cycles; an even-length cycle disables this
 rejection. Full-depth final-root searches are unaffected by this test.
 
-Inverse generation batches up to 65,536 canonicalized keys per callback and
+Inverse generation batches up to 65,536 canonicalized keys per producer across
+successive callbacks and
 partitions them by a deterministic hash into independent writer shards.
 Each shard has a lock-free queue and a single owner of its deduplication
 buffer and sorted SST files. Producers never acquire a shared insertion
@@ -117,13 +118,22 @@ Producers first publish to every shard with free space before waiting on a
 full shard, so one slow destination cannot prevent all other writers receiving
 the same batch's remaining partitions.
 
-Final partial producer batches are queued before the callback returns.
+Producer buffers persist across callbacks on the same thread. Final partial
+batches are queued after all generators join, before writer drain and sealing.
 An atomic admission counter prevents sealing or closing while a generator
 is active. After every generator joins, sealing stops admissions, drains and
 joins every writer, flushes RocksDB and validates the exact sorted inventory.
 Generation or writer failure prevents sealing and propagates to blocked
 producers. Native resources outlive every writer. The deterministic key
 format and the represented class set are unchanged.
+
+During the final inverse wave, encoded root batches also feed a bounded
+advisory GPU prefetch queue. GPU prefetch activates after the source-wave
+GPU consumers finish, overlapping full-budget root searches with continued
+inverse generation and SST persistence. Queue pressure never blocks
+generation; recent-key suppression and discarded advisory work cannot omit
+obligations. Started searches finish and use the normal checked certificate
+path. The sealed root inventory is still exhaustively scanned afterwards.
 
 Sealed checkpoints are versioned computation state. The latest-wave count,
 route and budgets are validated on resume. Intrinsic certificates remain

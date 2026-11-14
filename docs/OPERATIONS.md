@@ -95,12 +95,14 @@ pool can wait for persistence without preventing further GPU submissions.
 td18.reconstructionGeneratedBatchKeys defaults to 65,536 keys.
 Inverse generation batches these canonicalized keys into independent writer
 queues; deduplication and disk writes have no global producer lock. Every
-partial batch is queued, and every writer drains and joins before sealing.
+producer buffer is retained across callbacks and its final partial batch is
+queued after all generators join. Every writer drains and joins before sealing.
 td18.reconstructionWriters defaults to at most eight writers.
 td18.reconstructionBufferKeys defaults to 16,777,216 aggregate keys;
 td18.reconstructionQueueBatches defaults to 1,024 aggregate batches.
 Both capacities are divided across shards with rounding up. On the 128 GiB
-server, use 67,108,864 buffer keys and 4,096 queue batches. Queues remain
+server, use 64 writers, 67,108,864 buffer keys and 32,768 queue batches.
+Each writer has a 1,048,576-key deduplication window. Queues remain
 bounded, and full queues apply backpressure when storage cannot keep up.
 Writers sort their deduplication windows and build SST files independently.
 Ingestion bypasses the per-key WAL/memtable write path; overlapping keys
@@ -109,6 +111,17 @@ background jobs and eight subcompactions handle subsequent compaction.
 Persistence logs report table construction and completed ingestion with
 key counts, bytes and elapsed time. Failed construction or ingestion makes
 the wave unsealable; interrupted waves are regenerated from the sealed source.
+The inverse completion counter records finished generation and encoding.
+Producer remainders and queued tables must still drain before the persisted
+inventory is validated and the wave checkpoint is written.
+Root GPU prefetch consumes encoded output while reconstruction continues,
+after source-wave GPU checks finish. Its bounded RAM queue holds up to
+16,777,216 keys in 256 full producer batches; a bounded recent-key cache
+suppresses repeated early checks. Queued advisory work can be discarded
+when switching to the complete sealed-root scan. Started full-budget
+searches finish and all certificate validation stays in the normal search
+path. Early-search counts are scheduling statistics, not final inventory
+or proof coverage counts.
 
 ## Budgets and persistence
 

@@ -68,15 +68,17 @@ public final class ErikssonAvoidance {
     private static Result afterOne(ErikssonCheckpoint checkpoint,DiskStateSet states,Path work,
                                     BiPredicate<CyclicTargetPair,Integer> cpu,BiPredicate<CyclicTargetPair,Integer> gpu,
                                     Function<List<DiskStateSet.State>,boolean[]> lookup) {
-        try (var roots=new DiskStateSet(work.resolve("roots"))) {
+        try (var prefetch=new RootPrefetch(ReconstructionPipeline.configuredGpuWorkers(),gpu);
+             var roots=new DiskStateSet(work.resolve("roots"),prefetch::publish)) {
             ReconstructionPipeline.process(states,work.resolve("after-one-search.queue"),workers(),
                     ReconstructionPipeline.configuredGpuWorkers(),checked(lookup,2),cpu,gpu,state -> {
                 require(state,2);
                 int gain=state.pair().getBeta().size()==ErikssonRoute.ROOT_SYMBOLS-1 ? 1:0;
                 roots.addGenerated(ErikssonRoute.ROOT_BUDGET,
                         output -> ErikssonInverseReconstruction.preimages(state.pair(),gain,output));
-            });
+            },prefetch::activate);
             var next=new ErikssonCheckpoint(ErikssonCheckpoint.Stage.ROOTS,checkpoint.endpoints(),checkpoint.afterTwo(),checkpoint.afterOne(),roots.seal());
+            prefetch.finish();
             next.write(work); return roots(next,roots,work,cpu,gpu,lookup);
         }
     }

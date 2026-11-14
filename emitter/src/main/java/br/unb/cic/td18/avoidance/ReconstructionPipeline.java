@@ -37,6 +37,14 @@ public final class ReconstructionPipeline {
                                BiPredicate<CyclicTargetPair, Integer> cpu,
                                BiPredicate<CyclicTargetPair, Integer> gpu,
                                Consumer<DiskStateSet.State> residual) {
+        process(states, spool, cpuWorkers, gpuWorkers, lookup, cpu, gpu, residual, () -> { });
+    }
+
+    public static void process(DiskStateSet states, Path spool, int cpuWorkers, int gpuWorkers,
+                               Function<List<DiskStateSet.State>, boolean[]> lookup,
+                               BiPredicate<CyclicTargetPair, Integer> cpu,
+                               BiPredicate<CyclicTargetPair, Integer> gpu,
+                               Consumer<DiskStateSet.State> residual, Runnable gpuDrained) {
         long total = states.seal();
         int inverseWorkers = Integer.getInteger("td18.reconstructionInverseWorkers",
                 Math.min(cpuWorkers, Runtime.getRuntime().availableProcessors()));
@@ -100,6 +108,7 @@ public final class ReconstructionPipeline {
                         }
                     }
                     queue.check();
+                    gpuDrained.run();
                     inverseQueue.finish();
                 } catch (RuntimeException | Error error) {
                     queue.abort(error); inverseQueue.abort(error); throw error;

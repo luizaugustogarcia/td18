@@ -78,7 +78,9 @@ class DiskStateSetTest {
         assertFalse(parents.isEmpty());
         var lastPair = ActiveErikssonAvoidanceTest.pair(3);
         String oldBuffer = System.getProperty("td18.reconstructionBufferKeys");
+        String oldGeneratedBatch = System.getProperty("td18.reconstructionGeneratedBatchKeys");
         System.setProperty("td18.reconstructionBufferKeys", "3");
+        System.setProperty("td18.reconstructionGeneratedBatchKeys", "1024");
         Path batchedPath = directory.resolve("batched");
         List<String> expected;
         try {
@@ -101,14 +103,17 @@ class DiskStateSetTest {
                                 Thread.currentThread().interrupt();
                                 throw new IllegalStateException(failure);
                             }
-                            batched.addGenerated(budget, output -> {
-                                for (int i = 0; i < 8193; i++) {
-                                    var pair = parents.get(i % parents.size());
-                                    output.accept(i % 2 == 0 ? pair : pair.canonicalRepresentative());
-                                }
-                                // A distinct final key detects a dropped partial insertion batch.
-                                output.accept(lastPair);
-                            });
+                            for (int first = 0; first < 8193; first += 257) {
+                                int begin = first, end = Math.min(first + 257, 8193);
+                                batched.addGenerated(budget, output -> {
+                                    for (int i = begin; i < end; i++) {
+                                        var pair = parents.get(i % parents.size());
+                                        output.accept(i % 2 == 0 ? pair : pair.canonicalRepresentative());
+                                    }
+                                });
+                            }
+                            // A distinct final key detects a dropped per-thread remainder.
+                            batched.addGenerated(budget, output -> output.accept(lastPair));
                         }));
                     }
                     start.countDown();
@@ -124,6 +129,21 @@ class DiskStateSetTest {
             }
         } finally {
             restore("td18.reconstructionBufferKeys", oldBuffer);
+            restore("td18.reconstructionGeneratedBatchKeys", oldGeneratedBatch);
+        }
+    }
+
+    @Test void closeDrainsPartialBatchesAcrossGenerationCalls(@TempDir Path directory) {
+        var pair = ActiveErikssonAvoidanceTest.pair(3);
+        Path path = directory.resolve("closed");
+        try (var states = new DiskStateSet(path)) {
+            states.addGenerated(8, output -> output.accept(pair));
+            states.addGenerated(9, output -> output.accept(pair));
+        }
+        try (var reopened = DiskStateSet.openSealed(path, 2)) {
+            assertEquals(List.of(
+                    HexFormat.of().formatHex(DiskStateSet.encode(new DiskStateSet.State(pair, 8))),
+                    HexFormat.of().formatHex(DiskStateSet.encode(new DiskStateSet.State(pair, 9)))), keys(reopened));
         }
     }
 

@@ -143,12 +143,15 @@ The historical 256-key batching measurements above correspond to commit
 970dc43. Subsequent live snapshots still found 84 of 112 inverse workers
 blocked on its shared insertion monitor, with an empty native GPU queue.
 
-The current implementation sends 65,536-key producer batches to independent
+The current implementation buffers across successive inverse callbacks and
+sends 65,536-key producer batches to independent
 writer shards through lock-free queues. Each writer owns its deduplication
 buffer and sorted SST files; semaphores impose bounded queue backpressure.
-There is no global producer insertion lock. The 128 GiB server uses eight
-writers, a 67,108,864-key aggregate deduplication window and 4,096 queued
-batches. SST construction runs independently in each shard, bypassing the
+There is no global producer insertion lock. The 128 GiB server uses 64
+writers, a 67,108,864-key aggregate deduplication window and 32,768 queued
+batches. Each shard sorts at most 1,048,576 distinct keys per full table.
+Final partial producer buffers are queued after generators join.
+SST construction runs independently in each shard, bypassing the
 database WAL/memtable write path. Ingestion enables global sequence numbers
 so repeated empty-valued keys remain one set entry. Up to sixteen background
 jobs and eight subcompactions handle subsequent compaction. Queues still
@@ -210,3 +213,9 @@ td18.benchmarkValidateOnly=true checks input without loading CUDA. Without
 a queue it generates deterministic fixed-point-free valid pairs; these
 are a separate workload. Budget-10 cases always use full depth ten without
 a timeout. Generated snapshots, logs and compiled libraries stay untracked.
+
+Root searches overlap the final inverse wave through a bounded advisory
+prefetch queue. Source-wave GPU checks finish first, then GPU workers search
+encoded roots as producer batches arrive, independently of SST sorts.
+The full sealed-root scan remains mandatory; early queue drops and recent-key
+cache eviction cannot remove proof obligations.

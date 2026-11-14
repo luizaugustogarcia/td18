@@ -29,7 +29,8 @@ class ActiveErikssonAvoidanceTest {
         var split=ErikssonAvoidance.resume(source,Files.createDirectory(directory.resolve("split")),
                 (p,b)->false,(p,b)->{
                     if (b<ErikssonRoute.ROOT_BUDGET) return false;
-                    assertTrue(actual.add(p.extendedToricClassKey())); return true;
+                    // Advisory prefetch may check a class before the mandatory final scan.
+                    actual.add(p.extendedToricClassKey()); return true;
                 },null);
         assertFalse(expected.isEmpty()); assertEquals(expected,actual); assertEquals(baseline,split);
     }
