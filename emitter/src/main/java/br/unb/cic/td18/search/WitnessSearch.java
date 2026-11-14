@@ -56,9 +56,9 @@ public final class WitnessSearch {
         return search(input, maximumMoves, CpuPrefixSearch.DEFAULT_DEPTH, Long.MAX_VALUE, WitnessSearch::dispatchGpu);
     }
 
-    /** Reuses stored certificates, then sends an unresolved reconstructed class directly to CUDA. */
+    /** Reuses stored certificates and bounds intermediate CUDA work; final roots have no time cutoff. */
     public static SearchResult searchGpu(final CyclicTargetPair input, final int maximumMoves) {
-        return searchGpu(input, maximumMoves, WitnessSearch::dispatchGpu);
+        return searchReconstructedGpu(input, maximumMoves, WitnessSearch::dispatchGpu);
     }
 
     /** Gives the CPU prefix a wall-clock budget, then sends the untouched obligation to CUDA. */
@@ -77,6 +77,35 @@ public final class WitnessSearch {
 
     @FunctionalInterface
     interface GpuSearch { GPUSortingSearch.SearchOutcome search(CyclicTargetPair pair, int maximumMoves); }
+
+    @FunctionalInterface
+    interface TimedGpuSearch {
+        GPUSortingSearch.SearchOutcome search(CyclicTargetPair pair, int maximumMoves, long maximumMillis, int maximumSearchDepth);
+    }
+
+    static SearchResult searchReconstructedGpu(CyclicTargetPair input, int maximumMoves, TimedGpuSearch dispatcher) {
+        long maximumMillis = reconstructionGpuMillis(maximumMoves);
+        int maximumSearchDepth = reconstructionGpuDepth(maximumMoves);
+        return searchGpu(input, maximumMoves, (pair, budget) -> dispatcher.search(pair, budget, maximumMillis, maximumSearchDepth));
+    }
+
+    static int reconstructionGpuDepth(int maximumMoves) {
+        if (maximumMoves < 1 || maximumMoves > KnownDiameters.MAX_BUDGET)
+            throw new IllegalArgumentException("Sorting budget must lie between 1 and 10");
+        if (maximumMoves == KnownDiameters.MAX_BUDGET) return maximumMoves;
+        int depth = Integer.parseInt(System.getProperty("td18.reconstructionGpuDepth", "5").trim());
+        if (depth < 1 || depth > KnownDiameters.MAX_BUDGET)
+            throw new IllegalArgumentException("GPU exploration depth must lie between 1 and 10");
+        return Math.min(depth, maximumMoves);
+    }
+
+    static long reconstructionGpuMillis(int maximumMoves) {
+        if (maximumMoves < 1 || maximumMoves > KnownDiameters.MAX_BUDGET)
+            throw new IllegalArgumentException("Sorting budget must lie between 1 and 10");
+        if (maximumMoves == KnownDiameters.MAX_BUDGET) return 0;
+        long maximumMillis = Long.parseLong(System.getProperty("td18.reconstructionGpuMillis", "0").trim());
+        return new GPUSortingSearch.SearchLimits(maximumMillis).maximumMillis();
+    }
 
     static SearchResult searchGpu(CyclicTargetPair input, int maximumMoves, GpuSearch dispatcher) {
         return search(input, maximumMoves, CpuPrefixSearch.DEFAULT_DEPTH, -1, dispatcher);
@@ -107,7 +136,9 @@ public final class WitnessSearch {
         }
         if (dispatcher == null) return SearchResult.residual();
         final var outcome = dispatcher.search(pair, maximumMoves);
-        if (outcome.disposition() == GPUSortingSearch.Disposition.RESIDUAL) return SearchResult.residual();
+        if (outcome.disposition() == GPUSortingSearch.Disposition.RESIDUAL
+                || outcome.disposition() == GPUSortingSearch.Disposition.TIMED_OUT
+                || outcome.disposition() == GPUSortingSearch.Disposition.DEPTH_LIMIT) return SearchResult.residual();
         final var moves = outcome.moves().stream().map(move -> Cycle.of(move[0], move[1], move[2])).toList();
         final var result = outcome.disposition() == GPUSortingSearch.Disposition.COMPLETE
                 ? SortingCertificate.complete(moves)
@@ -116,9 +147,13 @@ public final class WitnessSearch {
     }
 
     private static GPUSortingSearch.SearchOutcome dispatchGpu(CyclicTargetPair pair, int maximumMoves) {
+        return dispatchGpu(pair, maximumMoves, 0, maximumMoves);
+    }
+
+    private static GPUSortingSearch.SearchOutcome dispatchGpu(CyclicTargetPair pair, int maximumMoves, long maximumMillis, int maximumSearchDepth) {
         final byte[] beta = new byte[pair.getBeta().size()];
         for (int i = 0; i < beta.length; i++) beta[i] = (byte) pair.getBeta().get(i);
-        return gpu().search(beta, new OneLinePermutation(pair.getOmega().getOneLineNotation()), maximumMoves, true);
+        return gpu().search(beta, new OneLinePermutation(pair.getOmega().getOneLineNotation()), maximumMoves, true, maximumMillis, maximumSearchDepth);
     }
 
     /** Replays a large batch before any of its cache misses enter a sorting queue. */

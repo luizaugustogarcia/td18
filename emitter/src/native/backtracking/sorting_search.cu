@@ -44,8 +44,10 @@ namespace {
         int solutionDepth;
         int solutionKind;
         int overflowed;
+        int timedOut;
         PackedMove solutionMoves[MAX_DEPTH];
         alignas(8) unsigned long long outstandingWork;
+        unsigned long long startedAtNanos;
     };
 
     struct DeviceSearchContext {
@@ -56,7 +58,8 @@ namespace {
         const short *omega0;
         const short *beta0;
         int n;
-        int maxDepth;
+        int maxDepth; // Full budget for diameter closures and admissible pruning.
+        int searchDepth; // Maximum number of moves actually explored.
         int knownDiameters[MAX_N + 1];
 
         int queueCount;
@@ -68,7 +71,10 @@ namespace {
         int *solutionKind;
         PackedMove *solutionMoves;
         int *overflowFlag;
+        int *timeoutFlag;
         unsigned long long *outstandingWork;
+        unsigned long long *startedAtNanos;
+        unsigned long long maximumNanos;
 
         int reverseTripleOrder;
         int allowDiameterClosure;
@@ -203,11 +209,25 @@ namespace {
         return true;
     }
 
+    // The device-wide nanosecond timer has one time base across SMs, unlike clock64().
+    __device__ __forceinline__ unsigned long long device_time_nanos() {
+        unsigned long long value;
+        asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(value));
+        return value;
+    }
+
     __device__ __forceinline__ bool warp_should_stop(const DeviceSearchContext &ctx) {
         int shouldStop = 0;
         if (threadIdx.x == 0) {
             shouldStop = (atomicAdd(ctx.foundFlag, 0) != 0
                         || atomicAdd(ctx.overflowFlag, 0) != 0) ? 1 : 0;
+            if (!shouldStop && ctx.maximumNanos != 0) {
+                shouldStop = atomicAdd(ctx.timeoutFlag, 0) != 0;
+                if (!shouldStop && device_time_nanos() - *ctx.startedAtNanos >= ctx.maximumNanos) {
+                    atomicExch(ctx.timeoutFlag, 1);
+                    shouldStop = 1;
+                }
+            }
         }
         return __shfl_sync(0xFFFFFFFF, shouldStop, 0) != 0;
     }
@@ -391,6 +411,10 @@ namespace {
                                              const int initialOddCycles,
                                              const int initialFixedPoints,
                                              const int reverseTripleOrder) {
+        // The following search kernel runs in the same stream, after this write.
+        // Queue waiting on the host does not consume this per-search allowance.
+        if (blockIdx.x == 0 && threadIdx.x == 0 && ctx.maximumNanos != 0)
+            *ctx.startedAtNanos = device_time_nanos();
         const int queueIndex = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
         if (queueIndex < queueCount) {
             BacktrackingQueue queue{};
@@ -541,7 +565,7 @@ namespace {
 #endif
 
             node.depth = (uint8_t)__shfl_sync(0xFFFFFFFF, lane == 0 ? node.depth : 0, 0);
-            if (node.depth == 0 || node.depth > ctx.maxDepth || node.depth > MAX_DEPTH) {
+            if (node.depth == 0 || node.depth > ctx.searchDepth || node.depth > MAX_DEPTH) {
                 if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
                 continue;
             }
@@ -565,7 +589,7 @@ namespace {
                 return;
             }
 
-            if (node.depth >= ctx.maxDepth || !can_still_reach(ctx, parentOddCycles, node.depth)) {
+            if (node.depth >= ctx.searchDepth || !can_still_reach(ctx, parentOddCycles, node.depth)) {
                 if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
                 continue;
             }
@@ -656,6 +680,9 @@ namespace {
             const int activeCount = ctx.n - node.fixedPoints;
             const int activeTriples = combinations_of_three(activeCount);
             const int activeOffset = triple_table_offset(activeCount);
+            short undoFirst, previousSplit, undoThird;
+            unpack_move(node.moves[node.depth - 1], undoFirst, previousSplit, undoThird);
+            const int undoSecond = undoFirst + undoThird - previousSplit;
             for (int tBase = 0; tBase < activeTriples; tBase += WARP_SIZE) {
                 if (warp_should_stop(ctx)) return;
 
@@ -680,7 +707,12 @@ namespace {
                     const uint8_t b = sh_parent_beta[moveSecond];
                     const uint8_t c = sh_parent_beta[moveThird];
 
-                    if (!contains_fixed_symbol(sh_parent_omega, a, b, c)) {
+                    // Reversing the preceding segment interchange returns to the
+                    // identical pair with two fewer moves available. Removing
+                    // that adjacent inverse pair preserves every possible closure.
+                    const bool immediateUndo = moveFirst == undoFirst
+                            && moveSecond == undoSecond && moveThird == undoThird;
+                    if (!immediateUndo && !contains_fixed_symbol(sh_parent_omega, a, b, c)) {
                         const int delta = metadata_odd_cycle_delta(sh_cycle_metadata, a, b, c);
 
                         if (delta == 0 || delta == 2) {
@@ -694,7 +726,7 @@ namespace {
                                 solutionFirst = moveFirst;
                                 solutionSecond = moveSecond;
                                 solutionThird = moveThird;
-                            } else if (childDepth < ctx.maxDepth && can_still_reach(ctx, childOddCycles, childDepth)) {
+                            } else if (childDepth < ctx.searchDepth && can_still_reach(ctx, childOddCycles, childDepth)) {
                                 child_a = a;
                                 child_b = b;
                                 child_c = c;
@@ -893,6 +925,8 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
                                           std::vector<short> omega,
                                           const int maximumDepth,
                                           const bool allowDiameterClosure,
+                                          const int maximumSearchDepth,
+                                          const unsigned long long maximumNanos,
                                           const std::vector<int> &knownDiameters,
                                           const cudaStream_t stream,
                                           const int slot,
@@ -903,6 +937,8 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
     const int n = static_cast<int>(omega.size());
     if (n > MAX_N) throw std::invalid_argument("performGpuSortingSearch: n exceeds MAX_N");
     if (maximumDepth <= 0 || maximumDepth > MAX_DEPTH) throw std::invalid_argument("performGpuSortingSearch: invalid maximumDepth");
+    if (maximumSearchDepth < 1 || maximumSearchDepth > maximumDepth)
+        throw std::invalid_argument("Invalid exploration depth");
     if (knownDiameters.size() != MAX_N + 1) throw std::invalid_argument("Invalid diameter table size");
     uint8_t initialOmega[MAX_N];
     for (int i = 0; i < n; ++i) initialOmega[i] = static_cast<uint8_t>(omega[i]);
@@ -977,14 +1013,18 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
     auto *dSolutionDepth = reinterpret_cast<int *>(resultBytes + offsetof(BacktrackingResult, solutionDepth));
     auto *dSolutionKind = reinterpret_cast<int *>(resultBytes + offsetof(BacktrackingResult, solutionKind));
     auto *dOverflow = reinterpret_cast<int *>(resultBytes + offsetof(BacktrackingResult, overflowed));
+    auto *dTimedOut = reinterpret_cast<int *>(resultBytes + offsetof(BacktrackingResult, timedOut));
     auto *dSolutionMoves = reinterpret_cast<PackedMove *>(resultBytes + offsetof(BacktrackingResult, solutionMoves));
     auto *dOutstandingWork = reinterpret_cast<unsigned long long *>(
             resultBytes + offsetof(BacktrackingResult, outstandingWork));
+    auto *dStartedAtNanos = reinterpret_cast<unsigned long long *>(
+            resultBytes + offsetof(BacktrackingResult, startedAtNanos));
 
     DeviceSearchContext host{};
     host.tripleCount = tripleCount;
     host.n = n;
     host.maxDepth = maximumDepth;
+    host.searchDepth = maximumSearchDepth;
     host.queueCount = queueCount;
     host.allowDiameterClosure = allowDiameterClosure ? 1 : 0;
     std::copy(knownDiameters.begin(), knownDiameters.end(), host.knownDiameters);
@@ -1017,7 +1057,10 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
     host.solutionKind = dSolutionKind;
     host.solutionMoves = dSolutionMoves;
     host.overflowFlag = dOverflow;
+    host.timeoutFlag = dTimedOut;
     host.outstandingWork = dOutstandingWork;
+    host.startedAtNanos = dStartedAtNanos;
+    host.maximumNanos = maximumNanos;
     host.reverseTripleOrder = (queueCount == 1) ? 1 : 0;
 
     constexpr int INIT_THREADS = 128;
@@ -1057,7 +1100,11 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
     if (!found && overflowed != 0) {
         throw GpuMemoryExhaustedException("GPU sorting search queue overflow");
     }
-    if (!found || solutionDepth <= 0) return {};
+    // A concurrent valid witness wins over cancellation. A timeout carries no
+    // witness and never claims that the permitted search tree was exhausted.
+    if (!found && resultSnapshot.timedOut != 0) return GpuSortingResult{3, {}};
+    if (!found) return GpuSortingResult{maximumSearchDepth < maximumDepth ? 4 : 0, {}};
+    if (solutionDepth <= 0) throw std::runtime_error("Invalid solution depth");
 
     std::vector<Move> result;
     for (int d = 0; d < solutionDepth; ++d) {

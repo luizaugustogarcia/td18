@@ -27,7 +27,8 @@ remove the original sorting obligation.
 Reconstruction runs CPU searches and GPU dispatch in separate worker pools.
 CPU workers scan the sealed source wave without waiting for GPU capacity;
 only CPU misses enter an append-only disk queue. GPU workers drain that queue
-concurrently and reconstruct parents only after an actual GPU miss. The CPU
+concurrently and reconstruct every inverse parent after an exhausted search
+or a depth limit or timeout. The CPU
 prefix depth defaults to 5, with at most 8192 support checks and a 10 ms time
 allowance per class. `td18.cpuPrefixDepth` overrides the depth; outside
 reconstruction its default remains 3. The support and time properties retain
@@ -35,6 +36,30 @@ their configured values. A CPU miss sends the original class and full budget
 to CUDA. CUDA returns as soon as a generated prefix reaches identity or the
 known diameter of its fixed-point-contracted remainder fits the remaining
 budget, including during first-move seeding.
+
+`td18.reconstructionGpuMillis` gives each intermediate reconstruction search
+an optional device time allowance, defaulting to 0 (disabled). Intermediate
+searches explore at most five moves by default, configured with
+`td18.reconstructionGpuDepth`. This cap is separate from the full obligation
+budget used for diameter closures. Budget-10 reconstruction searches always
+use full depth 10 without a time cutoff.
+Ordinary root and endpoint emission searches retain their existing behavior.
+The timer starts during first-move initialization on the device, includes device
+scheduling from that point, and excludes waiting in the host dispatch queue.
+CUDA checks it cooperatively between nodes and support batches, so the allowance
+is not a hard deadline for the host call to return. A timeout produces no
+certificate and leaves the class unresolved. All inverse parents are still
+enumerated; an unresolved final root remains an error. The obligation budget
+continues to govern admissible pruning and diameter closures. A depth-limited
+search returns an explicit unresolved status without moves. GPU statistics
+count depth-limited results among misses; timeouts remain a separate count.
+
+CUDA explores a restricted sorting tree: supports avoid fixed symbols, the
+number of odd-length cycles increases by zero or two, and supports in three
+distinct algebraic cycles are excluded. The CPU prefix search does not apply
+that last restriction. An exhausted CUDA search therefore supplies no distance
+lower bound, even with the time allowance disabled and exploration cap removed.
+
 `td18.reconstructionGpuWorkers` optionally controls the dispatch pool; its
 default is twice the total GPU slots plus `td18.gpuQueueCapacity`, covering
 active searches and the native dispatcher queue. These workers mostly wait
@@ -42,6 +67,8 @@ for GPU results and do not replace the CPU pool.
 
 Progress reports identify each wave and show its total, cached results, CPU
 closures, queued cases, GPU closures, GPU misses and remaining backlog.
+The native GPU statistics report timeouts separately from exhausted searches;
+the reconstruction pipeline's unresolved GPU count includes both outcomes.
 A wave completes only after all CPU work and GPU results have joined and its
 coverage counts agree. Increasing queue capacity does not increase GPU capacity.
 
@@ -80,6 +107,7 @@ the handoff from the latest complete sealed wave and replays stored certificates
 Each sealed-wave checkpoint has route ID `td18-eriksson-three-v1`, explicit
 budgets and counts, and its own versioned file `eriksson-reconstruction-v1.txt`.
 Resuming validates every record of the latest sealed set and its exact count.
+Changing the GPU time allowance does not change the route or state format.
 The checker requires fresh work outside the certificate database and never trusts
 or resumes emitter sets. Checksums, obstruction markers and sidecar manifests
 cannot replace regenerated proof obligations.

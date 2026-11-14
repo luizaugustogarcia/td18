@@ -40,8 +40,9 @@ tools/td18 avoidance
 Direct roots use budget 10; endpoints use 7. Checked intrinsic witnesses
 can be reused only when their actual required budget fits the requested one.
 Use `--source-db=PATH` for a read-only witness source. CPU prefix misses or
-limits leave the full original GPU obligation intact. A search miss is not a
-lower bound and cannot close an obligation.
+limits leave the original class and its budget intact for GPU search. Neither
+an exhausted restricted search nor a timeout is a lower bound or closes an
+obligation.
 
 Final reconstruction first restores two fixed points, reversing the third move
 and producing 16-symbol states with budget 8. Unclosed states branch:
@@ -51,6 +52,14 @@ move by restoring one fixed point in the first branch, or restoring none and
 reversing every gain-zero support in the second. Both endpoints are covered,
 all gaps and supports are enumerated, and actual forward gains are replayed.
 No qualifying-move restriction is imposed on the first inverse step.
+Intermediate GPU searches explore at most five moves by default, configured
+with `-Dtd18.reconstructionGpuDepth=DEPTH`. Their time allowance defaults to 0
+(disabled), configurable with `-Dtd18.reconstructionGpuMillis=MS`.
+Every depth-limited miss or timeout propagates through all applicable inverse
+branches. Final budget-10 root searches use full depth 10 without a time cutoff
+and must produce checked witnesses. Exploration limits never reduce the budget
+used for diameter closures or the required inverse coverage. See [operations](OPERATIONS.md) for timing
+semantics and the GPU sorting-tree restrictions.
 
 All waves deduplicate valid-pair classes on disk. The latest sealed wave may
 resume with `--phase=avoidance --resume-work=PATH`; its version, route, domain,

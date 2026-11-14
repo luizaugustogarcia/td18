@@ -406,6 +406,13 @@ every compatible root. Moves on either endpoint give the same distance upper
 bound by the triangle inequality, and quotient representatives transport all
 supports and gaps bijectively. Intermediate checked results close their paths
 within the stated budgets. Missing obstruction markers cannot omit a branch.
+An intermediate sorting search may stop at an exploration-depth limit or a
+time allowance without finding a result. The default intermediate CUDA depth
+limit is five moves, with no time allowance. Either limit leaves the class
+unresolved and therefore retains every
+applicable inverse branch. Final roots still require checked budget-10 results;
+their searches use full exploration depth ten with no time cutoff. The actual obligation budget continues to
+govern every diameter closure.
 
 \section{Certificates, persistence, and conditional conclusion}
 Every persisted set has a version, deterministic keys, explicit budgets,
@@ -415,6 +422,12 @@ upper bound only for its represented class. During emission, separate CPU and
 GPU worker pools communicate through a versioned disk queue. Every source
 class is accounted for and every queued search is joined before the next wave
 is sealed; interrupted queues are regenerated from the sealed source wave.
+CUDA searches exclude fixed symbols from move supports, permit an increase of
+zero or two in the number of odd-length cycles, and exclude supports in three
+distinct algebraic cycles. CPU prefix searches do not apply the last
+restriction. Neither exhaustion of this restricted CUDA tree nor a depth limit
+or timeout certifies a distance lower bound. All these outcomes preserve the unresolved
+obligation; only a replayed witness or diameter closure discharges it.
 The CPU checker regenerates every
 root obligation, every endpoint class and every inverse wave, and replays
 witnesses from the certificate database. Emitter checkpoints are performance

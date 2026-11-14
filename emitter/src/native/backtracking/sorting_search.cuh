@@ -14,7 +14,7 @@ void allocateGpuSortingSearchSlot(int slot,
                                   int slotOrdinalOnDevice);
 
 struct GpuSortingResult {
-    int kind = 0; // 0: miss, 1: complete witness, 2: known-diameter closure
+    int kind = 0; // 0: exhausted search, 1: complete witness, 2: diameter closure, 3: timeout, 4: depth limit
     std::vector<Move> moves;
 };
 
@@ -22,6 +22,8 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
                                           std::vector<short> omega,
                                           int maximumDepth,
                                           bool allowDiameterClosure,
+                                          int maximumSearchDepth,
+                                          unsigned long long maximumNanos,
                                           const std::vector<int> &knownDiameters,
                                           cudaStream_t stream,
                                           int slot,

@@ -30,6 +30,8 @@ nohup ./tools/td18 emit \
     "${cpu_prefix_args[@]}" \
     -Dtd18.cpuPrefixMaxTriples=8192 \
     -Dtd18.reconstructionCpuPrefixMillis="${TD18_RECONSTRUCTION_CPU_PREFIX_MILLIS:-10}" \
+    -Dtd18.reconstructionGpuDepth="${TD18_RECONSTRUCTION_GPU_DEPTH:-5}" \
+    -Dtd18.reconstructionGpuMillis="${TD18_RECONSTRUCTION_GPU_MILLIS:-0}" \
     -Dtd18.certificateQueueCapacity=1048576 \
     -Dtd18.certificateLookupBatchSize=262144 \
     -Dtd18.reconstructionBufferKeys=1048576 \

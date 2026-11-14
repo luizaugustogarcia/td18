@@ -60,6 +60,81 @@ class WitnessSearchTest {
         }
     }
 
+    @Test void reconstructionTimeoutsPreserveObligationBudgetsAndNeverPersistWitnesses(@TempDir Path path) {
+        String previous = System.getProperty("td18.reconstructionGpuMillis");
+        System.setProperty("td18.reconstructionGpuMillis", "37");
+        try (var writer = new AsyncCertificateWriter(path, 60)) {
+            WitnessSearch.installWriter(writer);
+            try {
+                var dispatched = new java.util.concurrent.atomic.AtomicInteger();
+                for (int maximumMoves : new int[]{8, 9, 10}) {
+                    var result = WitnessSearch.searchReconstructedGpu(pair(), maximumMoves, (input, budget, timeout, depth) -> {
+                        assertEquals(maximumMoves, budget);
+                        assertEquals(maximumMoves == 10 ? 10 : 5, depth);
+                        assertEquals(maximumMoves == 10 ? 0 : 37, timeout);
+                        assertEquals(pair().extendedToricClassKey(), input.extendedToricClassKey());
+                        dispatched.incrementAndGet();
+                        return new GPUSortingSearch.SearchOutcome(maximumMoves == 10
+                                ? GPUSortingSearch.Disposition.RESIDUAL : maximumMoves == 8
+                                ? GPUSortingSearch.Disposition.TIMED_OUT : GPUSortingSearch.Disposition.DEPTH_LIMIT,
+                                java.util.List.of());
+                    });
+                    assertEquals(WitnessSearch.Disposition.RESIDUAL, result.disposition());
+                    assertTrue(result.moves().isEmpty());
+                }
+                assertEquals(3, dispatched.get());
+                writer.flush();
+                assertTrue(writer.findResult(pair(), 10).isEmpty());
+                writer.forEachObstruction(key -> fail("An incomplete search cannot record a certificate or a proven failure"));
+            } finally { WitnessSearch.uninstallWriter(writer); }
+        } finally {
+            if (previous == null) System.clearProperty("td18.reconstructionGpuMillis");
+            else System.setProperty("td18.reconstructionGpuMillis", previous);
+        }
+    }
+
+    @Test void reconstructionTimeoutDefaultsAreValidatedAndFinalBudgetAlwaysHasNoCutoff() {
+        String previous = System.getProperty("td18.reconstructionGpuMillis");
+        try {
+            System.clearProperty("td18.reconstructionGpuMillis");
+            assertEquals(0, WitnessSearch.reconstructionGpuMillis(8));
+            assertEquals(0, WitnessSearch.reconstructionGpuMillis(9));
+            assertEquals(0, WitnessSearch.reconstructionGpuMillis(10));
+            System.setProperty("td18.reconstructionGpuMillis", "0");
+            assertEquals(0, WitnessSearch.reconstructionGpuMillis(9));
+            for (String invalid : new String[]{"-1", "invalid", Long.toString(Long.MAX_VALUE)}) {
+                System.setProperty("td18.reconstructionGpuMillis", invalid);
+                assertThrows(IllegalArgumentException.class, () -> WitnessSearch.reconstructionGpuMillis(9));
+                assertEquals(0, WitnessSearch.reconstructionGpuMillis(10));
+            }
+        } finally {
+            if (previous == null) System.clearProperty("td18.reconstructionGpuMillis");
+            else System.setProperty("td18.reconstructionGpuMillis", previous);
+        }
+    }
+
+    @Test void reconstructionDepthDefaultsAreValidatedAndFinalBudgetAlwaysUsesFullDepth() {
+        String previous = System.getProperty("td18.reconstructionGpuDepth");
+        try {
+            System.clearProperty("td18.reconstructionGpuDepth");
+            assertEquals(5, WitnessSearch.reconstructionGpuDepth(8));
+            assertEquals(5, WitnessSearch.reconstructionGpuDepth(9));
+            assertEquals(3, WitnessSearch.reconstructionGpuDepth(3));
+            assertEquals(10, WitnessSearch.reconstructionGpuDepth(10));
+            System.setProperty("td18.reconstructionGpuDepth", "2");
+            assertEquals(2, WitnessSearch.reconstructionGpuDepth(9));
+            assertEquals(10, WitnessSearch.reconstructionGpuDepth(10));
+            for (String invalid : new String[]{"0", "-1", "11", "invalid"}) {
+                System.setProperty("td18.reconstructionGpuDepth", invalid);
+                assertThrows(IllegalArgumentException.class, () -> WitnessSearch.reconstructionGpuDepth(9));
+                assertEquals(10, WitnessSearch.reconstructionGpuDepth(10));
+            }
+        } finally {
+            if (previous == null) System.clearProperty("td18.reconstructionGpuDepth");
+            else System.setProperty("td18.reconstructionGpuDepth", previous);
+        }
+    }
+
     @Test void interruptedCpuSearchStopsWithoutReturningACertificate() {
         Thread.currentThread().interrupt();
         try {
