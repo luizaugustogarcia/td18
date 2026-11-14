@@ -70,7 +70,7 @@ class WitnessSearchTest {
                 for (int maximumMoves : new int[]{8, 9, 10}) {
                     var result = WitnessSearch.searchReconstructedGpu(pair(), maximumMoves, (input, budget, timeout, depth) -> {
                         assertEquals(maximumMoves, budget);
-                        assertEquals(maximumMoves == 10 ? 10 : 5, depth);
+                        assertEquals(maximumMoves, depth);
                         assertEquals(maximumMoves == 10 ? 0 : 37, timeout);
                         assertEquals(pair().extendedToricClassKey(), input.extendedToricClassKey());
                         dispatched.incrementAndGet();
@@ -147,25 +147,41 @@ class WitnessSearchTest {
         }
     }
 
-    @Test void reconstructionDepthDefaultsAreValidatedAndFinalBudgetAlwaysUsesFullDepth() {
+    @Test void reconstructionAlwaysUsesFullDepthEvenWithAnOldDepthCapProperty() {
         String previous = System.getProperty("td18.reconstructionGpuDepth");
         try {
             System.clearProperty("td18.reconstructionGpuDepth");
-            assertEquals(5, WitnessSearch.reconstructionGpuDepth(8));
-            assertEquals(5, WitnessSearch.reconstructionGpuDepth(9));
+            assertEquals(8, WitnessSearch.reconstructionGpuDepth(8));
+            assertEquals(9, WitnessSearch.reconstructionGpuDepth(9));
             assertEquals(3, WitnessSearch.reconstructionGpuDepth(3));
             assertEquals(10, WitnessSearch.reconstructionGpuDepth(10));
             System.setProperty("td18.reconstructionGpuDepth", "2");
-            assertEquals(2, WitnessSearch.reconstructionGpuDepth(9));
+            assertEquals(9, WitnessSearch.reconstructionGpuDepth(9));
             assertEquals(10, WitnessSearch.reconstructionGpuDepth(10));
             for (String invalid : new String[]{"0", "-1", "11", "invalid"}) {
                 System.setProperty("td18.reconstructionGpuDepth", invalid);
-                assertThrows(IllegalArgumentException.class, () -> WitnessSearch.reconstructionGpuDepth(9));
+                assertEquals(9, WitnessSearch.reconstructionGpuDepth(9));
                 assertEquals(10, WitnessSearch.reconstructionGpuDepth(10));
             }
         } finally {
             if (previous == null) System.clearProperty("td18.reconstructionGpuDepth");
             else System.setProperty("td18.reconstructionGpuDepth", previous);
+        }
+    }
+
+    @Test void preparedGpuMissStillReplaysAndPersistsTheActualWitness(@TempDir Path path) {
+        try (var writer=new AsyncCertificateWriter(path,60)) {
+            WitnessSearch.installWriter(writer);
+            try {
+                var result=WitnessSearch.searchGpuPrefetch(pair(),2,(input,budget,timeout,depth) ->
+                        new GPUSortingSearch.SearchOutcome(GPUSortingSearch.Disposition.DIAMETER_CLOSURE,
+                                java.util.List.of(new int[]{0,1,2})),false);
+                assertEquals(WitnessSearch.Disposition.DIAMETER_CLOSURE,result.disposition());
+                writer.flush(); assertTrue(writer.findResult(pair(),2).isPresent());
+                assertThrows(IllegalArgumentException.class, () -> WitnessSearch.searchGpuPrefetch(pair(),2,
+                        (input,budget,timeout,depth) -> new GPUSortingSearch.SearchOutcome(
+                                GPUSortingSearch.Disposition.COMPLETE, java.util.List.of()),false));
+            } finally { WitnessSearch.uninstallWriter(writer); }
         }
     }
 

@@ -52,8 +52,8 @@ move by restoring one fixed point in the first branch, or restoring none and
 reversing every gain-zero support in the second. Both endpoints are covered,
 all gaps and supports are enumerated, and actual forward gains are replayed.
 No qualifying-move restriction is imposed on the first inverse step.
-Intermediate GPU searches explore at most five moves by default, configured
-with `-Dtd18.reconstructionGpuDepth=DEPTH`. Their time allowance defaults to 0
+Intermediate GPU searches explore their full budgets (8 or 9), without the
+former depth-five cap. Their time allowance defaults to 0
 (disabled), configurable with `-Dtd18.reconstructionGpuMillis=MS`.
 Every depth-limited miss or timeout propagates through all applicable inverse
 branches. Final budget-10 root searches use full depth 10 without a time cutoff
@@ -70,6 +70,11 @@ handoff, so waiting for GPU results cannot stop the CPU scan. Progress reports
 give per-wave coverage and backlog counts. Every handoff is drained before
 sealing the next wave; interrupted handoffs are regenerated from the sealed
 source rather than trusted as complete coverage.
+Each inverse generation stage, persistence drain, inventory count and scan
+reports progress every ten seconds. Known totals show processed/total, percent
+and remaining work. During the first unique-class count, the exact total is
+explicitly unknown until enumeration finishes; the counted classes and rate
+remain visible. Writer names include their state-set directory.
 
 ## Verify complete coverage
 

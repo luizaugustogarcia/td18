@@ -219,6 +219,28 @@ prefetch queue. Workers search encoded roots as producer batches arrive,
 independently of SST sorts and gaps between source certificate-replay batches.
 Advisory searches run at full depth in 100 ms slices by default; incomplete
 work writes no obstruction marker. Ordinary final-root searches have no
-timeout. At most one advisory worker per GPU slot limits queued competition.
+timeout. CPU preparation uses independent workers and bulk certificate lookups;
+a bounded prepared queue feeds GPU callers without a second certificate read.
+The caller count defaults to twice the GPU slots plus the host queue capacity
+and is independent of the native worker count, which remains one per slot.
+The encoded queue holds 16,777,216 keys and the prepared queue holds up to
+4,194,304 decoded misses, plus batches held by active workers. Dispatch chunks
+contain 4,096 cases to distribute ready work among callers; persistence still
+uses 65,536-key producer batches and 1,048,576-key writer buffers on this server.
 The full sealed-root scan remains mandatory; early queue drops and recent-key
 cache eviction cannot remove proof obligations.
+
+SST-only state sets no longer issue a memtable flush before counting. Every
+writer receives its end marker before any writer is joined, allowing their
+final tables to be constructed concurrently. The unique inventory count also
+publishes advisory root work so GPUs can search while counting proceeds.
+These changes remove those particular barriers; disk I/O and compaction can
+still limit ingestion and scan rates.
+
+Certificate producers use a bounded concurrent queue without a shared Java
+monitor. Writes use batches of up to 65,536 entries with WAL disabled, 256 MiB
+memtables and up to 16 background jobs. Timer drains write the
+database without forcing a memtable flush; explicit flush and close still wait
+for persistence. A new database flushes its schema before admitting work.
+Unflushed certificates may be lost on interruption and must be regenerated.
+Inverse SST ingestion bypasses the WAL and memtable write path.

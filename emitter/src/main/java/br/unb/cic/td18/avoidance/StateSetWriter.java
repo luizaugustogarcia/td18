@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
 /** One bounded queue and one owner of a persistence shard. */
@@ -15,6 +16,7 @@ final class StateSetWriter {
     private final Semaphore available = new Semaphore(0);
     private final AtomicReference<Throwable> failure;
     private final Thread worker;
+    private final LongAdder submittedKeys = new LongAdder(), consumedKeys = new LongAdder();
     private volatile boolean finishing;
 
     StateSetWriter(int capacity, String name, Consumer<List<byte[]>> persist, Runnable flush) {
@@ -38,6 +40,7 @@ final class StateSetWriter {
                     slots.release();
                     if (batch == END) break;
                     persist.accept(batch);
+                    consumedKeys.add(batch.size());
                 }
                 check();
                 flush.run();
@@ -83,6 +86,7 @@ final class StateSetWriter {
             if (finishing) throw new IllegalStateException("State writer is finishing");
             // Producers reuse their lists; encoded byte arrays are never mutated.
             queue.add(List.copyOf(keys));
+            submittedKeys.add(keys.size());
             available.release();
         } catch (RuntimeException | Error error) {
             slots.release();
@@ -96,7 +100,7 @@ final class StateSetWriter {
     }
 
     /** Called after every producer has joined; native resources outlive this join. */
-    synchronized void finish() {
+    synchronized void requestFinish() {
         boolean interrupted = false;
         if (!finishing) {
             finishing = true;
@@ -112,6 +116,16 @@ final class StateSetWriter {
                 }
             }
         }
+        if (interrupted) Thread.currentThread().interrupt();
+    }
+
+    long submittedKeys() { return submittedKeys.sum(); }
+    long consumedKeys() { return consumedKeys.sum(); }
+    boolean finished() { return !worker.isAlive(); }
+
+    void finish() {
+        requestFinish();
+        boolean interrupted = false;
         while (worker.isAlive()) {
             try {
                 worker.join();

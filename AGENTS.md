@@ -81,10 +81,8 @@
 
 ## Engineering
 
-- For the next reconstruction restart on 200.20.15.153, use 16 GPU slots per
-  device and 896 MiB of queue memory per slot. Apply the prepared overrides
-  in logs/next-run-settings.json; do not restart the current run just to change
-  this setting. The total queue allocation remains 14 GiB per P100.
+- On 200.20.15.153, use 16 GPU slots per device and 896 MiB of queue memory
+  per slot. The total queue allocation remains 14 GiB per P100.
 
 - Run Java computations through JShell and use all available CPU cores.
   Keep CPU-bound runs saturated with useful work, bounded queues and enough
@@ -94,6 +92,8 @@
 - JDK 21 is the baseline. Prefer immutable keys and deterministic iteration
   at persistence boundaries.
 - Keep the checker independent of the emitter artifact.
+- Disable WAL for every RocksDB write. Flush completed persistence boundaries
+  explicitly; missing results after interruption must be regenerated.
 - Use disk-backed deduplication for large inverse waves and bounded queues
   for asynchronous persistence.
 - Run CUDA-dependent tests only when the environment is configured for them.

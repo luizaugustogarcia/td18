@@ -43,7 +43,12 @@ public final class ErikssonRootGenerator {
 
     public static Counts generate(int[] partition,int workers,Runnable cancellation,
                                   Consumer<CyclicTargetPair> output) throws Exception {
-        return generateConcurrently(partition,workers,new LongAdder(),
+        return generate(partition,workers,new LongAdder(),cancellation,output);
+    }
+
+    public static Counts generate(int[] partition,int workers,LongAdder progress,Runnable cancellation,
+                                  Consumer<CyclicTargetPair> output) throws Exception {
+        return generateConcurrently(partition,workers,progress,
                 images->output.accept(decode(images)),cancellation);
     }
 

@@ -24,6 +24,14 @@ and `td18.gpuStatsPeriodSeconds`. CPU prefix properties are
 `td18.reconstructionCpuPrefixMillis`. Limits bound a heuristic; they do not
 remove the original sorting obligation.
 
+`tools/run-p100.sh` launches a complete emission on 200.20.15.153 through
+JShell after Java and CUDA have been built. Its profile uses devices 1, 2 and 3,
+16 slots per device, 896 MiB per slot and every available CPU core. It creates
+a fresh work directory and writes the source revision, class hashes and runtime
+settings to `logs/run-settings.json`. The script does not delete old data.
+All RocksDB writes disable WAL; completed phases explicitly flush certificates.
+An interruption may lose unflushed results, which must be regenerated.
+
 Reconstruction runs CPU searches, GPU dispatch and inverse generation in separate worker pools.
 CPU workers scan the sealed source wave without waiting for GPU capacity;
 only CPU misses enter an append-only disk queue. GPU workers drain that queue
@@ -40,9 +48,8 @@ budget, including during first-move seeding.
 
 `td18.reconstructionGpuMillis` gives each intermediate reconstruction search
 an optional device time allowance, defaulting to 0 (disabled). Intermediate
-searches explore at most five moves by default, configured with
-`td18.reconstructionGpuDepth`. This cap is separate from the full obligation
-budget used for diameter closures. Budget-10 reconstruction searches always
+searches explore their full move budgets (8 or 9); the old depth-five cap and
+`td18.reconstructionGpuDepth` override have been removed. Budget-10 reconstruction searches always
 use full depth 10 without a time cutoff.
 Ordinary root and endpoint emission searches retain their existing behavior.
 The timer starts during first-move initialization on the device, includes device

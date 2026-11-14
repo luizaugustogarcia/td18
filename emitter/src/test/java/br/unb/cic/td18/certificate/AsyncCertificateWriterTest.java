@@ -78,7 +78,11 @@ class AsyncCertificateWriterTest {
              var database = RocksDB.open(options,directory.toString(),List.of(
                      new org.rocksdb.ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY,familyOptions),
                      new org.rocksdb.ColumnFamilyDescriptor("obstructions".getBytes(java.nio.charset.StandardCharsets.UTF_8),familyOptions)),handles)) {
-            try { database.put(handles.getFirst(),CertificateCodec.keyFor(pair()),new byte[]{42}); }
+            try (var writes=new org.rocksdb.WriteOptions().setDisableWAL(true);
+                 var flush=new org.rocksdb.FlushOptions().setWaitForFlush(true)) {
+                database.put(handles.getFirst(),writes,CertificateCodec.keyFor(pair()),new byte[]{42});
+                database.flush(flush,handles);
+            }
             finally { handles.forEach(org.rocksdb.ColumnFamilyHandle::close); }
         }
         try (var writer = new AsyncCertificateWriter(directory,60)) {

@@ -49,8 +49,11 @@ class ErikssonCertificateCheckerTest {
             final var handles=new ArrayList<ColumnFamilyHandle>();
             try(final var database=RocksDB.open(options,directory.toString(),List.of(
                     new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY,first),
-                    new ColumnFamilyDescriptor("obstructions".getBytes(StandardCharsets.UTF_8),second)),handles)) {
-                database.put(handles.get(0),"td18-schema".getBytes(StandardCharsets.UTF_8),"joint-selection-v3".getBytes(StandardCharsets.UTF_8));
+                    new ColumnFamilyDescriptor("obstructions".getBytes(StandardCharsets.UTF_8),second)),handles);
+                final var writes=new WriteOptions().setDisableWAL(true);
+                final var flush=new FlushOptions().setWaitForFlush(true)) {
+                database.put(handles.get(0),writes,"td18-schema".getBytes(StandardCharsets.UTF_8),"joint-selection-v3".getBytes(StandardCharsets.UTF_8));
+                database.flush(flush,handles);
                 handles.forEach(ColumnFamilyHandle::close);
             }
         }

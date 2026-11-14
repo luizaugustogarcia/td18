@@ -99,6 +99,21 @@ class RootPrefetchTest {
         assertThrows(IllegalStateException.class, () -> prefetch.publish(List.of(key(1, 10))));
     }
 
+    @Test void bulkReplayFeedsOnlyMissesToIndependentGpuCallers() throws Exception {
+        var searched=new CountDownLatch(1);
+        var lookups=new AtomicInteger(); var calls=new AtomicInteger();
+        try (var prefetch=new RootPrefetch(2,(pair,budget) -> {
+            calls.incrementAndGet(); searched.countDown(); return true;
+        },2,8,states -> {
+            lookups.incrementAndGet(); assertEquals(2,states.size());
+            return new boolean[]{true,false};
+        })) {
+            prefetch.publish(List.of(key(1,10),key(2,10))); prefetch.activate();
+            assertTrue(searched.await(10,TimeUnit.SECONDS)); prefetch.finish();
+            assertEquals(1,lookups.get()); assertEquals(1,calls.get());
+        }
+    }
+
     private static byte[] key(int step, int budget) {
         int[] beta = new int[19], omega = new int[19];
         for (int i = 0; i < 19; i++) { beta[i] = i; omega[i] = i * step % 19; }

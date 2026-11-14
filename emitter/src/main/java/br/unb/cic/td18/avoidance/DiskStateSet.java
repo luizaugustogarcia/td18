@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.rocksdb.*;
@@ -38,6 +40,7 @@ public final class DiskStateSet implements AutoCloseable {
     private final AtomicInteger admissions = new AtomicInteger();
     private final AtomicReference<Throwable> generationFailure = new AtomicReference<>();
     private final AtomicReference<Throwable> persistenceFailure = new AtomicReference<>();
+    private final LongAdder ingestedTables = new LongAdder(), ingestedKeys = new LongAdder();
     private long size = -1;
     private volatile boolean closed;
     private final boolean readOnly;
@@ -97,7 +100,7 @@ public final class DiskStateSet implements AutoCloseable {
                 var pending = new HashSet<ByteBuffer>();
                 int limit = ceilingDivide(bufferKeys, writerCount);
                 writers[i] = new StateSetWriter(ceilingDivide(queueBatches, writerCount),
-                        "reconstruction-writer-" + i, keys -> {
+                        "reconstruction-writer-" + directory.getFileName() + "-" + i, keys -> {
                     for (byte[] key : keys) {
                         pending.add(ByteBuffer.wrap(key));
                         if (pending.size() >= limit) flushPending(pending);
@@ -212,6 +215,7 @@ public final class DiskStateSet implements AutoCloseable {
             database.ingestExternalFile(List.of(path.toString()), ingest);
             Files.deleteIfExists(path);
             pending.clear();
+            ingestedKeys.add(keys.length); ingestedTables.increment();
             log.debug("Reconstruction persistence: ingested table, keys={}, bytes={}, elapsed={} ms, directory={}",
                     keys.length, bytes, (System.nanoTime() - started) / 1_000_000, stagingDirectory);
         } catch (IOException | RocksDBException failure) {
@@ -229,14 +233,29 @@ public final class DiskStateSet implements AutoCloseable {
             requireSuccessfulGeneration();
         }
         long count = 0;
-        try (var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads);
-             var flush = new FlushOptions().setWaitForFlush(true)) {
-            if (!readOnly) database.flush(flush);
+        var counted = new AtomicLong();
+        // This set writes exclusively through completed external-SST ingests.
+        // There is no memtable to flush; a synchronous flush can wait behind
+        // compactions even though the complete inventory is already readable.
+        var advisory = generatedObserver == null ? null : new ArrayList<byte[]>(generatedBatchKeys);
+        try (var progress = new ReconstructionProgress(stagingDirectory.getParent().getFileName() + " unique-class counting",
+                     -1, counted::get);
+             var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads)) {
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
-                decode(iterator.key(), iterator.value());
+                byte[] key = iterator.key();
+                decode(key, iterator.value());
                 count = Math.addExact(count, 1);
+                if ((count & 4095) == 0) counted.set(count);
+                // Keep advisory GPU work available during the count. Drops
+                // remain optional: final processing scans every sealed key.
+                if (advisory != null) {
+                    advisory.add(key);
+                    if (advisory.size() == generatedBatchKeys) { generatedObserver.accept(advisory); advisory.clear(); }
+                }
             }
             iterator.status();
+            if (advisory != null && !advisory.isEmpty()) generatedObserver.accept(advisory);
+            counted.set(count); progress.countedTotal(count);
         } catch (RocksDBException failure) { throw new IllegalStateException("Cannot seal reconstruction states", failure); }
         size = count;
         return count;
@@ -245,12 +264,17 @@ public final class DiskStateSet implements AutoCloseable {
     public void forEach(Consumer<State> consumer) {
         long expected = seal();
         long scanned = 0;
-        try (var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads)) {
+        var scannedCount = new AtomicLong();
+        try (var progress = new ReconstructionProgress(stagingDirectory.getParent().getFileName() + " inventory scan",
+                     expected, scannedCount::get);
+             var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads)) {
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
                 consumer.accept(decode(iterator.key(), iterator.value()));
                 scanned = Math.addExact(scanned, 1);
+                if ((scanned & 4095) == 0) scannedCount.set(scanned);
             }
             iterator.status();
+            scannedCount.set(scanned);
         } catch (RocksDBException failure) { throw new IllegalStateException("Cannot scan reconstruction states", failure); }
         if (scanned != expected) throw new IllegalStateException("Reconstruction scan missed states");
     }
@@ -349,10 +373,24 @@ public final class DiskStateSet implements AutoCloseable {
             }
         }
         producerBatches.clear();
-        for (var writer : writers) if (writer != null) {
-            try { writer.finish(); }
-            catch (RuntimeException error) {
-                if (failure == null) failure = error; else failure.addSuppressed(error);
+        try (var progress = new ReconstructionProgress(stagingDirectory.getParent().getFileName() + " persistence drain (writers)",
+                writers.length, () -> Arrays.stream(writers).filter(writer -> writer != null && writer.finished()).count(), () -> {
+                    long submitted = 0, consumed = 0;
+                    for (var writer : writers) if (writer != null) {
+                        submitted += writer.submittedKeys(); consumed += writer.consumedKeys();
+                    }
+                    return "encodedKeysConsumed=" + consumed + "/" + submitted + ", encodedKeysRemaining="
+                            + (submitted - consumed) + ", ingestedTables=" + ingestedTables.sum()
+                            + ", ingestedKeys=" + ingestedKeys.sum() + ", uniqueTotal=unknown until counting";
+                })) {
+            // Signal every shard before joining any: their final tables must
+            // build and ingest concurrently, rather than one final flush at a time.
+            for (var writer : writers) if (writer != null) writer.requestFinish();
+            for (var writer : writers) if (writer != null) {
+                try { writer.finish(); }
+                catch (RuntimeException error) {
+                    if (failure == null) failure = error; else failure.addSuppressed(error);
+                }
             }
         }
         if (failure != null) {

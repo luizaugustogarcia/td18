@@ -51,8 +51,8 @@ final counts. All pools join before sealing, with coverage equalities checking
 source classification, every GPU result, and every transferred inverse case.
 Progress reports count processed source cases against the full wave total and
 show the remaining CPU, GPU and inverse work separately.
-Intermediate CUDA searches default to exploration depth 5, controlled by
-`td18.reconstructionGpuDepth`, while diameter closures retain the full budget.
+Intermediate CUDA searches explore the full obligation budget (8 or 9).
+The former depth-five cap and its override have been removed.
 `td18.reconstructionGpuMillis` defaults to 0 (no time cutoff). Budget-10 searches
 always use full exploration depth 10 without a time cutoff.
 Persistence is bounded and asynchronous. The checker

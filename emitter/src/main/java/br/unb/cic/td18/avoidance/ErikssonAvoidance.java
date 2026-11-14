@@ -7,6 +7,7 @@ import br.unb.cic.td18.model.CyclicTargetPair;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 
@@ -28,12 +29,16 @@ public final class ErikssonAvoidance {
                                  Function<List<DiskStateSet.State>,boolean[]> lookup,
                                  BiPredicate<CyclicTargetPair,Integer> prefetchGpu) {
         long count=endpoints.seal();
+        var completed = new LongAdder();
         try (var afterTwo=new DiskStateSet(work.resolve("after-two"))) {
+            try (var progress=new ReconstructionProgress("after-two inverse generation (endpoint classes)", count, completed::sum)) {
             endpoints.forEachConcurrently(workers(),state -> {
                 require(state,0);
                 afterTwo.addGenerated(ErikssonRoute.ROOT_BUDGET-2,
                         output -> ErikssonInverseReconstruction.preimages(state.pair(),2,output));
+                completed.increment();
             });
+            }
             var checkpoint=new ErikssonCheckpoint(ErikssonCheckpoint.Stage.AFTER_TWO,count,afterTwo.seal(),-1,-1);
             checkpoint.write(work);
             return afterTwo(checkpoint,afterTwo,work,cpu,gpu,lookup,prefetchGpu);
@@ -86,7 +91,7 @@ public final class ErikssonAvoidance {
         var layout=new GpuDeviceLayout(
                 GpuDeviceLayout.parseDevices(System.getProperty("td18.gpuDevices","0")),
                 Integer.getInteger("td18.gpuSlots",7));
-        try (var prefetch=new RootPrefetch(layout.totalSlots(),prefetchGpu);
+        try (var prefetch=new RootPrefetch(layout.totalSlots(),prefetchGpu,checked(lookup,3));
              var roots=new DiskStateSet(work.resolve("roots"),prefetch::publish)) {
             prefetch.activate();
             ReconstructionPipeline.process(states,work.resolve("after-one-search.queue"),workers(),

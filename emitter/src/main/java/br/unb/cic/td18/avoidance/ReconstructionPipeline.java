@@ -60,7 +60,7 @@ public final class ReconstructionPipeline {
                 long inverseCount = inverseCompleted.sum(), submitted = queue.appended(), misses = inverseQueue.appended();
                 long processed = cachedCount + cpuCount + gpuCount + inverseCount;
                 String percent = String.format(Locale.ROOT, "%.2f", total == 0 ? 100.0 : 100.0 * processed / total);
-                log.info("Reconstruction pipeline {}: processed={}/{} ({}%), remaining={}, cached={}, cpuClosed={}, "
+                log.info("Reconstruction phase {} search/inverse: processed={}/{} ({}%), remaining={}, cached={}, cpuClosed={}, "
                                 + "cpuRemaining={}, gpuSubmitted={}, gpuClosed={}, gpuMisses={}, gpuRemaining={}, inverseCompleted={}, inverseRemaining={}",
                         spool.getFileName(), processed, total, percent, total - processed, cachedCount, cpuCount,
                         total - cachedCount - cpuCount - submitted, submitted, gpuCount, misses,
@@ -68,6 +68,7 @@ public final class ReconstructionPipeline {
             };
             log.info("Reconstruction pipeline {}: CPU workers={}, GPU workers={}, inverse workers={}, disk queue={}",
                     spool.getFileName(), cpuWorkers, gpuWorkers, inverseWorkers, spool);
+            report.run();
             reporter.scheduleWithFixedDelay(report, 10, 10, TimeUnit.SECONDS);
             try (var inverseConsumers = new BoundedTasks(inverseWorkers, "reconstruction-inverse-")) {
                 for (int i = 0; i < inverseWorkers; i++) inverseConsumers.submit(() -> {

@@ -32,9 +32,12 @@ class ExplicitBudgetPersistenceTest {
             var handles=new ArrayList<org.rocksdb.ColumnFamilyHandle>();
             try (var database=org.rocksdb.RocksDB.open(options,directory.resolve("proof").toString(),List.of(
                     new org.rocksdb.ColumnFamilyDescriptor(org.rocksdb.RocksDB.DEFAULT_COLUMN_FAMILY,first),
-                    new org.rocksdb.ColumnFamilyDescriptor("obstructions".getBytes(java.nio.charset.StandardCharsets.UTF_8),second)),handles)) {
-                database.put(handles.get(0),"td18-schema".getBytes(java.nio.charset.StandardCharsets.UTF_8),"joint-selection-v3".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                database.put(handles.get(0),CertificateCodec.keyFor(pair),CertificateCodec.resultFor(SortingCertificate.closure(List.of())));
+                    new org.rocksdb.ColumnFamilyDescriptor("obstructions".getBytes(java.nio.charset.StandardCharsets.UTF_8),second)),handles);
+                 var writes=new org.rocksdb.WriteOptions().setDisableWAL(true);
+                 var flush=new org.rocksdb.FlushOptions().setWaitForFlush(true)) {
+                database.put(handles.get(0),writes,"td18-schema".getBytes(java.nio.charset.StandardCharsets.UTF_8),"joint-selection-v3".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                database.put(handles.get(0),writes,CertificateCodec.keyFor(pair),CertificateCodec.resultFor(SortingCertificate.closure(List.of())));
+                database.flush(flush,handles);
                 handles.forEach(org.rocksdb.ColumnFamilyHandle::close);
             }
         }

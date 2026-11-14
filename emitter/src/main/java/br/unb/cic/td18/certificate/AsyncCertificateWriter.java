@@ -1,6 +1,7 @@
 package br.unb.cic.td18.certificate;
 
 import br.unb.cic.td18.model.CyclicTargetPair;
+import br.unb.cic.td18.avoidance.ReconstructionProgress;
 import br.unb.cic.td18.permutation.Cycle;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -12,12 +13,16 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import org.rocksdb.*;
 
@@ -32,7 +37,12 @@ public final class AsyncCertificateWriter implements AutoCloseable {
     private final ColumnFamilyOptions witnessOptions, obstructionOptions;
     private final RocksDB database;
     private final ColumnFamilyHandle witnesses, obstructions;
-    private final ArrayBlockingQueue<Entry> pending;
+    private final ConcurrentLinkedQueue<Entry> pending = new ConcurrentLinkedQueue<>();
+    private final Semaphore pendingSlots;
+    private final AtomicInteger publishers = new AtomicInteger();
+    private static final int STOPPED = Integer.MIN_VALUE;
+    private static final int WRITE_BATCH_ENTRIES = 65536;
+    private final LongAdder accepted = new LongAdder(), persisted = new LongAdder();
     private final ScheduledExecutorService executor;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final AtomicBoolean drainRequested = new AtomicBoolean();
@@ -41,9 +51,9 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     public AsyncCertificateWriter(Path directory, long flushSeconds) {
         if (flushSeconds <= 0) throw new IllegalArgumentException("Positive flush period required");
-        int capacity = Integer.getInteger("td18.certificateQueueCapacity", 16384);
+        int capacity = Integer.getInteger("td18.certificateQueueCapacity", 1048576);
         if (capacity < 1) throw new IllegalArgumentException("Positive certificate queue capacity required");
-        pending = new ArrayBlockingQueue<>(capacity);
+        pendingSlots = new Semaphore(capacity);
         Path absolute = directory.toAbsolutePath();
         boolean existing = Files.isRegularFile(absolute.resolve("CURRENT"));
         if (existing) requireFamilies(absolute);
@@ -52,9 +62,11 @@ public final class AsyncCertificateWriter implements AutoCloseable {
                 if (files.findAny().isPresent()) throw new IllegalStateException("Certificate directory is not empty");
             } catch (java.io.IOException error) { throw new IllegalStateException(error); }
         }
-        options = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(true).setMaxBackgroundJobs(4);
-        witnessOptions = new ColumnFamilyOptions();
-        obstructionOptions = new ColumnFamilyOptions();
+        options = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(true)
+                .setMaxBackgroundJobs(Math.max(2,Math.min(16,Runtime.getRuntime().availableProcessors())))
+                .setMaxSubcompactions(Math.max(1,Math.min(8,Runtime.getRuntime().availableProcessors())));
+        witnessOptions = new ColumnFamilyOptions().setWriteBufferSize(256L << 20).setMaxWriteBufferNumber(4);
+        obstructionOptions = new ColumnFamilyOptions().setWriteBufferSize(256L << 20).setMaxWriteBufferNumber(4);
         var handles = new ArrayList<ColumnFamilyHandle>();
         RocksDB opened = null;
         try {
@@ -63,7 +75,11 @@ public final class AsyncCertificateWriter implements AutoCloseable {
                     new ColumnFamilyDescriptor(OBSTRUCTIONS, obstructionOptions)), handles);
             if (existing && !Arrays.equals(opened.get(handles.get(0), SCHEMA_KEY), SCHEMA_VALUE))
                 throw new IllegalStateException("Unsupported certificate database format");
-            if (!existing) opened.put(handles.get(0), SCHEMA_KEY, SCHEMA_VALUE);
+            if (!existing) try (var writes=new WriteOptions().setDisableWAL(true);
+                               var flush=new FlushOptions().setWaitForFlush(true)) {
+                opened.put(handles.get(0),writes,SCHEMA_KEY,SCHEMA_VALUE);
+                opened.flush(flush,List.of(handles.get(0)));
+            }
             database = opened; witnesses = handles.get(0); obstructions = handles.get(1);
         } catch (RocksDBException | RuntimeException error) {
             handles.forEach(ColumnFamilyHandle::close);
@@ -160,24 +176,34 @@ public final class AsyncCertificateWriter implements AutoCloseable {
     }
 
     private void offer(Entry entry) {
+        for (;;) {
+            int active=publishers.get();
+            if (active<0 || closed) throw new IllegalStateException("Certificate writer is closed");
+            if (active==Integer.MAX_VALUE) throw new IllegalStateException("Too many certificate publishers");
+            if (publishers.compareAndSet(active,active+1)) break;
+        }
         try {
             for (;;) {
                 throwIfFailed();
                 if (closed) throw new IllegalStateException("Certificate writer is closed");
-                synchronized (pending) {
-                    if (closed) throw new IllegalStateException("Certificate writer is closed");
-                    if (pending.offer(entry)) return;
+                if (!pendingSlots.tryAcquire()) {
+                    if (drainRequested.compareAndSet(false, true)) executor.execute(this::drainBackground);
+                    if (!pendingSlots.tryAcquire(100,TimeUnit.MILLISECONDS)) continue;
                 }
-                if (drainRequested.compareAndSet(false, true)) executor.execute(this::drainBackground);
-                Thread.sleep(10);
+                try {
+                    if (closed) throw new IllegalStateException("Certificate writer is closed");
+                    pending.add(entry); accepted.increment(); return;
+                } catch (RuntimeException | Error error) { pendingSlots.release(); throw error; }
             }
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt(); throw new IllegalStateException("Interrupted certificate enqueue", error);
-        }
+        } finally { publishers.decrementAndGet(); }
     }
 
     private void drainBackground() {
-        try { drain(true); } catch (Throwable error) { failure.compareAndSet(null, error); }
+        // Background writes avoid a forced SST flush on every timer tick.
+        // WAL is disabled: explicit flush/close persist phase boundaries.
+        try { drain(false); } catch (Throwable error) { failure.compareAndSet(null, error); }
         finally { drainRequested.set(false); }
     }
 
@@ -187,17 +213,24 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     public void flush() {
         throwIfFailed();
-        try { drain(true); } catch (RocksDBException error) { throw new IllegalStateException(error); }
+        try (var progress=new ReconstructionProgress("certificate persistence (entries)",accepted.sum(),persisted::sum)) {
+            drain(true);
+        } catch (RocksDBException error) { throw new IllegalStateException(error); }
         throwIfFailed();
     }
 
     private void drain(boolean flush) throws RocksDBException {
         synchronized (drainLock) {
-            var entries = new ArrayList<Entry>(4096);
-            while (pending.drainTo(entries, 4096) != 0) {
+            var entries = new ArrayList<Entry>(WRITE_BATCH_ENTRIES);
+            for (;;) {
+                for (int i=0;i<WRITE_BATCH_ENTRIES;i++) {
+                    var entry=pending.poll(); if (entry==null) break; entries.add(entry);
+                }
+                if (entries.isEmpty()) break;
+                pendingSlots.release(entries.size());
                 var certified = new HashSet<ByteBuffer>();
                 for (Entry entry : entries) if (entry.value != null) certified.add(ByteBuffer.wrap(entry.key));
-                try (var batch = new WriteBatch(); var writes = new WriteOptions()) {
+                try (var batch = new WriteBatch(); var writes = new WriteOptions().setDisableWAL(true)) {
                     for (Entry entry : entries) {
                         if (entry.value != null) {
                             batch.put(witnesses, entry.key, entry.value);
@@ -216,27 +249,39 @@ public final class AsyncCertificateWriter implements AutoCloseable {
                     }
                     database.write(writes, batch);
                 }
+                persisted.add(entries.size());
                 entries.clear();
             }
-            if (flush) try (var options = new FlushOptions().setWaitForFlush(true)) {
+            var finished=new java.util.concurrent.atomic.AtomicLong();
+            if (flush) try (var progress=new ReconstructionProgress("certificate memtable flush (barrier)",1,finished::get);
+                           var options = new FlushOptions().setWaitForFlush(true)) {
                 database.flush(options, List.of(witnesses, obstructions));
+                finished.set(1);
             }
         }
     }
 
-    @Override public void close() {
+    @Override public synchronized void close() {
         if (closed) { throwIfFailed(); return; }
-        synchronized (pending) { closed = true; }
+        closed = true;
+        publishers.getAndUpdate(count -> count | STOPPED);
+        boolean interrupted=false;
+        while (publishers.get()!=STOPPED) {
+            if (Thread.interrupted()) interrupted=true;
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+        }
         executor.shutdown();
         try {
-            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-                if (!executor.awaitTermination(30, TimeUnit.SECONDS)) throw new IllegalStateException("Writer thread did not stop");
+            for (;;) {
+                try { if (executor.awaitTermination(1,TimeUnit.SECONDS)) break; }
+                catch (InterruptedException error) { interrupted=true; }
             }
             drain(true); throwIfFailed();
-        } catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IllegalStateException(error); }
-        catch (RocksDBException error) { throw new IllegalStateException(error); }
-        finally { obstructions.close(); witnesses.close(); database.close(); obstructionOptions.close(); witnessOptions.close(); options.close(); }
+        } catch (RocksDBException error) { throw new IllegalStateException(error); }
+        finally {
+            obstructions.close(); witnesses.close(); database.close(); obstructionOptions.close(); witnessOptions.close(); options.close();
+            if (interrupted) Thread.currentThread().interrupt();
+        }
     }
     private record Entry(byte[] key, byte[] value, int domain, int budget) {}
 }

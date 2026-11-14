@@ -66,6 +66,11 @@ public final class WitnessSearch {
         return searchGpuPrefetch(input, maximumMoves, WitnessSearch::dispatchGpu);
     }
 
+    /** Searches a prepared bulk-lookup miss without issuing a second random database read. */
+    public static SearchResult searchGpuPrefetchMiss(final CyclicTargetPair input, final int maximumMoves) {
+        return searchGpuPrefetch(input, maximumMoves, WitnessSearch::dispatchGpu, false);
+    }
+
     /** Gives the CPU prefix a wall-clock budget, then sends the untouched obligation to CUDA. */
     public static SearchResult searchWithCpuPrefixTimeout(final CyclicTargetPair input,
                                                           final int maximumMoves,
@@ -95,21 +100,21 @@ public final class WitnessSearch {
     }
 
     static SearchResult searchGpuPrefetch(CyclicTargetPair input, int maximumMoves, TimedGpuSearch dispatcher) {
+        return searchGpuPrefetch(input, maximumMoves, dispatcher, true);
+    }
+
+    static SearchResult searchGpuPrefetch(CyclicTargetPair input, int maximumMoves, TimedGpuSearch dispatcher, boolean lookup) {
         long configuredMillis = Long.parseLong(System.getProperty("td18.rootPrefetchGpuMillis", "100").trim());
         if (configuredMillis <= 0) throw new IllegalArgumentException("Root-prefetch GPU time slice must be positive");
         long maximumMillis = new GPUSortingSearch.SearchLimits(configuredMillis).maximumMillis();
-        return searchGpu(input, maximumMoves,
-                (pair, budget) -> dispatcher.search(pair, budget, maximumMillis, budget));
+        return search(input, maximumMoves, CpuPrefixSearch.DEFAULT_DEPTH, -1,
+                (pair, budget) -> dispatcher.search(pair, budget, maximumMillis, budget), lookup);
     }
 
     static int reconstructionGpuDepth(int maximumMoves) {
         if (maximumMoves < 1 || maximumMoves > KnownDiameters.MAX_BUDGET)
             throw new IllegalArgumentException("Sorting budget must lie between 1 and 10");
-        if (maximumMoves == KnownDiameters.MAX_BUDGET) return maximumMoves;
-        int depth = Integer.parseInt(System.getProperty("td18.reconstructionGpuDepth", "5").trim());
-        if (depth < 1 || depth > KnownDiameters.MAX_BUDGET)
-            throw new IllegalArgumentException("GPU exploration depth must lie between 1 and 10");
-        return Math.min(depth, maximumMoves);
+        return maximumMoves;
     }
 
     static long reconstructionGpuMillis(int maximumMoves) {
@@ -133,14 +138,21 @@ public final class WitnessSearch {
 
     private static SearchResult search(CyclicTargetPair input, int maximumMoves,
                                        int defaultCpuPrefixDepth, long cpuPrefixNanos, GpuSearch dispatcher) {
+        return search(input, maximumMoves, defaultCpuPrefixDepth, cpuPrefixNanos, dispatcher, true);
+    }
+
+    private static SearchResult search(CyclicTargetPair input, int maximumMoves,
+                                       int defaultCpuPrefixDepth, long cpuPrefixNanos, GpuSearch dispatcher, boolean lookup) {
         Objects.requireNonNull(input);
         if (maximumMoves < 1 || maximumMoves > KnownDiameters.MAX_BUDGET)
             throw new IllegalArgumentException("Sorting budget must lie between 1 and 10");
         final var pair = input.canonicalRepresentative();
         final var writer = certificateWriter;
         if (writer == null) throw new IllegalStateException("Sorting requires a proof-scoped certificate writer");
-        final var existing = writer.findResult(pair, maximumMoves);
-        if (existing.isPresent()) return checked(existing.orElseThrow());
+        if (lookup) {
+            final var existing = writer.findResult(pair, maximumMoves);
+            if (existing.isPresent()) return checked(existing.orElseThrow());
+        }
         if (cpuPrefixNanos >= 0) {
             final var cpu = cpuPrefixNanos == Long.MAX_VALUE
                     ? CpuPrefixSearch.search(pair, maximumMoves)
@@ -178,7 +190,7 @@ public final class WitnessSearch {
         var covered = new boolean[results.size()];
         long hits = 0;
         for (int i = 0; i < covered.length; i++) if (results.get(i).isPresent()) { covered[i] = true; hits++; }
-        log.info("Certificate multiGet: classes={}, reusable={}, budget={}", covered.length, hits, maximumMoves);
+        log.debug("Certificate multiGet: classes={}, reusable={}, budget={}", covered.length, hits, maximumMoves);
         return covered;
     }
 

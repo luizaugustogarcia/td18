@@ -104,4 +104,14 @@ class StateSetWriterTest {
             assertThrows(IllegalStateException.class, writer::finish);
         }
     }
+
+    @Test void allShardsCanStartFinalFlushBeforeAnyJoin() {
+        var flushing=new CountDownLatch(2); var release=new CountDownLatch(1);
+        var first=new StateSetWriter(1,"first-final-shard",batch -> {},() -> { flushing.countDown(); await(release); });
+        var second=new StateSetWriter(1,"second-final-shard",batch -> {},() -> { flushing.countDown(); await(release); });
+        try {
+            first.requestFinish(); second.requestFinish(); await(flushing);
+            assertFalse(first.finished()); assertFalse(second.finished());
+        } finally { release.countDown(); first.finish(); second.finish(); }
+    }
 }

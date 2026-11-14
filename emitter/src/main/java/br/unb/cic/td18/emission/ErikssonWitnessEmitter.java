@@ -2,6 +2,7 @@ package br.unb.cic.td18.emission;
 
 import br.unb.cic.td18.avoidance.DiskStateSet;
 import br.unb.cic.td18.avoidance.ErikssonAvoidance;
+import br.unb.cic.td18.avoidance.ReconstructionProgress;
 import br.unb.cic.td18.bracelet.DirectTwistedBraceletGenerator;
 import br.unb.cic.td18.certificate.AsyncCertificateWriter;
 import br.unb.cic.td18.certificate.ReadOnlyWitnessSource;
@@ -67,7 +68,9 @@ public final class ErikssonWitnessEmitter {
                         writer.flush();
                     }
                 if (options.avoidance()) {
-                    progress.phase(() -> "final inverse reconstruction");
+                    // Each reconstruction subphase reports its own inventory
+                    // and progress, including persistence and counting.
+                    progress.phase(() -> null);
                     log.info("Reconstruction CPU prefix deadline: {} ms before GPU fallback",
                             RECONSTRUCTION_CPU_PREFIX_MILLIS);
                     var result=options.resumeWork==null
@@ -132,7 +135,7 @@ public final class ErikssonWitnessEmitter {
     }
 
     static boolean settlePrefetchedGpu(CyclicTargetPair pair, int budget) {
-        return WitnessSearch.searchGpuPrefetch(pair, budget).disposition() != WitnessSearch.Disposition.RESIDUAL;
+        return WitnessSearch.searchGpuPrefetchMiss(pair, budget).disposition() != WitnessSearch.Disposition.RESIDUAL;
     }
 
     private static long reconstructionCpuPrefixMillis() {
@@ -145,14 +148,22 @@ public final class ErikssonWitnessEmitter {
     static RootResult emitRoot(ErikssonInventory.Root row,PairDischarge discharge,Progress progress) {
         row.requireCompleteCounts();
         var unresolved=new LongAdder();
+        var settled=new LongAdder();
+        var prefixes=new LongAdder();
+        var generating=new java.util.concurrent.atomic.AtomicBoolean(true);
         ErikssonRootGenerator.Counts counts;
-        progress.phase(()->"Eriksson root partition "+row.number()+" unresolved="+unresolved.sum());
-        try (var tasks=new BoundedTasks(Runtime.getRuntime().availableProcessors(),"eriksson-root")) {
-            counts=ErikssonRootGenerator.generate(row.partition(),Runtime.getRuntime().availableProcessors(),tasks::check,pair->{
+        progress.phase(() -> null);
+        long total = Math.subtractExact(Math.addExact(row.unoriented(),row.oriented()),row.supportCleared());
+        try (var reporting=new ReconstructionProgress("direct root partition "+row.number(),total,settled::sum,
+                     () -> "unresolved="+unresolved.sum()+", generationPrefixNodes="+prefixes.sum()+", generationStillRunning="+generating.get());
+             var tasks=new BoundedTasks(Runtime.getRuntime().availableProcessors(),"eriksson-root")) {
+            counts=ErikssonRootGenerator.generate(row.partition(),Runtime.getRuntime().availableProcessors(),prefixes,tasks::check,pair->{
                 if (!SupportClearing.closes(pair)) tasks.submit(()->{
                     if (!discharge.apply(pair.canonicalRepresentative(),ErikssonRoute.ROOT_BUDGET)) unresolved.increment();
+                    settled.increment();
                 });
             });
+            generating.set(false);
             if (counts.unoriented()!=row.unoriented() || counts.oriented()!=row.oriented() || counts.supportCleared()!=row.supportCleared())
                 throw new IllegalStateException("Active root counts disagree with the paper at partition "+row.number());
         } catch (RuntimeException|Error error) { throw error; }
@@ -167,15 +178,18 @@ public final class ErikssonWitnessEmitter {
             return;
         }
         var generated = new LongAdder(); var misses = new LongAdder();
-        progress.phase(() -> "endpoint " + endpoint.number() + ": generated=" + generated.sum() + " misses=" + misses.sum());
+        long expected = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(endpoint.partition(), endpoint.orientedByPart());
+        progress.phase(() -> null);
+        try (var reporting=new ReconstructionProgress("endpoint "+endpoint.number(),expected,generated::sum,
+                () -> "missingEndpointDischarges="+misses.sum())) {
         DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(endpoint.partition(), endpoint.orientedByPart(),
                 () -> { }, pair -> {
-                    generated.increment();
                     if (!discharge.apply(pair.canonicalRepresentative(), ErikssonRoute.ENDPOINT_BUDGET)) {
                         residuals.add(pair, ErikssonRoute.ENDPOINT_BUDGET); misses.increment();
                     }
+                    generated.increment();
                 });
-        long expected = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(endpoint.partition(), endpoint.orientedByPart());
+        }
         if (generated.sum() != expected) throw new IllegalStateException("Endpoint generation count mismatch: " + endpoint.number());
         log.info("Endpoint {}: generated={}, missingEndpointDischarges={}", endpoint.number(), generated.sum(), misses.sum());
     }
@@ -187,7 +201,10 @@ public final class ErikssonWitnessEmitter {
         private volatile Supplier<String> current = () -> "initializing";
         private final java.util.concurrent.ScheduledExecutorService reporter = Executors.newSingleThreadScheduledExecutor(
                 Thread.ofPlatform().daemon(true).name("emission-progress").factory());
-        Progress() { reporter.scheduleWithFixedDelay(() -> log.info("Emission progress: {}", current.get()), 10, 10, TimeUnit.SECONDS); }
+        Progress() { reporter.scheduleWithFixedDelay(() -> {
+            String phase=current.get();
+            if (phase != null) log.info("Emission progress: {}",phase);
+        }, 10, 10, TimeUnit.SECONDS); }
         void phase(Supplier<String> value) { current = value; }
         @Override public void close() { reporter.shutdownNow(); }
     }
