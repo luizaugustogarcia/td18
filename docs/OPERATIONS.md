@@ -28,7 +28,13 @@ Reconstruction runs CPU searches and GPU dispatch in separate worker pools.
 CPU workers scan the sealed source wave without waiting for GPU capacity;
 only CPU misses enter an append-only disk queue. GPU workers drain that queue
 concurrently and reconstruct parents only after an actual GPU miss. The CPU
-depth, support limit and time allowance retain their configured values.
+prefix depth defaults to 5, with at most 8192 support checks and a 10 ms time
+allowance per class. `td18.cpuPrefixDepth` overrides the depth; outside
+reconstruction its default remains 3. The support and time properties retain
+their configured values. A CPU miss sends the original class and full budget
+to CUDA. CUDA returns as soon as a generated prefix reaches identity or the
+known diameter of its fixed-point-contracted remainder fits the remaining
+budget, including during first-move seeding.
 `td18.reconstructionGpuWorkers` optionally controls the dispatch pool; its
 default is twice the total GPU slots plus `td18.gpuQueueCapacity`, covering
 active searches and the native dispatcher queue. These workers mostly wait

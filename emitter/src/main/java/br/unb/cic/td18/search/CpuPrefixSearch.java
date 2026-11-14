@@ -16,28 +16,28 @@ import java.util.concurrent.CancellationException;
  * diameter. A miss leaves the complete original GPU obligation unchanged.
  */
 public final class CpuPrefixSearch {
-    private static final int DEFAULT_DEPTH = 3;
+    static final int DEFAULT_DEPTH = 3;
     private static final int DEFAULT_TRIPLE_LIMIT = 8192;
     private static final ThreadLocal<Workspace> WORKSPACE = ThreadLocal.withInitial(Workspace::new);
 
     private CpuPrefixSearch() { }
 
     public static Optional<SortingCertificate> search(CyclicTargetPair pair, int maximumMoves) {
-        return recordedSearch(pair, maximumMoves, Long.MAX_VALUE);
+        return recordedSearch(pair, maximumMoves, DEFAULT_DEPTH, Long.MAX_VALUE);
     }
 
     static Optional<SortingCertificate> searchWithinNanos(CyclicTargetPair pair, int maximumMoves,
-                                                          long maximumNanos) {
+                                                          int defaultDepth, long maximumNanos) {
         if (maximumNanos < 0) throw new IllegalArgumentException("CPU prefix time limit cannot be negative");
-        return recordedSearch(pair, maximumMoves, maximumNanos);
+        return recordedSearch(pair, maximumMoves, defaultDepth, maximumNanos);
     }
 
     private static Optional<SortingCertificate> recordedSearch(CyclicTargetPair pair, int maximumMoves,
-                                                               long maximumNanos) {
+                                                               int defaultDepth, long maximumNanos) {
         long started = System.nanoTime();
         try {
             var result = search(pair, maximumMoves,
-                    Integer.getInteger("td18.cpuPrefixDepth", DEFAULT_DEPTH),
+                    Integer.getInteger("td18.cpuPrefixDepth", defaultDepth),
                     Integer.getInteger("td18.cpuPrefixMaxTriples", DEFAULT_TRIPLE_LIMIT),
                     deadline(started, maximumNanos));
             CpuPrefixSearchStats.instance().completed(result, System.nanoTime() - started);

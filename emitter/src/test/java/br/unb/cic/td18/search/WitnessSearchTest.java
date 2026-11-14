@@ -126,6 +126,33 @@ class WitnessSearchTest {
             } finally { WitnessSearch.uninstallWriter(writer); }
         }
     }
+
+    @Test void reconstructionDefaultsToFivePrefixMovesAndHonorsAnExplicitDepth(@TempDir Path path) {
+        var input = CyclicTargetPair.of(new MulticyclePermutation("(0 1 11 6 8 12 9 3 5 2 10 7 4)"),
+                Cycle.of(0,1,2,3,4,5,6,7,8,9,10,11,12)).canonicalRepresentative();
+        String previous = System.getProperty("td18.cpuPrefixDepth");
+        try (var writer = new AsyncCertificateWriter(path, 60)) {
+            WitnessSearch.installWriter(writer);
+            try {
+                System.setProperty("td18.cpuPrefixDepth", "4");
+                assertEquals(WitnessSearch.Disposition.RESIDUAL, WitnessSearch.searchCpu(input, 6, 1000).disposition());
+                System.clearProperty("td18.cpuPrefixDepth");
+                assertTrue(CpuPrefixSearch.search(input, 6).isEmpty());
+                var result = WitnessSearch.searchCpu(input, 6, 1000);
+                assertEquals(WitnessSearch.Disposition.DIAMETER_CLOSURE, result.disposition());
+                assertEquals(5, result.moves().size());
+                writer.flush();
+                var stored = writer.findResult(input, 6).orElseThrow();
+                assertEquals(result.moves(), stored.moves());
+                CertificateValidator.validate(input, stored, 6);
+                assertTrue(writer.findResult(input, 5).isEmpty());
+            } finally { WitnessSearch.uninstallWriter(writer); }
+        } finally {
+            if (previous == null) System.clearProperty("td18.cpuPrefixDepth");
+            else System.setProperty("td18.cpuPrefixDepth", previous);
+        }
+    }
+
     @Test
     void cpuClosureIsPersistedReplayedAndNotACompleteWitness(@TempDir Path path) {
         try (var writer = new AsyncCertificateWriter(path,60)) {

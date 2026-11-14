@@ -371,7 +371,8 @@ namespace {
 
     // ─── Initialization kernel ───────────────────────────────────────────────────
 
-    __global__ void initialize_queues_kernel(const short *tripleFirst,
+    __global__ void initialize_queues_kernel(const DeviceSearchContext ctx,
+                                             const short *tripleFirst,
                                              const short *tripleSecond,
                                              const short *tripleThird,
                                              const int tripleCount,
@@ -406,6 +407,7 @@ namespace {
                 }
                 const int rootLimit = min(localCapacity, queueRoots);
                 for (int rootIndex = 0; rootIndex < rootLimit; ++rootIndex) {
+                    if (atomicAdd(ctx.foundFlag, 0) != 0) break;
                     const int fwdTripleIndex = queueIndex + rootIndex * queueCount;
                     const int tripleIndex = reverseTripleOrder
                         ? (tripleCount - 1 - fwdTripleIndex)
@@ -438,6 +440,17 @@ namespace {
                     node.oddCycles = static_cast<uint8_t>(initialOddCycles + delta);
                     node.fixedPoints = static_cast<uint8_t>(initialFixedPoints
                             + (omega0[c] == a) + (omega0[a] == b) + (omega0[b] == c));
+                    // Accept the first successful prefix as soon as it is
+                    // generated, before it can wait behind queued descendants.
+                    const int kind = solution_kind(ctx, node.oddCycles, node.fixedPoints, node.depth);
+                    if (kind != 0) {
+                        if (atomicCAS(ctx.foundFlag, 0, 1) == 0) {
+                            *ctx.solutionDepth = node.depth;
+                            *ctx.solutionKind = kind;
+                            ctx.solutionMoves[0] = node.moves[0];
+                        }
+                        break;
+                    }
                     // betaStart: first element of beta cycle after block transposition
                     // transposed_src_index(0, i, j, k) = j when i==0, else 0
                     node.betaStart = (moveFirst == 0)
@@ -992,20 +1005,6 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
             host.rhoInv[rho[i]] = static_cast<uint8_t>(i);
     }
 
-    constexpr int INIT_THREADS = 128;
-    const int initBlocks = (queueCount + INIT_THREADS - 1) / INIT_THREADS;
-    initialize_queues_kernel<<<initBlocks, INIT_THREADS, 0, stream>>>(
-            slotView.tripleFirst + triple_table_offset(n),
-            slotView.tripleSecond + triple_table_offset(n),
-            slotView.tripleThird + triple_table_offset(n),
-            tripleCount,
-            slotView.queues, queueCount,
-            slotView.nodes, localCapacity,
-            slotView.overflow, slotView.overflowNodes, overflowCapacity,
-            dOverflow, dOutstandingWork, dOmega0, dBeta0, n, initialOddCycles, initialFixedPoints,
-            (queueCount == 1) ? 1 : 0);
-    CHECK_CUDA(cudaGetLastError());
-
     host.tripleFirst = slotView.tripleFirst;
     host.tripleSecond = slotView.tripleSecond;
     host.tripleThird = slotView.tripleThird;
@@ -1020,6 +1019,21 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
     host.overflowFlag = dOverflow;
     host.outstandingWork = dOutstandingWork;
     host.reverseTripleOrder = (queueCount == 1) ? 1 : 0;
+
+    constexpr int INIT_THREADS = 128;
+    const int initBlocks = (queueCount + INIT_THREADS - 1) / INIT_THREADS;
+    initialize_queues_kernel<<<initBlocks, INIT_THREADS, 0, stream>>>(
+            host,
+            slotView.tripleFirst + triple_table_offset(n),
+            slotView.tripleSecond + triple_table_offset(n),
+            slotView.tripleThird + triple_table_offset(n),
+            tripleCount,
+            slotView.queues, queueCount,
+            slotView.nodes, localCapacity,
+            slotView.overflow, slotView.overflowNodes, overflowCapacity,
+            dOverflow, dOutstandingWork, dOmega0, dBeta0, n, initialOddCycles, initialFixedPoints,
+            (queueCount == 1) ? 1 : 0);
+    CHECK_CUDA(cudaGetLastError());
 
     sorting_search_persistent_kernel<<<queueCount, WARP_SIZE, 0, stream>>>(host);
     CHECK_CUDA(cudaGetLastError());
