@@ -5,6 +5,7 @@ import br.unb.cic.td18.model.CyclicTargetPair;
 import br.unb.cic.td18.runtime.BoundedTasks;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
@@ -37,43 +38,77 @@ public final class ReconstructionPipeline {
                                BiPredicate<CyclicTargetPair, Integer> gpu,
                                Consumer<DiskStateSet.State> residual) {
         long total = states.seal();
+        int inverseWorkers = Integer.getInteger("td18.reconstructionInverseWorkers",
+                Math.min(cpuWorkers, Runtime.getRuntime().availableProcessors()));
+        if (inverseWorkers < 1) throw new IllegalArgumentException("Inverse workers must be positive");
         var cached = new LongAdder(); var cpuClosed = new LongAdder();
-        var gpuClosed = new LongAdder(); var unresolved = new LongAdder();
+        var gpuClosed = new LongAdder(); var inverseCompleted = new LongAdder();
         try (var queue = new DiskStateQueue(spool);
+             var inverseQueue = new DiskStateQueue(spool.resolveSibling(spool.getFileName() + ".inverse.queue"));
              var reporter = Executors.newSingleThreadScheduledExecutor(
                      Thread.ofPlatform().daemon(true).name("reconstruction-progress").factory())) {
-            Runnable report = () -> log.info("Reconstruction pipeline {}: total={}, cached={}, cpuClosed={}, "
-                            + "queued={}, gpuClosed={}, gpuMisses={}, backlog={}", spool.getFileName(), total,
-                    cached.sum(), cpuClosed.sum(), queue.appended(), gpuClosed.sum(), unresolved.sum(),
-                    queue.appended() - gpuClosed.sum() - unresolved.sum());
-            log.info("Reconstruction pipeline {}: CPU workers={}, GPU workers={}, disk queue={}",
-                    spool.getFileName(), cpuWorkers, gpuWorkers, spool);
+            Runnable report = () -> {
+                long cachedCount = cached.sum(), cpuCount = cpuClosed.sum(), gpuCount = gpuClosed.sum();
+                long inverseCount = inverseCompleted.sum(), submitted = queue.appended(), misses = inverseQueue.appended();
+                long processed = cachedCount + cpuCount + gpuCount + inverseCount;
+                String percent = String.format(Locale.ROOT, "%.2f", total == 0 ? 100.0 : 100.0 * processed / total);
+                log.info("Reconstruction pipeline {}: processed={}/{} ({}%), remaining={}, cached={}, cpuClosed={}, "
+                                + "cpuRemaining={}, gpuSubmitted={}, gpuClosed={}, gpuMisses={}, gpuRemaining={}, inverseCompleted={}, inverseRemaining={}",
+                        spool.getFileName(), processed, total, percent, total - processed, cachedCount, cpuCount,
+                        total - cachedCount - cpuCount - submitted, submitted, gpuCount, misses,
+                        submitted - gpuCount - misses, inverseCount, misses - inverseCount);
+            };
+            log.info("Reconstruction pipeline {}: CPU workers={}, GPU workers={}, inverse workers={}, disk queue={}",
+                    spool.getFileName(), cpuWorkers, gpuWorkers, inverseWorkers, spool);
             reporter.scheduleWithFixedDelay(report, 10, 10, TimeUnit.SECONDS);
-            try (var consumers = new BoundedTasks(gpuWorkers, "reconstruction-gpu-")) {
-                for (int i = 0; i < gpuWorkers; i++) consumers.submit(() -> {
+            try (var inverseConsumers = new BoundedTasks(inverseWorkers, "reconstruction-inverse-")) {
+                for (int i = 0; i < inverseWorkers; i++) inverseConsumers.submit(() -> {
                     try {
-                        for (DiskStateSet.State state; (state = queue.take()) != null;) {
-                            boolean closed = gpu.test(state.pair(), state.maximumMoves());
+                        for (DiskStateSet.State state; (state = inverseQueue.take()) != null;) {
                             queue.check();
-                            if (closed) gpuClosed.increment();
-                            else { residual.accept(state); unresolved.increment(); }
+                            residual.accept(state);
+                            inverseCompleted.increment();
                         }
-                    } catch (RuntimeException | Error error) { queue.abort(error); throw error; }
+                    } catch (RuntimeException | Error error) {
+                        queue.abort(error); inverseQueue.abort(error); throw error;
+                    }
                 });
                 try {
-                    states.forEachConcurrently(cpuWorkers, lookup, state -> {
-                        queue.check(); cached.increment();
-                    }, state -> {
-                        queue.check();
-                        if (cpu.test(state.pair(), state.maximumMoves())) cpuClosed.increment();
-                        else queue.add(state);
-                    });
-                    queue.finish();
-                } catch (RuntimeException | Error error) { queue.abort(error); throw error; }
+                    try (var consumers = new BoundedTasks(gpuWorkers, "reconstruction-gpu-")) {
+                        for (int i = 0; i < gpuWorkers; i++) consumers.submit(() -> {
+                            try {
+                                for (DiskStateSet.State state; (state = queue.take()) != null;) {
+                                    boolean closed = gpu.test(state.pair(), state.maximumMoves());
+                                    queue.check();
+                                    if (closed) gpuClosed.increment(); else inverseQueue.add(state);
+                                }
+                            } catch (RuntimeException | Error error) {
+                                queue.abort(error); inverseQueue.abort(error); throw error;
+                            }
+                        });
+                        try {
+                            states.forEachConcurrently(cpuWorkers, lookup, state -> {
+                                queue.check(); cached.increment();
+                            }, state -> {
+                                queue.check();
+                                if (cpu.test(state.pair(), state.maximumMoves())) cpuClosed.increment();
+                                else queue.add(state);
+                            });
+                            queue.finish();
+                        } catch (RuntimeException | Error error) {
+                            queue.abort(error); inverseQueue.abort(error); throw error;
+                        }
+                    }
+                    queue.check();
+                    inverseQueue.finish();
+                } catch (RuntimeException | Error error) {
+                    queue.abort(error); inverseQueue.abort(error); throw error;
+                }
             }
-            queue.check();
+            queue.check(); inverseQueue.check();
             if (cached.sum() + cpuClosed.sum() + queue.appended() != total
-                    || gpuClosed.sum() + unresolved.sum() != queue.appended())
+                    || gpuClosed.sum() + inverseQueue.appended() != queue.appended()
+                    || inverseCompleted.sum() != inverseQueue.appended())
                 throw new IllegalStateException("Incomplete reconstruction pipeline coverage");
             report.run();
         }

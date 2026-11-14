@@ -10,6 +10,36 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ReconstructionPipelineTest {
+    @Test void gpuFinishesWhileInverseWorkIsBlockedAndCompletionWaitsForItsDrain(@TempDir Path directory) throws Exception {
+        String oldWorkers = System.getProperty("td18.reconstructionInverseWorkers");
+        System.setProperty("td18.reconstructionInverseWorkers", "1");
+        var inverseStarted = new CountDownLatch(1); var releaseInverse = new CountDownLatch(1);
+        var gpuDone = new CountDownLatch(8);
+        Set<Integer> residuals = ConcurrentHashMap.newKeySet();
+        try (var states = states(directory); var executor = Executors.newSingleThreadExecutor()) {
+            var run = executor.submit(() -> ReconstructionPipeline.process(states, directory.resolve("decoupled"), 2, 2,
+                    null, (pair, budget) -> false, (pair, budget) -> {
+                        gpuDone.countDown(); return budget % 2 == 0;
+                    }, state -> {
+                        inverseStarted.countDown();
+                        try { assertTrue(releaseInverse.await(10, TimeUnit.SECONDS)); }
+                        catch (InterruptedException error) { throw new IllegalStateException(error); }
+                        assertTrue(residuals.add(state.maximumMoves()));
+                    }));
+            try {
+                assertTrue(inverseStarted.await(5, TimeUnit.SECONDS));
+                assertTrue(gpuDone.await(5, TimeUnit.SECONDS), "GPU dispatch must not wait for inverse generation");
+                assertFalse(run.isDone(), "Sealing must wait for every inverse obligation");
+            } finally { releaseInverse.countDown(); }
+            run.get(10, TimeUnit.SECONDS);
+            assertEquals(Set.of(1, 3, 5, 7), residuals);
+        } finally {
+            releaseInverse.countDown();
+            if (oldWorkers == null) System.clearProperty("td18.reconstructionInverseWorkers");
+            else System.setProperty("td18.reconstructionInverseWorkers", oldWorkers);
+        }
+    }
+
     @Test void cpuFinishesWhileGpuIsBlockedAndEveryMissIsDrainedExactlyOnce(@TempDir Path directory) throws Exception {
         try (var states = states(directory); var executor = Executors.newSingleThreadExecutor()) {
             var cpuDone = new CountDownLatch(7);

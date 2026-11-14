@@ -465,9 +465,11 @@ Every persisted set has a version, deterministic keys, explicit budgets,
 domains and counts, and rejects missing data. Large inverse sets are disk-backed;
 asynchronous certificate persistence uses bounded queues. A witness proves an
 upper bound only for its represented class. During emission, separate CPU and
-GPU worker pools communicate through a versioned disk queue. Every source
-class is accounted for and every queued search is joined before the next wave
-is sealed; interrupted queues are regenerated from the sealed source wave.
+GPU worker pools communicate through a versioned disk queue. A second queue
+transfers every GPU miss to an independent CPU inverse pool. Every source
+class is accounted for, every GPU result is classified, and every transferred
+inverse case is processed before the next wave is sealed. All three pools
+are joined; interrupted queues are regenerated from the sealed source wave.
 Inverse outputs use deterministic writer shards with bounded queues. Every
 partial output batch is queued and every writer is drained and joined before
 the exact inventory is checked; a generation or persistence failure prevents

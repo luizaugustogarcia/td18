@@ -151,7 +151,12 @@ public final class DiskStateSet implements AutoCloseable {
             int shard = powerOfTwo ? hash & (writers.length - 1) : Math.floorMod(hash, writers.length);
             partitions.get(shard).add(key);
         }
-        for (int i = 0; i < writers.length; i++) writers[i].submit(partitions.get(i));
+        // Publish to every available shard before waiting on any full shard.
+        // Otherwise a slow first shard prevents later writers receiving work.
+        boolean[] submitted = new boolean[writers.length];
+        for (int i = 0; i < writers.length; i++) submitted[i] = writers[i].trySubmit(partitions.get(i));
+        for (int i = 0; i < writers.length; i++)
+            if (!submitted[i]) writers[i].submit(partitions.get(i));
     }
 
     static byte[] encode(State state) {

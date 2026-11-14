@@ -43,21 +43,23 @@ final class DiskStateQueue implements AutoCloseable {
         }
     }
 
-    synchronized void add(DiskStateSet.State state) {
-        check();
-        if (finished) throw new IllegalStateException("Reconstruction queue is sealed");
+    void add(DiskStateSet.State state) {
         byte[] key = DiskStateSet.encode(state);
         int length = key.length;
         if (length > KEY_BYTES) throw new IllegalArgumentException("Reconstruction key exceeds queue domain");
         var record = ByteBuffer.allocate(RECORD_BYTES);
         record.put((byte) length).put(key).rewind();
-        try {
-            write(record, offset(appended));
-            appended++;
-            notifyAll();
-        } catch (IOException error) {
-            abort(error);
-            throw new IllegalStateException("Cannot append reconstruction queue", error);
+        synchronized (this) {
+            check();
+            if (finished) throw new IllegalStateException("Reconstruction queue is sealed");
+            try {
+                write(record, offset(appended));
+                appended++;
+                notifyAll();
+            } catch (IOException error) {
+                abort(error);
+                throw new IllegalStateException("Cannot append reconstruction queue", error);
+            }
         }
     }
 

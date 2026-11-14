@@ -52,28 +52,41 @@ final class StateSetWriter {
 
     void submit(List<byte[]> keys) {
         if (keys.isEmpty()) return;
-        // The producer reuses its list; the encoded byte arrays are never mutated.
-        var batch = List.copyOf(keys);
         try {
             for (;;) {
                 check();
                 if (finishing) throw new IllegalStateException("State writer is finishing");
                 if (!slots.tryAcquire(100, TimeUnit.MILLISECONDS)) continue;
-                try {
-                    check();
-                    if (finishing) throw new IllegalStateException("State writer is finishing");
-                    queue.add(batch);
-                    available.release();
-                } catch (RuntimeException | Error error) {
-                    slots.release();
-                    throw error;
-                }
+                publish(keys);
                 check();
                 return;
             }
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted reconstruction enqueue", error);
+        }
+    }
+
+    boolean trySubmit(List<byte[]> keys) {
+        if (keys.isEmpty()) return true;
+        check();
+        if (finishing) throw new IllegalStateException("State writer is finishing");
+        if (!slots.tryAcquire()) return false;
+        publish(keys);
+        check();
+        return true;
+    }
+
+    private void publish(List<byte[]> keys) {
+        try {
+            check();
+            if (finishing) throw new IllegalStateException("State writer is finishing");
+            // Producers reuse their lists; encoded byte arrays are never mutated.
+            queue.add(List.copyOf(keys));
+            available.release();
+        } catch (RuntimeException | Error error) {
+            slots.release();
+            throw error;
         }
     }
 

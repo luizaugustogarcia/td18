@@ -24,11 +24,12 @@ and `td18.gpuStatsPeriodSeconds`. CPU prefix properties are
 `td18.reconstructionCpuPrefixMillis`. Limits bound a heuristic; they do not
 remove the original sorting obligation.
 
-Reconstruction runs CPU searches and GPU dispatch in separate worker pools.
+Reconstruction runs CPU searches, GPU dispatch and inverse generation in separate worker pools.
 CPU workers scan the sealed source wave without waiting for GPU capacity;
 only CPU misses enter an append-only disk queue. GPU workers drain that queue
-concurrently and reconstruct every inverse parent after an exhausted search
-or a depth limit or timeout. The CPU
+and send every exhausted, depth-limited or timed-out class to a second
+disk-backed queue. Dedicated CPU inverse workers reconstruct its parents.
+GPU dispatch never waits for inverse generation or its output persistence. The CPU
 prefix depth defaults to 5, with at most 8192 support checks and a 10 ms time
 allowance per class. `td18.cpuPrefixDepth` overrides the depth; outside
 reconstruction its default remains 3. The support and time properties retain
@@ -65,12 +66,19 @@ default is twice the total GPU slots plus `td18.gpuQueueCapacity`, covering
 active searches and the native dispatcher queue. These workers mostly wait
 for GPU results and do not replace the CPU pool.
 
-Progress reports identify each wave and show its total, cached results, CPU
-closures, queued cases, GPU closures, GPU misses and remaining backlog.
+Progress reports show processed/total, percentage, remaining source cases,
+and separate cpuRemaining, gpuRemaining and inverseRemaining counts.
+Processed is cached + cpuClosed + gpuClosed + inverseCompleted. A completed
+inverse callback means its output has been queued; all writers still drain
+before sealing. gpuSubmitted is cumulative and stays fixed after CPU
+production ends. gpuMisses counts transfers to the inverse queue immediately.
+td18.reconstructionInverseWorkers controls the inverse pool; its default is
+the smaller of the CPU producer count and the JVM's available processors.
 The native GPU statistics report timeouts separately from exhausted searches;
 the reconstruction pipeline's unresolved GPU count includes both outcomes.
-A wave completes only after all CPU work and GPU results have joined and its
-coverage counts agree. Increasing queue capacity does not increase GPU capacity.
+A wave completes only after CPU production, GPU dispatch and all inverse work
+have joined. Coverage checks require every GPU input to be closed or transferred
+and every transferred case to finish inverse processing.
 
 For a reproducible GPU comparison, use
 `tools/audit/BenchmarkGpuSearch.jsh`. It samples an immutable handoff queue,
@@ -82,8 +90,8 @@ that rank-decreasing moves preserve all-odd cycle structure. Its table-driven
 subtree rejection leaves the class unresolved and preserves every inverse
 obligation; the source paper proves the rule. A zero move here preserves the
 odd-length-cycle count, independently of its fixed-symbol gain.
-GPU consumers also perform inverse reconstruction after a miss. Low native
-queue occupancy can therefore indicate CPU generation or disk-set contention.
+GPU consumers only dispatch searches and transfer misses. The separate inverse
+pool can wait for persistence without preventing further GPU submissions.
 Inverse generation batches 4,096 canonicalized keys into independent writer
 queues; deduplication and disk writes have no global producer lock. Every
 partial batch is queued, and every writer drains and joins before sealing.

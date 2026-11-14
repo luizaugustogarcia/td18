@@ -159,6 +159,27 @@ full queues, final partial batches, failed writes, and drain/join boundaries.
 This revision has no throughput benchmark, as requested; no new speedup
 factor is claimed.
 
+## Independent GPU dispatch and inverse work
+
+After installing writer shards, a live idle-period snapshot found all 112 GPU
+dispatch workers waiting for space in a persistence queue. GPU misses still
+executed their entire inverse callback synchronously. Three active writers
+were in RocksDB writes, and later partitions of producer batches could be
+held behind a full earlier shard.
+
+GPU misses now enter a separate versioned disk queue, drained by an independent
+CPU inverse pool. GPU dispatch neither generates parents nor waits for their
+persistence queues. Producers offer all shard partitions before waiting on
+any full destination. Both GPU and inverse handoffs must drain, all worker
+pools must join, and all three coverage equalities must hold before sealing.
+
+Logs report processed/total, percentage, remaining, cpuRemaining, gpuRemaining
+and inverseRemaining. gpuSubmitted is explicitly cumulative. Processed includes
+completed inverse callbacks; final persistence draining and inventory validation
+remain sealing obligations. This makes GPU completion visible even while
+inverse generation continues. Storage still bounds the overall reconstruction
+rate. No throughput benchmark was requested for this change.
+
 ## Reproducing a comparison
 
 Build Java with tools/td18 build and prepare separate native-library

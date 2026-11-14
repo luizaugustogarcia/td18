@@ -43,6 +43,14 @@ both gains two/three, then reverse gains one/zero. Lookups and searches use each
 state's explicit domain and budget; both after-one domains have budget 9.
 Every final root uses 10. CPU sorting prefixes and intermediate GPU searches
 are heuristics: a miss, depth limit or timeout preserves every inverse obligation.
+CPU prefix workers, GPU dispatch workers and CPU inverse workers are independent.
+A versioned disk queue feeds GPU searches; a second queues every GPU miss for
+inverse generation. GPU workers never execute inverse callbacks or wait on their
+persistence queues. Both handoffs have fixed-size validated records and exact
+final counts. All pools join before sealing, with coverage equalities checking
+source classification, every GPU result, and every transferred inverse case.
+Progress reports count processed source cases against the full wave total and
+show the remaining CPU, GPU and inverse work separately.
 Intermediate CUDA searches default to exploration depth 5, controlled by
 `td18.reconstructionGpuDepth`, while diameter closures retain the full budget.
 `td18.reconstructionGpuMillis` defaults to 0 (no time cutoff). Budget-10 searches
@@ -101,6 +109,9 @@ wait only when their destination queue is full. The default uses up to eight
 writers, a 16-million-key aggregate deduplication window and 16,384 queued
 batches, distributed across shards. RocksDB has 256 MiB write buffers and
 four memtables, with up to eight background jobs.
+Producers first publish to every shard with free space before waiting on a
+full shard, so one slow destination cannot prevent all other writers receiving
+the same batch's remaining partitions.
 
 Final partial producer batches are queued before the callback returns.
 An atomic admission counter prevents sealing or closing while a generator
