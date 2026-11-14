@@ -1,6 +1,5 @@
 package br.unb.cic.td18.avoidance;
 
-import br.unb.cic.td18.certificate.CertificateCodec;
 import br.unb.cic.td18.joint.ErikssonRoute;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -47,13 +46,11 @@ final class DiskStateQueue implements AutoCloseable {
     synchronized void add(DiskStateSet.State state) {
         check();
         if (finished) throw new IllegalStateException("Reconstruction queue is sealed");
-        var pair = state.pair().canonicalRepresentative();
-        byte[] raw = CertificateCodec.keyFor(pair);
-        int length = 3 + raw.length;
+        byte[] key = DiskStateSet.encode(state);
+        int length = key.length;
         if (length > KEY_BYTES) throw new IllegalArgumentException("Reconstruction key exceeds queue domain");
         var record = ByteBuffer.allocate(RECORD_BYTES);
-        record.put((byte) length).put((byte) 2).put((byte) state.maximumMoves())
-                .put((byte) pair.getBeta().size()).put(raw).rewind();
+        record.put((byte) length).put(key).rewind();
         try {
             write(record, offset(appended));
             appended++;

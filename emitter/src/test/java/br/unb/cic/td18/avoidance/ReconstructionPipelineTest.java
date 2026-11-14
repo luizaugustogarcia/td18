@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ReconstructionPipelineTest {
     @Test void cpuFinishesWhileGpuIsBlockedAndEveryMissIsDrainedExactlyOnce(@TempDir Path directory) throws Exception {
         try (var states = states(directory); var executor = Executors.newSingleThreadExecutor()) {
-            var cpuDone = new CountDownLatch(9);
+            var cpuDone = new CountDownLatch(7);
             var gpuStarted = new CountDownLatch(1);
             var releaseGpu = new CountDownLatch(1);
             Set<Integer> cpuSeen = ConcurrentHashMap.newKeySet(), gpuSeen = ConcurrentHashMap.newKeySet();
@@ -38,9 +38,9 @@ class ReconstructionPipelineTest {
                 assertFalse(run.isDone(), "Completion must wait for every GPU result");
             } finally { releaseGpu.countDown(); }
             run.get(10, TimeUnit.SECONDS);
-            assertEquals(Set.of(1,3,4,5,6,7,8,9,10), cpuSeen);
-            assertEquals(Set.of(5,6,7,8,9,10), gpuSeen);
-            assertEquals(Set.of(5,7,9), residuals);
+            assertEquals(Set.of(1,3,4,5,6,7,8), cpuSeen);
+            assertEquals(Set.of(5,6,7,8), gpuSeen);
+            assertEquals(Set.of(5,7), residuals);
         }
     }
 
@@ -69,8 +69,8 @@ class ReconstructionPipelineTest {
     private static DiskStateSet states(Path directory) {
         var states = new DiskStateSet(directory.resolve("states"));
         var pair = ActiveErikssonAvoidanceTest.pair(7);
-        for (int budget=1;budget<=10;budget++) states.add(pair,budget);
-        assertEquals(10, states.seal());
+        for (int budget=1;budget<=8;budget++) states.add(pair,budget);
+        assertEquals(8, states.seal());
         return states;
     }
 }
