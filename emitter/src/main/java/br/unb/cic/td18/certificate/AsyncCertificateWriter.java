@@ -215,7 +215,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     public void flush() {
         throwIfFailed();
-        try (var progress=new ReconstructionProgress("certificate persistence (entries)",accepted.sum(),persisted::sum)) {
+        try (var progress=new ReconstructionProgress("Certificate persistence (entries)",accepted.sum(),persisted::sum)) {
             drain(true);
         } catch (RocksDBException error) { throw new IllegalStateException(error); }
         throwIfFailed();
@@ -255,7 +255,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
                 entries.clear();
             }
             var finished=new java.util.concurrent.atomic.AtomicLong();
-            if (flush) try (var progress=new ReconstructionProgress("certificate memtable flush (barrier)",1,finished::get);
+            if (flush) try (var progress=new ReconstructionProgress("Certificate memtable flush (barrier)",1,finished::get);
                            var options = new FlushOptions().setWaitForFlush(true)) {
                 database.flush(options, List.of(witnesses, obstructions));
                 finished.set(1);

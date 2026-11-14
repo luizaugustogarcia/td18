@@ -31,7 +31,7 @@ public final class ErikssonAvoidance {
         long count=endpoints.seal();
         var completed = new LongAdder();
         try (var afterTwo=new DiskStateSet(work.resolve("after-two"))) {
-            try (var progress=new ReconstructionProgress("after-two inverse generation (endpoint classes)", count, completed::sum)) {
+            try (var progress=new ReconstructionProgress("Inverse reconstruction after-two generation (endpoint classes)", count, completed::sum)) {
             endpoints.forEachConcurrently(workers(),state -> {
                 require(state,0);
                 afterTwo.addGenerated(ErikssonRoute.ROOT_BUDGET-2,

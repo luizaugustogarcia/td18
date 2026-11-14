@@ -60,7 +60,7 @@ public final class ReconstructionPipeline {
                 long inverseCount = inverseCompleted.sum(), submitted = queue.appended(), misses = inverseQueue.appended();
                 long processed = cachedCount + cpuCount + gpuCount + inverseCount;
                 String percent = String.format(Locale.ROOT, "%.2f", total == 0 ? 100.0 : 100.0 * processed / total);
-                log.info("Reconstruction phase {} search/inverse: processed={}/{} ({}%), remaining={}, cached={}, cpuClosed={}, "
+                log.info("Inverse reconstruction {} search/inverse: processed={}/{} ({}%), remaining={}, cached={}, cpuClosed={}, "
                                 + "cpuRemaining={}, gpuSubmitted={}, gpuClosed={}, gpuMisses={}, gpuRemaining={}, inverseCompleted={}, inverseRemaining={}",
                         spool.getFileName(), processed, total, percent, total - processed, cachedCount, cpuCount,
                         total - cachedCount - cpuCount - submitted, submitted, gpuCount, misses,

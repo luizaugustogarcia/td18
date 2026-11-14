@@ -83,6 +83,14 @@ default is twice the total GPU slots plus `td18.gpuQueueCapacity`, covering
 active searches and the native dispatcher queue. These workers mostly wait
 for GPU results and do not replace the CPU pool.
 
+Log labels identify `Root emission partition`, `Endpoint emission type`,
+`Certificate persistence`, `State inventory`, `State persistence`, or
+`Inverse reconstruction` explicitly. Root emission reports completed sorting
+obligations separately from `generationPrefixNodes` and
+`generationStillRunning`; an empty sorting obligation count does not mean
+generation has finished. Shared progress reports omit percentages for zero
+totals instead of showing `0/0 (100%)` while generation is running.
+
 Progress reports show processed/total, percentage, remaining source cases,
 and separate cpuRemaining, gpuRemaining and inverseRemaining counts.
 Processed is cached + cpuClosed + gpuClosed + inverseCompleted. A completed

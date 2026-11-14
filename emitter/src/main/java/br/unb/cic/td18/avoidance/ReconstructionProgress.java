@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Operational counters only; exact inventories still come from exhaustive scans. */
+/** Shared operational progress for emission, inverse reconstruction and persistence. */
 public final class ReconstructionProgress implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(ReconstructionProgress.class);
     private final String phase;
@@ -27,7 +27,7 @@ public final class ReconstructionProgress implements AutoCloseable {
         this.phase = phase; this.total = total; this.completed = completed; this.details = details;
         previousCount = completed.getAsLong();
         reporter = Executors.newSingleThreadScheduledExecutor(
-                Thread.ofPlatform().daemon(true).name("reconstruction-phase-progress").factory());
+                Thread.ofPlatform().daemon(true).name("phase-progress").factory());
         report();
         reporter.scheduleWithFixedDelay(this::report, 10, 10, TimeUnit.SECONDS);
     }
@@ -44,11 +44,13 @@ public final class ReconstructionProgress implements AutoCloseable {
         String rate = String.format(Locale.ROOT, "%.3f", (count - previousCount) / seconds);
         String inventory = denominator < 0
                 ? "processed=" + count + ", total=unknown (exhaustive count in progress)"
+                : denominator == 0
+                ? "processed=" + count + "/0, remaining=" + (denominator - count)
                 : "processed=" + count + "/" + denominator + " ("
-                    + String.format(Locale.ROOT, "%.2f", denominator == 0 ? 100 : 100.0 * count / denominator)
+                    + String.format(Locale.ROOT, "%.2f", 100.0 * count / denominator)
                     + "%), remaining=" + (denominator - count);
         String extra = details.get();
-        log.info("Reconstruction phase {}: {}, throughput={}/s{}", phase, inventory, rate,
+        log.info("{}: {}, throughput={}/s{}", phase, inventory, rate,
                 extra.isEmpty() ? "" : ", " + extra);
         previousCount = count; previousNanos = now;
     }

@@ -240,7 +240,7 @@ public final class DiskStateSet implements AutoCloseable {
         // There is no memtable to flush; a synchronous flush can wait behind
         // compactions even though the complete inventory is already readable.
         var advisory = generatedObserver == null ? null : new ArrayList<byte[]>(generatedBatchKeys);
-        try (var progress = new ReconstructionProgress(stagingDirectory.getParent().getFileName() + " unique-class counting",
+        try (var progress = new ReconstructionProgress("State inventory " + stagingDirectory.getParent().getFileName() + " unique-class counting",
                      -1, counted::get);
              var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads)) {
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
@@ -267,7 +267,7 @@ public final class DiskStateSet implements AutoCloseable {
         long expected = seal();
         long scanned = 0;
         var scannedCount = new AtomicLong();
-        try (var progress = new ReconstructionProgress(stagingDirectory.getParent().getFileName() + " inventory scan",
+        try (var progress = new ReconstructionProgress("State inventory " + stagingDirectory.getParent().getFileName() + " scan",
                      expected, scannedCount::get);
              var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads)) {
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
@@ -375,7 +375,7 @@ public final class DiskStateSet implements AutoCloseable {
             }
         }
         producerBatches.clear();
-        try (var progress = new ReconstructionProgress(stagingDirectory.getParent().getFileName() + " persistence drain (writers)",
+        try (var progress = new ReconstructionProgress("State persistence " + stagingDirectory.getParent().getFileName() + " drain (writers)",
                 writers.length, () -> Arrays.stream(writers).filter(writer -> writer != null && writer.finished()).count(), () -> {
                     long submitted = 0, consumed = 0;
                     for (var writer : writers) if (writer != null) {

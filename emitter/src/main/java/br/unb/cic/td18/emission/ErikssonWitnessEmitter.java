@@ -155,7 +155,7 @@ public final class ErikssonWitnessEmitter {
         ErikssonRootGenerator.Counts counts;
         progress.phase(() -> null);
         long total = Math.subtractExact(Math.addExact(row.unoriented(),row.oriented()),row.supportCleared());
-        try (var reporting=new ReconstructionProgress("direct root partition "+row.number(),total,settled::sum,
+        try (var reporting=new ReconstructionProgress("Root emission partition "+row.number(),total,settled::sum,
                      () -> "unresolved="+unresolved.sum()+", generationPrefixNodes="+prefixes.sum()+", generationStillRunning="+generating.get());
              var tasks=new BoundedTasks(Runtime.getRuntime().availableProcessors(),"eriksson-root")) {
             counts=ErikssonRootGenerator.generate(row.partition(),Runtime.getRuntime().availableProcessors(),prefixes,tasks::check,pair->{
@@ -175,13 +175,13 @@ public final class ErikssonWitnessEmitter {
     static void emitEndpoint(ErikssonInventory.Endpoint endpoint, PairDischarge discharge,
                              DiskStateSet residuals, Progress progress) {
         if (endpoint.elementaryClosure()) {
-            log.info("Endpoint {}: known-diameter endpoint closure", endpoint.number());
+            log.info("Endpoint emission type {}: known-diameter endpoint closure", endpoint.number());
             return;
         }
         var generated = new LongAdder(); var misses = new LongAdder();
         long expected = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(endpoint.partition(), endpoint.orientedByPart());
         progress.phase(() -> null);
-        try (var reporting=new ReconstructionProgress("endpoint "+endpoint.number(),expected,generated::sum,
+        try (var reporting=new ReconstructionProgress("Endpoint emission type "+endpoint.number(),expected,generated::sum,
                 () -> "missingEndpointDischarges="+misses.sum())) {
         DirectTwistedBraceletGenerator.generateRepresentativesConcurrently(endpoint.partition(), endpoint.orientedByPart(),
                 () -> { }, pair -> {
@@ -192,7 +192,7 @@ public final class ErikssonWitnessEmitter {
                 });
         }
         if (generated.sum() != expected) throw new IllegalStateException("Endpoint generation count mismatch: " + endpoint.number());
-        log.info("Endpoint {}: generated={}, missingEndpointDischarges={}", endpoint.number(), generated.sum(), misses.sum());
+        log.info("Endpoint emission type {}: generated={}, missingEndpointDischarges={}", endpoint.number(), generated.sum(), misses.sum());
     }
 
     @FunctionalInterface interface PairDischarge { boolean apply(CyclicTargetPair pair, int budget); }
