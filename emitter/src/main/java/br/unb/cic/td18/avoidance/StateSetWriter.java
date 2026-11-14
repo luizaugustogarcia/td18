@@ -1,0 +1,113 @@
+package br.unb.cic.td18.avoidance;
+
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+/** One bounded queue and one owner of a persistence shard. */
+final class StateSetWriter {
+    private static final List<byte[]> END = List.of();
+    private final ConcurrentLinkedQueue<List<byte[]>> queue = new ConcurrentLinkedQueue<>();
+    private final Semaphore slots;
+    private final Semaphore available = new Semaphore(0);
+    private final AtomicReference<Throwable> failure;
+    private final Thread worker;
+    private volatile boolean finishing;
+
+    StateSetWriter(int capacity, String name, Consumer<List<byte[]>> persist, Runnable flush) {
+        this(capacity, name, persist, flush, new AtomicReference<>());
+    }
+
+    StateSetWriter(int capacity, String name, Consumer<List<byte[]>> persist, Runnable flush,
+                   AtomicReference<Throwable> failure) {
+        if (capacity < 1) throw new IllegalArgumentException("Positive writer queue capacity required");
+        this.failure = failure;
+        slots = new Semaphore(capacity);
+        worker = Thread.ofPlatform().daemon(true).name(name).unstarted(() -> {
+            try {
+                for (;;) {
+                    if (!available.tryAcquire(100, TimeUnit.MILLISECONDS)) {
+                        check();
+                        continue;
+                    }
+                    check();
+                    var batch = queue.remove();
+                    slots.release();
+                    if (batch == END) break;
+                    persist.accept(batch);
+                }
+                check();
+                flush.run();
+            } catch (Throwable error) {
+                failure.compareAndSet(null, error);
+            } finally {
+                queue.clear();
+            }
+        });
+        worker.start();
+    }
+
+    void submit(List<byte[]> keys) {
+        if (keys.isEmpty()) return;
+        // The producer reuses its list; the encoded byte arrays are never mutated.
+        var batch = List.copyOf(keys);
+        try {
+            for (;;) {
+                check();
+                if (finishing) throw new IllegalStateException("State writer is finishing");
+                if (!slots.tryAcquire(100, TimeUnit.MILLISECONDS)) continue;
+                try {
+                    check();
+                    if (finishing) throw new IllegalStateException("State writer is finishing");
+                    queue.add(batch);
+                    available.release();
+                } catch (RuntimeException | Error error) {
+                    slots.release();
+                    throw error;
+                }
+                check();
+                return;
+            }
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted reconstruction enqueue", error);
+        }
+    }
+
+    void check() {
+        var error = failure.get();
+        if (error != null) throw new IllegalStateException("Reconstruction writer failed", error);
+    }
+
+    /** Called after every producer has joined; native resources outlive this join. */
+    synchronized void finish() {
+        boolean interrupted = false;
+        if (!finishing) {
+            finishing = true;
+            while (failure.get() == null) {
+                try {
+                    if (slots.tryAcquire(100, TimeUnit.MILLISECONDS)) {
+                        queue.add(END);
+                        available.release();
+                        break;
+                    }
+                } catch (InterruptedException error) {
+                    interrupted = true;
+                }
+            }
+        }
+        while (worker.isAlive()) {
+            try {
+                worker.join();
+            } catch (InterruptedException error) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) Thread.currentThread().interrupt();
+        check();
+        if (interrupted) throw new IllegalStateException("Interrupted reconstruction writer join");
+    }
+}

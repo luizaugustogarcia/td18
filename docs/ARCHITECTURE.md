@@ -92,11 +92,23 @@ permits an all-odd remainder to close. If it cannot, the subtree is unresolved.
 Fixed points count as odd-length cycles; an even-length cycle disables this
 rejection. Full-depth final-root searches are unaffected by this test.
 
-Inverse generation batches up to 256 canonicalized keys per callback before
-acquiring the disk-set monitor. The buffer is local to one synchronous
-generation, and its final partial batch is inserted before return. A failed
-generation prevents sealing. All generators join before the wave is sealed;
-the key format, deduplication and disk flush thresholds are unchanged.
+Inverse generation batches up to 4,096 canonicalized keys per callback and
+partitions them by a deterministic hash into independent writer shards.
+Each shard has a lock-free queue and a single owner of its deduplication
+buffer and RocksDB batches. Producers never acquire a shared insertion
+monitor or perform disk writes. Semaphores bound queued batches; producers
+wait only when their destination queue is full. The default uses up to eight
+writers, a 16-million-key aggregate deduplication window and 16,384 queued
+batches, distributed across shards. RocksDB has 256 MiB write buffers and
+four memtables, with up to eight background jobs.
+
+Final partial producer batches are queued before the callback returns.
+An atomic admission counter prevents sealing or closing while a generator
+is active. After every generator joins, sealing stops admissions, drains and
+joins every writer, flushes RocksDB and validates the exact sorted inventory.
+Generation or writer failure prevents sealing and propagates to blocked
+producers. Native resources outlive every writer. The deterministic key
+format and the represented class set are unchanged.
 
 Sealed checkpoints are versioned computation state. The latest-wave count,
 route and budgets are validated on resume. Intrinsic certificates remain

@@ -84,8 +84,15 @@ obligation; the source paper proves the rule. A zero move here preserves the
 odd-length-cycle count, independently of its fixed-symbol gain.
 GPU consumers also perform inverse reconstruction after a miss. Low native
 queue occupancy can therefore indicate CPU generation or disk-set contention.
-Inverse generation batches 256 canonicalized keys per monitor acquisition;
-all partial batches finish before sealing.
+Inverse generation batches 4,096 canonicalized keys into independent writer
+queues; deduplication and disk writes have no global producer lock. Every
+partial batch is queued, and every writer drains and joins before sealing.
+td18.reconstructionWriters defaults to at most eight writers.
+td18.reconstructionBufferKeys defaults to 16,777,216 aggregate keys;
+td18.reconstructionQueueBatches defaults to 16,384 aggregate batches.
+Both capacities are divided across shards with rounding up. On the 128 GiB
+server, use 67,108,864 buffer keys and 65,536 queue batches. Queues remain
+bounded, and full queues apply backpressure when storage cannot keep up.
 
 ## Budgets and persistence
 

@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.rocksdb.*;
@@ -19,17 +21,19 @@ import org.rocksdb.*;
 public final class DiskStateSet implements AutoCloseable {
     private static final byte VERSION = 2;
     private static final byte[] EMPTY = {};
-    private static final int GENERATED_BATCH_KEYS = 256;
+    private static final int GENERATED_BATCH_KEYS = 4096;
+    private static final int ADMISSION_STOPPED = Integer.MIN_VALUE;
     static { RocksDB.loadLibrary(); }
-    private final int bufferKeys = positiveProperty("td18.reconstructionBufferKeys", 1048576);
-    private final Options options = new Options().setCreateIfMissing(true)
-            .setWriteBufferSize(32L << 20).setMaxWriteBufferNumber(2).setMaxBackgroundJobs(2).setMaxOpenFiles(128);
-    private final WriteOptions writes = new WriteOptions().setDisableWAL(true);
+    private final int bufferKeys = positiveProperty("td18.reconstructionBufferKeys", 16777216);
+    private final Options options;
+    private final WriteOptions writes;
     private final RocksDB database;
-    private final HashSet<ByteBuffer> pending = new HashSet<>();
+    private final StateSetWriter[] writers;
+    private final AtomicInteger admissions = new AtomicInteger();
+    private final AtomicReference<Throwable> generationFailure = new AtomicReference<>();
+    private final AtomicReference<Throwable> persistenceFailure = new AtomicReference<>();
     private long size = -1;
-    private boolean closed;
-    private Throwable generationFailure;
+    private volatile boolean closed;
     private final boolean readOnly;
 
     public record State(CyclicTargetPair pair, int maximumMoves) {
@@ -54,6 +58,14 @@ public final class DiskStateSet implements AutoCloseable {
 
     private DiskStateSet(Path directory, boolean readOnly, long expectedCount) {
         this.readOnly = readOnly;
+        int writerCount = readOnly ? 0 : Math.min(bufferKeys, positiveProperty("td18.reconstructionWriters",
+                Math.min(8, Runtime.getRuntime().availableProcessors())));
+        int queueBatches = readOnly ? 0 : positiveProperty("td18.reconstructionQueueBatches", 16384);
+        options = new Options().setCreateIfMissing(true).setWriteBufferSize(256L << 20)
+                .setMaxWriteBufferNumber(4).setMaxBackgroundJobs(Math.max(2, Math.min(8, writerCount)))
+                .setMaxOpenFiles(128);
+        writes = new WriteOptions().setDisableWAL(true);
+        writers = new StateSetWriter[writerCount];
         RocksDB opened = null;
         try {
             if (readOnly) {
@@ -66,10 +78,24 @@ public final class DiskStateSet implements AutoCloseable {
                 opened = RocksDB.open(options, directory.toString());
             }
             database = opened;
+            for (int i = 0; i < writerCount; i++) {
+                var pending = new HashSet<ByteBuffer>();
+                int limit = ceilingDivide(bufferKeys, writerCount);
+                writers[i] = new StateSetWriter(ceilingDivide(queueBatches, writerCount),
+                        "reconstruction-writer-" + i, keys -> {
+                    for (byte[] key : keys) {
+                        pending.add(ByteBuffer.wrap(key));
+                        if (pending.size() >= limit) flushPending(pending);
+                    }
+                }, () -> flushPending(pending), persistenceFailure);
+            }
             if (readOnly && seal() != expectedCount)
                 throw new IllegalStateException("Checkpoint state count disagrees at " + directory
                         + ": expected " + expectedCount + ", found " + size);
         } catch (IOException | RocksDBException | RuntimeException failure) {
+            for (var writer : writers) if (writer != null) {
+                try { writer.finish(); } catch (RuntimeException error) { failure.addSuppressed(error); }
+            }
             if (opened != null) opened.close();
             writes.close(); options.close();
             throw new IllegalStateException("Cannot open reconstruction state set: " + directory, failure);
@@ -77,51 +103,55 @@ public final class DiskStateSet implements AutoCloseable {
     }
 
     public void add(CyclicTargetPair pair, int maximumMoves) {
-        // Orbit minimization is CPU work and must not serialize all producers on the disk lock.
-        var state = new State(pair.canonicalRepresentative(), maximumMoves);
-        byte[] key = encode(state);
-        synchronized (this) {
-            requireWritable();
-            addEncoded(key);
-        }
+        beginGeneration();
+        try {
+            submit(List.of(encode(new State(pair.canonicalRepresentative(), maximumMoves))));
+        } catch (RuntimeException | Error failure) {
+            generationFailure.compareAndSet(null, failure);
+            throw failure;
+        } finally { admissions.decrementAndGet(); }
     }
 
     /**
      * Inserts one synchronous generation with bounded, method-local key batches.
-     * Canonicalization stays outside the disk monitor, and the final partial batch
-     * is inserted before return. The generator must not retain or concurrently use
+     * Canonicalization stays in producers; deterministic writer shards own all
+     * deduplication and disk writes. The final partial batch is queued before
+     * return. The generator must not retain or concurrently use
      * its output callback. Callers must join all generators before sealing.
      * A failed generation makes the incomplete set unsealable.
      */
     public void addGenerated(int maximumMoves, Consumer<Consumer<CyclicTargetPair>> generator) {
         if (maximumMoves < 1 || maximumMoves > 10) throw new IllegalArgumentException("Budget must be 1..10");
         java.util.Objects.requireNonNull(generator);
-        synchronized (this) { requireWritable(); }
+        beginGeneration();
         var batch = new ArrayList<byte[]>(GENERATED_BATCH_KEYS);
         try {
             generator.accept(pair -> {
                 batch.add(encode(new State(pair.canonicalRepresentative(), maximumMoves)));
                 if (batch.size() == GENERATED_BATCH_KEYS) {
-                    addEncodedBatch(batch);
+                    submit(batch);
                     batch.clear();
                 }
             });
-            if (!batch.isEmpty()) addEncodedBatch(batch);
+            if (!batch.isEmpty()) submit(batch);
         } catch (RuntimeException | Error failure) {
-            synchronized (this) { if (generationFailure == null) generationFailure = failure; }
+            generationFailure.compareAndSet(null, failure);
             throw failure;
+        } finally { admissions.decrementAndGet(); }
+    }
+
+    private void submit(List<byte[]> keys) {
+        if (writers.length == 1) { writers[0].submit(keys); return; }
+        var partitions = new ArrayList<List<byte[]>>(writers.length);
+        for (int i = 0; i < writers.length; i++) partitions.add(new ArrayList<>());
+        boolean powerOfTwo = (writers.length & (writers.length - 1)) == 0;
+        for (byte[] key : keys) {
+            int hash = Arrays.hashCode(key);
+            hash ^= hash >>> 16;
+            int shard = powerOfTwo ? hash & (writers.length - 1) : Math.floorMod(hash, writers.length);
+            partitions.get(shard).add(key);
         }
-    }
-
-    private synchronized void addEncodedBatch(List<byte[]> batch) {
-        requireWritable();
-        for (byte[] key : batch) addEncoded(key);
-    }
-
-    /** Called only while holding this set's monitor. */
-    private void addEncoded(byte[] key) {
-        pending.add(ByteBuffer.wrap(key));
-        if (pending.size() >= bufferKeys) flushPending();
+        for (int i = 0; i < writers.length; i++) writers[i].submit(partitions.get(i));
     }
 
     static byte[] encode(State state) {
@@ -131,7 +161,8 @@ public final class DiskStateSet implements AutoCloseable {
                 .put((byte) pair.getBeta().size()).put(raw).array();
     }
 
-    private void flushPending() {
+    private void flushPending(HashSet<ByteBuffer> pending) {
+        if (pending.isEmpty()) return;
         try (var batch = new WriteBatch()) {
             for (var key : pending) batch.put(key.array(), EMPTY);
             database.write(writes, batch);
@@ -143,7 +174,11 @@ public final class DiskStateSet implements AutoCloseable {
         requireOpen();
         requireSuccessfulGeneration();
         if (size >= 0) return size;
-        if (!readOnly) flushPending();
+        if (!readOnly) {
+            stopAdmissions();
+            finishWriters();
+            requireSuccessfulGeneration();
+        }
         long count = 0;
         try (var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads);
              var flush = new FlushOptions().setWaitForFlush(true)) {
@@ -186,6 +221,10 @@ public final class DiskStateSet implements AutoCloseable {
         return value;
     }
 
+    private static int ceilingDivide(int value, int divisor) {
+        return Math.toIntExact(((long) value + divisor - 1) / divisor);
+    }
+
     /** Deterministic bounded batches, including the final partial batch. */
     public void forEachBatch(Consumer<List<State>> consumer) {
         int limit = lookupBatchSize();
@@ -226,15 +265,45 @@ public final class DiskStateSet implements AutoCloseable {
 
     private void requireOpen() { if (closed) throw new IllegalStateException("State set is closed"); }
     private void requireSuccessfulGeneration() {
-        if (generationFailure != null) throw new IllegalStateException("Reconstruction generation failed", generationFailure);
+        if (generationFailure.get() != null)
+            throw new IllegalStateException("Reconstruction generation failed", generationFailure.get());
+        if (persistenceFailure.get() != null)
+            throw new IllegalStateException("Reconstruction writer failed", persistenceFailure.get());
     }
-    private void requireWritable() {
+    private void beginGeneration() {
         requireOpen();
         requireSuccessfulGeneration();
-        if (readOnly || size >= 0) throw new IllegalStateException("State set is sealed");
+        if (readOnly) throw new IllegalStateException("State set is sealed");
+        for (;;) {
+            int active = admissions.get();
+            if (active < 0) throw new IllegalStateException("State set is sealed");
+            if (active == Integer.MAX_VALUE) throw new IllegalStateException("Too many reconstruction producers");
+            if (admissions.compareAndSet(active, active + 1)) return;
+        }
+    }
+    private void stopAdmissions() {
+        if (admissions.get() == ADMISSION_STOPPED) return;
+        if (!admissions.compareAndSet(0, ADMISSION_STOPPED))
+            throw new IllegalStateException("Join all reconstruction producers before sealing or closing");
+    }
+    private void finishWriters() {
+        RuntimeException failure = null;
+        for (var writer : writers) if (writer != null) {
+            try { writer.finish(); }
+            catch (RuntimeException error) {
+                if (failure == null) failure = error; else failure.addSuppressed(error);
+            }
+        }
+        if (failure != null) {
+            generationFailure.compareAndSet(null, failure);
+            throw failure;
+        }
     }
     @Override public synchronized void close() {
         if (closed) return;
-        closed = true; database.close(); writes.close(); options.close();
+        stopAdmissions();
+        closed = true;
+        try { finishWriters(); }
+        finally { database.close(); writes.close(); options.close(); }
     }
 }

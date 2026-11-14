@@ -137,6 +137,28 @@ sample. `td18.inverseBenchmarkCases`, `Workers`, `Rounds` and `Warmup`
 benchmark artifacts. This CPU result and the CUDA result measure different
 parts of the job; their speedup factors must not be multiplied.
 
+## Removing the global producer lock
+
+The historical 256-key batching measurements above correspond to commit
+970dc43. Subsequent live snapshots still found 84 of 112 inverse workers
+blocked on its shared insertion monitor, with an empty native GPU queue.
+
+The current implementation sends 4,096-key producer batches to independent
+writer shards through lock-free queues. Each writer owns its deduplication
+buffer and RocksDB batches; semaphores impose bounded queue backpressure.
+There is no global producer insertion lock. The 128 GiB server uses eight
+writers, a 67,108,864-key aggregate deduplication window and 65,536 queued
+batches. Each RocksDB write buffer is 256 MiB, with four memtables and up to
+eight background jobs. These are capacities, not eager Java heap allocations.
+
+Sealing rejects active generators and drains and joins every writer before
+flushing and validating the persisted inventory. Writer failures propagate
+to producers waiting for queue space and prevent sealing incomplete output.
+Correctness tests cover concurrent duplicate insertion, writer layouts,
+full queues, final partial batches, failed writes, and drain/join boundaries.
+This revision has no throughput benchmark, as requested; no new speedup
+factor is claimed.
+
 ## Reproducing a comparison
 
 Build Java with tools/td18 build and prepare separate native-library

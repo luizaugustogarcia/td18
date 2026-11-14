@@ -16,6 +16,62 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DiskStateSetTest {
+    @Test void sealAndCloseRejectActiveGenerationWithoutOmittingItsOutput(@TempDir Path directory) throws Exception {
+        var entered = new CountDownLatch(1); var release = new CountDownLatch(1);
+        var pair = ActiveErikssonAvoidanceTest.pair(3);
+        try (var states = new DiskStateSet(directory.resolve("states"));
+             var executor = Executors.newSingleThreadExecutor()) {
+            var producer = executor.submit(() -> states.addGenerated(8, output -> {
+                output.accept(pair); entered.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) throw new AssertionError("Producer did not resume");
+                } catch (InterruptedException error) {
+                    Thread.currentThread().interrupt(); throw new IllegalStateException(error);
+                }
+            }));
+            try {
+                assertTrue(entered.await(10, TimeUnit.SECONDS));
+                assertThrows(IllegalStateException.class, states::seal);
+                assertThrows(IllegalStateException.class, states::close);
+            } finally { release.countDown(); }
+            producer.get(10, TimeUnit.SECONDS);
+            assertEquals(1, states.seal());
+            assertEquals(List.of(HexFormat.of().formatHex(DiskStateSet.encode(new DiskStateSet.State(pair, 8)))), keys(states));
+        } finally { release.countDown(); }
+    }
+
+    @Test void differentWriterLayoutsKeepExactlyTheSameKeys(@TempDir Path directory) {
+        var parents = new ArrayList<CyclicTargetPair>();
+        ErikssonInverseReconstruction.preimages(ActiveErikssonAvoidanceTest.pair(5), 1, parents::add);
+        var expected = new java.util.TreeSet<String>();
+        for (int budget = 8; budget <= 10; budget++) for (var pair : parents)
+            expected.add(HexFormat.of().formatHex(DiskStateSet.encode(new DiskStateSet.State(pair, budget))));
+        String oldWriters = System.getProperty("td18.reconstructionWriters");
+        String oldQueue = System.getProperty("td18.reconstructionQueueBatches");
+        String oldBuffer = System.getProperty("td18.reconstructionBufferKeys");
+        try {
+            System.setProperty("td18.reconstructionQueueBatches", "1");
+            System.setProperty("td18.reconstructionBufferKeys", "17");
+            for (int writerCount : new int[]{1, 3, 8}) {
+                System.setProperty("td18.reconstructionWriters", Integer.toString(writerCount));
+                try (var states = new DiskStateSet(directory.resolve("writers-" + writerCount))) {
+                    for (int budget = 8; budget <= 10; budget++) {
+                        int moves = budget;
+                        states.addGenerated(moves, output -> {
+                            for (int repetition = 0; repetition < 3; repetition++) parents.forEach(output);
+                        });
+                    }
+                    assertEquals(expected.size(), states.seal());
+                    assertEquals(List.copyOf(expected), keys(states));
+                }
+            }
+        } finally {
+            restore("td18.reconstructionWriters", oldWriters);
+            restore("td18.reconstructionQueueBatches", oldQueue);
+            restore("td18.reconstructionBufferKeys", oldBuffer);
+        }
+    }
+
     @Test void concurrentGeneratedBatchesMatchPerKeyInsertionAndReopen(@TempDir Path directory) throws Exception {
         var parents = new ArrayList<CyclicTargetPair>();
         ErikssonInverseReconstruction.preimages(ActiveErikssonAvoidanceTest.pair(5), 1, parents::add);
@@ -29,7 +85,7 @@ class DiskStateSetTest {
             try (var baseline = new DiskStateSet(directory.resolve("baseline"));
                  var batched = new DiskStateSet(batchedPath)) {
                 for (int budget = 8; budget <= 10; budget++) {
-                    for (int i = 0; i < 777; i++) baseline.add(parents.get(i % parents.size()), budget);
+                    for (int i = 0; i < 8193; i++) baseline.add(parents.get(i % parents.size()), budget);
                     baseline.add(lastPair, budget);
                 }
                 expected = keys(baseline);
@@ -46,7 +102,7 @@ class DiskStateSetTest {
                                 throw new IllegalStateException(failure);
                             }
                             batched.addGenerated(budget, output -> {
-                                for (int i = 0; i < 777; i++) {
+                                for (int i = 0; i < 8193; i++) {
                                     var pair = parents.get(i % parents.size());
                                     output.accept(i % 2 == 0 ? pair : pair.canonicalRepresentative());
                                 }
@@ -76,7 +132,7 @@ class DiskStateSetTest {
         String oldBuffer = System.getProperty("td18.reconstructionBufferKeys");
         System.setProperty("td18.reconstructionBufferKeys", "1");
         try {
-            for (int emitted : new int[]{7, 300}) {
+            for (int emitted : new int[]{7, 4300}) {
                 try (var states = new DiskStateSet(directory.resolve("failed-" + emitted))) {
                     var failure = new IllegalArgumentException("Inverse generation failed");
                     assertSame(failure, assertThrows(IllegalArgumentException.class, () -> states.addGenerated(8, output -> {

@@ -92,7 +92,7 @@ class InverseBatchingBenchmark {
         long total = 0, partial = 0;
         for (long value : generated) {
             if (value <= 0) throw new IllegalStateException("Missing generated predecessor inventory");
-            total = Math.addExact(total, value); if (value % 256 != 0) partial++;
+            total = Math.addExact(total, value); if (value % 4096 != 0) partial++;
         }
         System.out.printf(Locale.ROOT, "TRIAL mode=%s inputs=%d workers=%d generated=%d sealed=%d partialBatchSources=%d generationSeconds=%.6f totalSeconds=%.6f inverseInputsPerSecond=%.3f totalInputsPerSecond=%.3f generatedPerSecond=%.3f processCpuSeconds=%.3f averageCpuCores=%.2f directory=%s%n",
                 mode, inputs.size(), workers, total, sealed, partial, generation, wall,
@@ -141,7 +141,7 @@ class InverseBatchingBenchmark {
         Path root = Files.createTempDirectory(Path.of(System.getProperty("td18.inverseBenchmarkOutput",
                 System.getProperty("java.io.tmpdir"))), "inverse-batching-");
         System.out.println("FORMAT td18-inverse-batching-benchmark-v1 workers=" + workers + " rounds=" + rounds
-                + " warmup=" + warmup + " batchKeys=256 bufferKeys=" + System.getProperty("td18.reconstructionBufferKeys", "1048576")
+                + " warmup=" + warmup + " batchKeys=4096 bufferKeys=" + System.getProperty("td18.reconstructionBufferKeys", "16777216")
                 + " output=" + root);
         if (warmup > 0) {
             var subset = inputs.subList(0, warmup);
