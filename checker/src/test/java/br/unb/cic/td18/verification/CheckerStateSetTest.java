@@ -69,4 +69,26 @@ class CheckerStateSetTest {
                 if(previous[i]==null) System.clearProperty(properties[i]); else System.setProperty(properties[i], previous[i]);
         }
     }
+
+    @Test void smallInverseInventorySuppliesConcurrentCallbacks(@TempDir Path directory) throws Exception {
+        var entered = new java.util.concurrent.CountDownLatch(2);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        try (var states = new CheckerStateSet(directory.resolve("small"));
+             var executor = java.util.concurrent.Executors.newSingleThreadExecutor()) {
+            var pair = CyclicTargetPair.of(new MulticyclePermutation(Cycle.of(0,1,2)),Cycle.of(0,1,2));
+            for(int budget=1;budget<=10;budget++) states.add(new SearchState(budget,pair));
+            assertEquals(10,states.seal().count());
+            var completed = new java.util.concurrent.atomic.AtomicInteger();
+            var run=executor.submit(() -> states.forEachConcurrently(2,state -> {
+                entered.countDown();
+                try { if(!release.await(10,java.util.concurrent.TimeUnit.SECONDS)) throw new AssertionError("Callbacks stalled"); }
+                catch(InterruptedException e) { Thread.currentThread().interrupt(); throw new IllegalStateException(e); }
+                completed.incrementAndGet();
+            }));
+            try { assertTrue(entered.await(10,java.util.concurrent.TimeUnit.SECONDS),"Small inventories must use concurrent callbacks"); }
+            finally { release.countDown(); }
+            run.get(10,java.util.concurrent.TimeUnit.SECONDS);
+            assertEquals(10,completed.get());
+        } finally { release.countDown(); }
+    }
 }

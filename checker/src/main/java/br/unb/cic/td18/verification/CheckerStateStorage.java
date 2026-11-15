@@ -364,6 +364,13 @@ public final class CheckerStateStorage implements AutoCloseable {
         if (workers < 1) throw new IllegalArgumentException("Positive scan worker count required");
         int batchKeys = Math.min(lookupBatchSize(), positiveProperty("td18.reconstructionScanBatchKeys", 4096));
         int parallelism = Math.min(workers, Runtime.getRuntime().availableProcessors());
+        // Small inverse inventories can have expensive callbacks. Supply many
+        // independent batches per worker instead of leaving a handful of long
+        // inverse tasks running after the rest of the pool has drained.
+        if (expected > 0) {
+            long targetTasks = 32L * parallelism;
+            batchKeys = (int) Math.min(batchKeys, Math.max(1, (expected + targetTasks - 1) / targetTasks));
+        }
         long scanned = 0;
         var completed = new LongAdder();
         try (var progress = new CheckerStateProgress("State inventory " + stagingDirectory.getParent().getFileName() + " " + phase,
