@@ -62,24 +62,24 @@ public final class CertificateStore implements AutoCloseable {
     }
     public Optional<List<Cycle>> find(final CyclicTargetPair pair, final int maximumMoves) {
         if (maximumMoves < 0) throw new IllegalArgumentException("Negative move budget");
-        final var canonical = pair.canonicalRepresentative();
-        final byte[] value = get(handles.get(0), CertificateCodec.keyFor(canonical));
+        final byte[] key = CertificateCodec.canonicalKeyFor(pair);
+        final byte[] value = get(handles.get(0), key);
         if (value == null) return Optional.empty();
         final var result = CertificateCodec.decodeResult(value);
         // Replay stored data even when the derived bound exceeds the requested budget.
-        CertificateValidator.validate(canonical, result, obligationBudget(canonical.getBeta().size()));
-        return CertificateValidator.requiredBudget(canonical, result) <= maximumMoves ? Optional.of(result.moves()) : Optional.empty();
+        final var canonical = pairForReplay(pair, key);
+        final int required = CertificateValidator.validatedRequiredBudget(
+                canonical, result, obligationBudget(canonical.getBeta().size()));
+        return required <= maximumMoves ? Optional.of(result.moves()) : Optional.empty();
     }
     /** Position-preserving RocksDB multiGet followed by parallel independent replay of every hit. */
     public boolean[] findAll(final List<CyclicTargetPair> pairs, final int maximumMoves) {
         if (maximumMoves < 0) throw new IllegalArgumentException("Negative move budget");
         if (pairs.isEmpty()) return new boolean[0];
-        final var canonical = new CyclicTargetPair[pairs.size()];
         final var keys = new byte[pairs.size()][];
         parallelRanges(pairs.size(), (first, last) -> {
             for (int i = first; i < last; i++) {
-                canonical[i] = pairs.get(i).canonicalRepresentative();
-                keys[i] = CertificateCodec.keyFor(canonical[i]);
+                keys[i] = CertificateCodec.canonicalKeyFor(pairs.get(i));
             }
         });
         final var encoded = new byte[pairs.size()][];
@@ -102,9 +102,10 @@ public final class CertificateStore implements AutoCloseable {
                 final byte[] value = encoded[i];
                 if (value == null) continue;
                 final var result = CertificateCodec.decodeResult(value);
-                final var pair = canonical[i];
-                CertificateValidator.validate(pair, result, obligationBudget(pair.getBeta().size()));
-                present[i] = CertificateValidator.requiredBudget(pair, result) <= maximumMoves;
+                final var pair = pairForReplay(pairs.get(i), keys[i]);
+                final int required = CertificateValidator.validatedRequiredBudget(
+                        pair, result, obligationBudget(pair.getBeta().size()));
+                present[i] = required <= maximumMoves;
             }
         });
         return present;
@@ -119,7 +120,7 @@ public final class CertificateStore implements AutoCloseable {
                 "Missing sorting certificate: classKey=" + pair.extendedToricClassKey() + ", maximumMoves=" + maximumMoves));
     }
     public boolean hasObstruction(final CyclicTargetPair pair) {
-        final byte[] value = get(handles.get(1), CertificateCodec.keyFor(pair.canonicalRepresentative()));
+        final byte[] value = get(handles.get(1), CertificateCodec.canonicalKeyFor(pair));
         if (value != null && value.length != 0) throw new IllegalStateException("An obstruction must have an empty value");
         return value != null;
     }
@@ -135,6 +136,12 @@ public final class CertificateStore implements AutoCloseable {
     private byte[] get(final ColumnFamilyHandle family, final byte[] key) {
         try { return database.get(family, reads, key); }
         catch (final RocksDBException failure) { throw new IllegalStateException("Cannot read certificate", failure); }
+    }
+    private static CyclicTargetPair pairForReplay(final CyclicTargetPair pair, final byte[] canonicalKey) {
+        // A normalized persisted pair may already equal its computed orbit minimum.
+        // Compare its actual images before reusing it; untrusted keys never confer this fact.
+        return CertificateCodec.matchesNormalizedPair(canonicalKey, pair)
+                ? pair : pair.canonicalRepresentative();
     }
     private static int obligationBudget(final int domain) {
         if (domain<1 || domain>br.unb.cic.td18.joint.KnownDiameters.ROOT_SYMBOLS)

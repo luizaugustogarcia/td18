@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 /** Bounded disk deduplication of a regenerated wave of valid-pair classes. */
 public final class CheckerStateStorage implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(CheckerStateStorage.class);
-    private static final byte VERSION = 2;
+    static final byte VERSION = 2;
     private static final byte[] EMPTY = {};
     private final int generatedBatchKeys = positiveProperty("td18.reconstructionGeneratedBatchKeys", 65536);
     private static final int ADMISSION_STOPPED = Integer.MIN_VALUE;
@@ -149,7 +149,7 @@ public final class CheckerStateStorage implements AutoCloseable {
     public void add(CyclicTargetPair pair, int maximumMoves) {
         beginGeneration();
         try {
-            submit(List.of(encode(new State(pair.canonicalRepresentative(), maximumMoves))));
+            submit(List.of(DirectStateKey.encode(pair, maximumMoves)));
         } catch (RuntimeException | Error failure) {
             generationFailure.compareAndSet(null, failure);
             throw failure;
@@ -173,7 +173,7 @@ public final class CheckerStateStorage implements AutoCloseable {
             var batch = producerBatches.computeIfAbsent(Thread.currentThread().threadId(),
                     ignored -> new ArrayList<>(generatedBatchKeys));
             generator.accept(pair -> {
-                batch.add(encode(new State(pair.canonicalRepresentative(), maximumMoves)));
+                batch.add(DirectStateKey.encode(pair, maximumMoves));
                 if (batch.size() == generatedBatchKeys) {
                     submit(batch);
                     batch.clear();
@@ -210,10 +210,7 @@ public final class CheckerStateStorage implements AutoCloseable {
     }
 
     static byte[] encode(State state) {
-        var pair = state.pair().canonicalRepresentative();
-        byte[] raw = CertificateCodec.keyFor(pair);
-        return ByteBuffer.allocate(raw.length + 3).put(VERSION).put((byte) state.maximumMoves())
-                .put((byte) pair.getBeta().size()).put(raw).array();
+        return DirectStateKey.encode(state.pair(), state.maximumMoves());
     }
 
     private void flushPending(HashSet<ByteBuffer> pending) {

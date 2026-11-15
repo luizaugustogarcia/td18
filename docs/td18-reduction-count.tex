@@ -513,6 +513,26 @@ root obligation, every endpoint class and every inverse wave, and replays
 witnesses from the certificate database. Emitter checkpoints are performance
 state, not proof inputs. Checkpoint versions identify the exact route and state layout; checksums and sidecar manifests are not proof inputs.
 
+Canonical key construction need not decode a canonical pair first. In the
+canonical fixed-content word, let $p_1<\cdots<p_k$ be the occurrences of an
+unoriented color. Its algebraic images are $p_i\mapsto p_{i-1}$, with indices
+read cyclically. For an oriented color, the occurrence of rank $r$ maps to the
+occurrence of rank $r+1$, also cyclically. These are exactly the decoding rules,
+so packing those images directly gives the same five-bit key. Singleton colors
+retain fixed points for certificate lookup; reconstruction-state admission
+requires them to have been contracted. Auxiliary standardization and the twisted
+dihedral action are unchanged. A persisted normalized input is reused for replay
+only if its actual images equal the computed canonical key; no stored key alone
+confers canonicality. Every certificate hit is replayed, and its derived budget
+is checked against both the project maximum and the requested budget. Reusing
+that derived budget avoids a duplicate replay without weakening either check.
+
+The independent inverse implementation may reuse a known target in a fixed
+restored domain: $(\omega\tau^{-1})(\tau\beta)=\omega\beta$, and swapping
+endpoints has target $\omega^{-1}\rho=\beta$. Owned objects have fresh arrays;
+every accepted parent still passes its actual forward gain and pair replay.
+This changes construction cost without removing any support or gap.
+
 If all active direct roots and final reconstructed roots have checked
 budget-10 results and every endpoint is discharged or has complete inverse
 coverage, the exhaustive case partition gives $\TD(18)\leq 10$.

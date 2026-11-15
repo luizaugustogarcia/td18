@@ -30,6 +30,15 @@ inverse gains zero through three on both endpoints, and Burnside counts with
 direct generation. The checker builds independently of the emitter artifact.
 CUDA-dependent tests require the configured RTX 5090 environment.
 
+Checker key regressions compare direct canonical packing with the independent
+decode-and-pack path on every normalized-current valid pair through seven symbols, arbitrary
+current cycles and domains through the full 32-symbol wire limit. They cover
+implicit and explicit fixed points, prefix and padding preservation, thread-local
+scratch isolation, and comparison with actual normalized pairs. Certificate-store
+regressions require canonical-frame replay for rotated current cycles and reject
+malformed or over-maximum witnesses even when the requested budget is larger.
+The independent inverse oracles continue to check all gains on both endpoints.
+
 The optional native memory-preflight regression uses the 32-slot, 896 MiB
 queue profile. It rejects queue-only and one-byte-short memory reports before
 allocation, checks exact allocations and tiny-queue minimums, and rejects

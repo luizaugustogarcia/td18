@@ -39,6 +39,27 @@ the canonical representative and persisted keys; it changes no obligation,
 inverse support, forward replay or certificate check. An independent full-word
 orbit reference checks the primitive comparison in the checker test suite.
 
+Checker auxiliary standardization uses primitive cycle identifiers, labels and
+rank arrays, including singleton colors for implicit fixed points. Canonical
+certificate keys are packed directly from the canonical word: an unoriented
+cycle sends each occurrence to the preceding occurrence, and an oriented cycle
+sends each rank to the next cyclic rank. This produces the same five-bit
+algebraic images without decoding a canonical permutation and encoding it again.
+Already established canonical representatives from direct generation retain a
+cheap normalized-image path. Reconstruction state encoding uses the same writer
+with its explicit fixed-point-free precondition; fixed points must be contracted
+before admission. Certificate keys still support fixed points. All wire formats,
+domains and explicit move budgets are unchanged.
+
+Root, endpoint and inverse certificate lookups construct these keys before
+reading the database. A miss needs no materialized canonical pair. For a hit,
+the checker reuses a normalized input only after comparing its actual images
+with the computed canonical key; otherwise it constructs the canonical pair for
+replay. Persisted keys do not establish canonicality by themselves. Every hit
+still replays the complete witness, checks the project maximum and compares the
+derived budget with the requested budget. That replay-derived budget is reused
+instead of replaying the same witness twice.
+
 Endpoint classes use the existing fixed-content twisted-bracelet generator and
 Burnside counter. Both modules independently regenerate the complete annotated
 cover. Elementary diameter bounds close whole families; every other class
@@ -57,6 +78,13 @@ both endpoints, restoring all deleted fixed symbols in all gaps. The emitter
 uses image arrays and simultaneous gap choices. The checker uses permutation
 multiplication and sequential insertion. Small-domain tests compare complete
 predecessor class sets for every gain on both cycles.
+The checker retains its independent sequential insertion and arbitrary supports.
+Within a fixed restored domain, inverse moves preserve the target because
+`(omega * tau^-1) * (tau * beta) = omega * beta`; swapping endpoints has target
+`omega^-1 * rho = beta`. Fresh owned permutation objects can therefore reuse
+that known target. Explicit fixed points are rejected before constructing a
+parent's current cycle, and every accepted parent still passes actual forward
+gain and pair replay. All gaps, gains and both endpoints remain covered.
 
 `ErikssonAvoidance` performs three disk-backed waves: reverse gain two, reverse
 both gains two/three, then reverse gains one/zero. Lookups and searches use each

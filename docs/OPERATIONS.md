@@ -14,6 +14,15 @@ sets. Certificate databases remain read-only. Scratch sizing uses
 `td18.reconstructionScanBatchKeys`, with the same bounded batching approach as
 the emitter. A changed checker must restart with fresh work.
 
+The checker packs canonical keys directly for certificate lookups and for
+residual and inverse-state writes. This applies to roots, endpoints, all three
+inverse waves and final-root lookups. Certificate hits retain full witness replay;
+one replay-derived budget supplies both the project-maximum check and the
+requested-budget comparison. Normalized inputs are reused for replay only after
+an exact comparison with the computed canonical key. The version-2 key bytes and
+certificate schema are unchanged. These changes reduce CPU work; counting,
+generation coverage, disk I/O and compaction obligations remain as specified.
+
 The default commands use the active route in
 [the source paper](td18-reduction-count.tex).
 

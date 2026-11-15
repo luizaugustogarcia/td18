@@ -19,7 +19,13 @@ public final class ErikssonInverseReconstruction {
         insert(swap(child),child.getBeta().size(),gain,new int[gain],0,parent -> output.accept(swap(parent)));
     }
     private static CyclicTargetPair swap(CyclicTargetPair pair) {
-        return CyclicTargetPair.of(pair.getOmega().getInverse(),pair.getRho());
+        var inverse = new MulticyclePermutation();
+        for (var cycle : pair.getOmega())
+            inverse.add(Cycle.of(cycle.getInverse().getSymbols().clone()));
+        // omega^-1 * rho = beta; all owned arrays are fresh.
+        return CyclicTargetPair.ofKnownTargetOwned(inverse,
+                Cycle.of(pair.getRho().getSymbols().clone()),
+                Cycle.of(pair.getBeta().getSymbols().clone()));
     }
     private static void insert(CyclicTargetPair state,int original,int gain,int[] added,int depth,Consumer<CyclicTargetPair> output) {
         if (depth==gain) {
@@ -43,8 +49,13 @@ public final class ErikssonInverseReconstruction {
     private static void consider(CyclicTargetPair child,int a,int b,int c,int gain,Consumer<CyclicTargetPair> output) {
         Cycle inverse=ordered(child.getBeta(),a,b,c);
         var omega=PermutationGroups.computeProduct(child.getOmega(),inverse.getInverse());
+        // computeProduct includes every fixed point; reject before materializing beta.
+        for (var cycle : omega) if (cycle.size() == 1) return;
         Cycle beta=CommonOperations.applyTranspositionOptimized(child.getBeta(),inverse);
-        CyclicTargetPair parent=CyclicTargetPair.of(omega,beta);
+        // An inverse transposition preserves omega * beta = rho.
+        // Retain the exact forward gain and pair replay below.
+        CyclicTargetPair parent=CyclicTargetPair.ofKnownTargetOwned(omega,beta,
+                Cycle.of(child.getRho().getSymbols().clone()));
         int[] images=CyclicTargetMoves.images(parent);
         if (CyclicTargetMoves.fixed(images)!=0) return;
         Cycle forward=ordered(beta,a,b,c);
