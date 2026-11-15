@@ -52,6 +52,40 @@ class AsyncCertificateWriterTest {
             assertTrue(writer.find(pair(),2).isEmpty()); assertEquals(moves,writer.find(pair(),3).orElseThrow());
         }
     }
+    @Test void weakerRootClosureCannotReplaceAfterOneDischarge(@TempDir Path directory) {
+        var predecessor = CertificateCodec.pairForKey(
+                java.util.HexFormat.of().parseHex("52c01118f08b1ae90c8543d2"),19);
+        var strong = br.unb.cic.td18.search.CpuPrefixSearch.search(predecessor,9,5,1000000)
+                .orElseThrow().moves();
+        var weak = List.of(Cycle.of(0,10,13));
+        assertEquals(9,CertificateValidator.requiredBudget(predecessor,SortingCertificate.closure(strong)));
+        assertEquals(10,CertificateValidator.requiredBudget(predecessor,SortingCertificate.closure(weak)));
+        try (var writer = new AsyncCertificateWriter(directory,60)) {
+            writer.enqueueClosure(predecessor,strong,9); writer.flush();
+            writer.enqueueClosure(predecessor,weak,10); writer.flush();
+            assertEquals(strong,writer.find(predecessor,9).orElseThrow(),
+                    "A skipped inverse wave must retain its budget-9 discharge");
+        }
+        try (var writer = new AsyncCertificateWriter(directory,60)) {
+            assertEquals(strong,writer.find(predecessor,9).orElseThrow());
+        }
+    }
+    @Test void duplicateCertificatesKeepTheStrongestBudgetWithAndWithoutMarkers(@TempDir Path directory) {
+        var strong = List.of(Cycle.of(0,1,2));
+        var weak = List.of(Cycle.of(0,1,2),Cycle.of(1,0,2),Cycle.of(0,1,2));
+        for (boolean marker : List.of(false,true)) {
+            try (var writer = new AsyncCertificateWriter(directory.resolve("proof-"+marker),60)) {
+                writer.enqueue(pair(),weak); writer.flush();
+                if (marker) { writer.enqueueObstruction(pair(),1); writer.flush(); }
+                writer.enqueue(pair(),strong); writer.enqueue(pair(),weak); writer.flush();
+                assertEquals(strong,writer.find(pair(),1).orElseThrow());
+                writer.enqueue(pair(),weak); writer.flush();
+                assertEquals(strong,writer.find(pair(),1).orElseThrow());
+                var markers = new ArrayList<byte[]>(); writer.forEachObstruction(markers::add);
+                assertTrue(markers.isEmpty());
+            }
+        }
+    }
     @Test void multiGetPreservesMissingDuplicateAndOverBudgetPositions(@TempDir Path directory) {
         var closure = CyclicTargetPair.of(new MulticyclePermutation("(0 1 2)(3 4 5)"),Cycle.of(0,1,2,3,4,5));
         var missing = CyclicTargetPair.of(new MulticyclePermutation(Cycle.of(0,1,2,3,4)),Cycle.of(0,1,2,3,4));

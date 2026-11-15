@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
@@ -116,7 +117,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     public void enqueue(CyclicTargetPair pair, List<Cycle> moves) {
         CertificateValidator.validate(pair, moves, obligationBudget(pair.getBeta().size()));
-        offer(new Entry(CertificateCodec.keyFor(pair), CertificateCodec.resultFor(SortingCertificate.complete(moves)), pair.getBeta().size(), 0));
+        offer(new Entry(CertificateCodec.keyFor(pair), CertificateCodec.resultFor(SortingCertificate.complete(moves)), pair.getBeta().size(), moves.size()));
     }
 
     public void enqueueObstruction(CyclicTargetPair pair, int maximumMoves) {
@@ -133,9 +134,10 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     public void enqueueClosure(CyclicTargetPair pair, List<Cycle> moves, int maximumMoves) {
         var result = SortingCertificate.closure(moves);
-        CertificateValidator.validate(pair, result,
-                Math.min(maximumMoves, obligationBudget(pair.getBeta().size())));
-        offer(new Entry(CertificateCodec.keyFor(pair), CertificateCodec.resultFor(result), pair.getBeta().size(), 0));
+        int required = CertificateValidator.requiredBudget(pair, result);
+        if (required > Math.min(maximumMoves, obligationBudget(pair.getBeta().size())))
+            throw new IllegalArgumentException("Sorting result does not close the requested move budget");
+        offer(new Entry(CertificateCodec.keyFor(pair), CertificateCodec.resultFor(result), pair.getBeta().size(), required));
     }
 
     public Optional<List<Cycle>> find(CyclicTargetPair pair, int maximumMoves) {
@@ -295,19 +297,40 @@ public final class AsyncCertificateWriter implements AutoCloseable {
 
     private void persistShard(List<Entry> entries) throws RocksDBException {
         // Equal keys have one owner for this batch, and earlier batches have
-        // joined. Marker reads cannot race with writes to those same keys.
-        var certificates = entries.stream().filter(entry -> entry.value != null).toList();
+        // joined. Reads cannot race with writes to those same keys. Keep the
+        // strongest discharge: inverse coverage may already depend on it.
+        var best = new LinkedHashMap<ByteBuffer,Entry>();
+        for (Entry entry : entries) if (entry.value != null) {
+            var key = ByteBuffer.wrap(entry.key);
+            var previous = best.get(key);
+            if (previous == null || entry.budget <= previous.budget) best.put(key,entry);
+        }
+        var certificates = new ArrayList<>(best.values());
         if (!certificates.isEmpty()) {
             var keys = certificates.stream().map(Entry::key).toList();
-            var markers = database.multiGetAsList(Collections.nCopies(keys.size(), obstructions), keys);
-            if (markers.size() != keys.size()) throw new IllegalStateException("Incomplete obstruction lookup");
+            var lookupKeys = new ArrayList<>(keys); lookupKeys.addAll(keys);
+            var families = new ArrayList<>(Collections.nCopies(keys.size(), witnesses));
+            families.addAll(Collections.nCopies(keys.size(), obstructions));
+            var stored = database.multiGetAsList(families, lookupKeys);
+            if (stored.size() != lookupKeys.size()) throw new IllegalStateException("Incomplete certificate persistence lookup");
             var certifiedKeys = new HashSet<ByteBuffer>();
             var tables = new ArrayList<Entry>();
             var atomic = new ArrayList<Entry>();
             for (int i = 0; i < certificates.size(); i++) {
                 Entry entry = certificates.get(i);
                 certifiedKeys.add(ByteBuffer.wrap(entry.key));
-                if (markers.get(i) == null) tables.add(entry); else atomic.add(entry);
+                byte[] previous = stored.get(i), marker = stored.get(i+keys.size());
+                if (previous != null) {
+                    var pair = CertificateCodec.pairForKey(entry.key,entry.domain);
+                    int required = CertificateValidator.requiredBudget(pair,CertificateCodec.decodeResult(previous));
+                    if (required > obligationBudget(entry.domain))
+                        throw new IllegalArgumentException("Stored sorting result exceeds the maximum move budget");
+                    if (required <= entry.budget) {
+                        if (marker == null) continue;
+                        entry = new Entry(entry.key,previous,entry.domain,required);
+                    }
+                }
+                if (marker == null) tables.add(entry); else atomic.add(entry);
             }
             for (Entry entry : entries)
                 if (entry.value == null && !certifiedKeys.contains(ByteBuffer.wrap(entry.key))) atomic.add(entry);
@@ -358,7 +381,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
                     int last = i;
                     while (last + 1 < entries.size()
                             && Arrays.equals(entries.get(i).key, entries.get(last + 1).key)) last++;
-                    // Stable sorting retains queue order for duplicate keys.
+                    // Shard selection already retains the strongest queued certificate.
                     Entry entry = entries.get(last);
                     table.put(entry.key, entry.value);
                     i = last + 1;
