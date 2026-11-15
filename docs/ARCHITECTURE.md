@@ -26,6 +26,19 @@ selection does not call the emitter's endpoint-swapping or consecutive-triple
 helpers. Both implementations are compared with independent small-domain
 permutation oracles before large runs.
 
+The checker's orbit minimum compares fixed-alphabet images in primitive arrays.
+Cycle size and orientation determine each alphabet block; colors within an
+equal annotated type are numbered by their first occurrence in the image.
+Oriented ranks are measured from that first occurrence, with both positions
+and ranks inverted for twisted reflection. These are the same auxiliary
+standardization and spatial action described in [the conventions](KNOWLEDGE.md).
+A first larger differing symbol rejects an image immediately. Strict replacement
+preserves the previous rotation/reflection order on ties. Only the winning
+image becomes a constructed, fully validated encoding word. This preserves
+the canonical representative and persisted keys; it changes no obligation,
+inverse support, forward replay or certificate check. An independent full-word
+orbit reference checks the primitive comparison in the checker test suite.
+
 Endpoint classes use the existing fixed-content twisted-bracelet generator and
 Burnside counter. Both modules independently regenerate the complete annotated
 cover. Elementary diameter bounds close whole families; every other class
