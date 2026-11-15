@@ -103,6 +103,7 @@ PY
             -R-Dtd18.cpuPrefixMaxTriples=8192 -R-Dtd18.reconstructionCpuPrefixMillis=10
             -R-Dtd18.reconstructionGpuMillis=0 -R-Dtd18.cpuStatsPeriodSeconds=10
             -R-Dtd18.certificateQueueCapacity=1048576 -R-Dtd18.certificateFlushSeconds=5
+            "-R-Dtd18.certificateWriters=${TD18_CERTIFICATE_WRITERS:-32}"
             "-R-Dtd18.certificateLookupBatchSize=${TD18_LOOKUP_BATCH_KEYS:-65536}"
             "-R-Dtd18.rootPrefetchWorkers=$callers" -R-Dtd18.rootPrefetchPreparationWorkers=16
             -R-Dtd18.rootPrefetchPreparedQueueBatches=128 -R-Dtd18.rootPrefetchQueueBatches=256
