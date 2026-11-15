@@ -182,8 +182,7 @@ namespace {
 
     // ─── Device helper functions ─────────────────────────────────────────────────
 
-    // Same PTX mapping as libcu++'s device-scoped relaxed atomic loads. Use
-    // explicit instructions because CUDA 11.3 (P100) lacks cuda::atomic_ref.
+    // Explicit PTX mapping for device-scoped relaxed atomic loads.
     // These polls need no acquire: queue locks protect nodes and stream
     // completion publishes the result payload to the host. Unlike atomicAdd
     // with zero, a load does not serialize a write on every polling warp.
@@ -256,8 +255,8 @@ namespace {
     // The preceding inverse edge leads to its already visited parent; omitting
     // that edge cannot add a new reachable state. Compare every key bit: hash
     // collisions or a full bounded probe always fall back to exploration.
-    // Volatile fields and the fenced lock publication keep entries coherent
-    // on Pascal as well as newer CUDA devices. Entries reset between searches.
+    // Volatile fields and fenced lock publication keep entries coherent.
+    // Entries reset between searches.
     __device__ bool memo_dominated(const DeviceSearchContext &ctx, const BacktrackingNode &node) {
         unsigned long long low = 0;
         unsigned long long high = 0;

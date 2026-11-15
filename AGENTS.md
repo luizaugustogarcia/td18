@@ -81,8 +81,9 @@
 
 ## Engineering
 
-- On 200.20.15.153, use 16 GPU slots per device and 896 MiB of queue memory
-  per slot. The total queue allocation remains 14 GiB per P100.
+- Keep runtime profiles and run artifacts specific to the RTX 5090 / AMD EPYC
+  7742 setup. Use 32 GPU slots and 896 MiB of queue memory per slot, for a
+  total queue allocation of 28 GiB. See docs/RTX5090.md.
 - Always load ~/.bashrc for every shell command, locally and on servers,
   including inspection, profiling, builds and launches. Use bash -ic locally
   and for the remote command passed to SSH so the configured toolchain is

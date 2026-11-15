@@ -6,7 +6,8 @@ first moves are included. The original target need not be held fixed throughout
 this triangle-inequality argument. The proof specification is
 [the source paper](docs/td18-reduction-count.tex).
 
-The emitter count is complete: **2 direct root classes**, after support clearing. Independent checker regeneration matches every partition.
+The source inventory records **2 direct root classes** after support clearing.
+Regenerate and independently audit all counts for the current run.
 
 The endpoint cover contains all 74 even fixed-point-free annotated types on 14 symbols, with budget 7.
 The smaller established diameters, including the separately certified TD(16) = 9, remain premises.
@@ -36,6 +37,9 @@ tools/td18 audit-endpoints
 tools/td18 emit --phase=all
 tools/td18 verify --phase=all
 ```
+
+The simulation profile is [RTX 5090 / AMD EPYC 7742](docs/RTX5090.md), with
+dedicated emitter and checker launchers. Run data use `/workspace/td18`.
 
 Java entry points run through JShell, using all JVM-visible CPUs by default.
 Build CUDA with `tools/td18 build-gpu` before a GPU sorting run. CPU counts,

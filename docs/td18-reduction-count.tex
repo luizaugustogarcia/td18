@@ -106,12 +106,13 @@ An endpoint with an oriented $3$-cycle clears that cycle in one move by
 $1+\TD(10)\leq 7$. A whole endpoint domain already satisfying
 $\TD(13)\leq 7$ is elementary in its entirety.
 
-The complete emitter and checker Burnside censuses agree on all 74
-annotations: 76,048,061 classes in total, of which 61,798,462 lie outside
-these elementary closures. These are obligation counts, not sorting failures.
+The source inventory records all 74 annotations: 76,048,061 classes in total,
+of which 61,798,462 lie outside these elementary closures. Both modules must
+independently regenerate these values for the current run. These are obligation
+counts, not sorting failures.
 
 % BEGIN ERIKSSON_ENDPOINT_TABLE_V1
-% Route: td18-eriksson-three-v1; checked emitter and checker endpoint-inventory-v1 reports.
+% Route: td18-eriksson-three-v1; endpoint-inventory-v1 values to regenerate for the current run.
 \subsection{Complete endpoint inventory}
 In Table~\ref{tab:endpoints}, $k_{\mathrm U}$ and $k_{\mathrm O}$ denote
 unoriented and oriented algebraic cycles of length $k$. Let $m$ be the
@@ -125,7 +126,7 @@ type is included, even when its realizable class count is zero.
 specified above, before individual certificate lookup. Each needs a result
 within $b$ moves or complete inverse coverage. The totals are class obligations,
 not observed sorting failures, and exclude additional inverse reconstruction.
-All rows agree between the emitter and independent checker census reports.
+Every row must agree with both emitter and independent checker census reports.
 
 \begingroup\small\setlength{\tabcolsep}{3pt}
 \providecommand{\censusendpointrow}[9]{#1 & $(#2)$ & #3 & #4 & #5 & #6 & #7 & \ensuremath{#8} & \ensuremath{#9}\\}
@@ -225,7 +226,7 @@ and the support-cleared subset respectively. Direct obligations total
 $U_3+O_3-C_3$. Every partition appears once; pending entries cannot be used by
 emission or proof verification.
 
-The completed emitter census retains 0 totally unoriented and 3 oriented classes before support clearing; 1 is support-cleared, leaving 2 direct obligations. Independent full-domain regeneration agrees in all 53 partitions. Sorting verification is a separate requirement.
+The source inventory retains 0 totally unoriented and 3 oriented classes before support clearing; 1 is support-cleared, leaving 2 direct obligations. Independent full-domain regeneration must check all 53 partitions for the current run. Sorting verification is a separate requirement.
 \begin{longtable}{@{}rlrrrr@{}}
 \caption{Active Eriksson-plus-third-move root inventory.}\\
 \toprule No. & Partition & $U_3$ & $O_3$ & $C_3$ & Direct\\\midrule\endfirsthead
@@ -520,15 +521,16 @@ $\TD(18)=10$. The completion criteria require an independent full-domain
 count and full end-to-end verification; partial counts and software tests are
 not the conditional conclusion.
 
-\section{Current checked scope}
-Both modules independently agree on all 53 active root rows. CPU searches have
-provided diameter-closure certificates for the two direct classes: a five-move
-prefix in $(11,4,4)$ and a four-move prefix in $(7,6,6)$, each with required
-total budget ten. The independent checker regenerated each of those partitions
-and replayed its certificate. This discharges the direct root phase; the
-61,798,462 non-elementary endpoint classes and their complete final inverse
-coverage remain pending. No $\TD(18)$ proof is claimed. Commands and artifact
-locations are recorded in \nolinkurl{docs/VALIDATION.md}.
+\section{Current verification obligations}
+The runtime profile is an RTX 5090 with an AMD EPYC 7742 CPU. The source
+inventory records two direct classes, in $(11,4,4)$ and $(7,6,6)$, and
+61,798,462 non-elementary endpoint classes. The current run must independently
+regenerate all inventories, persist and replay budget-ten results for both
+direct classes, and discharge every endpoint or complete its final inverse
+coverage. Inventory tables alone do not discharge sorting obligations. No
+completed simulation or $\TD(18)$ proof is claimed. Commands and artifact
+locations are specified in \nolinkurl{docs/VALIDATION.md} and
+\nolinkurl{docs/RTX5090.md}.
 
 \begin{thebibliography}{9}
 \bibitem{framework}

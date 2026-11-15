@@ -20,7 +20,9 @@ through three against arbitrary full-cycle support enumeration.
 
 ## 2. Independent active census
 
-Regenerate all 53 root partitions in both modules. The emitter count is complete: **2 direct root classes**, after support clearing. Independent checker regeneration matches every partition.
+Regenerate all 53 root partitions in both modules. The source inventory records
+**2 direct root classes** after support clearing; both modules must regenerate
+and check every row for the current run.
 All 74 annotated endpoint types must be regenerated structurally; each
 non-elementary generated class count is independently checked against Burnside.
 The endpoint cover contains all 74 even fixed-point-free annotated types on 14 symbols, with budget 7.
@@ -70,11 +72,12 @@ Only when all five criteria have checked artifacts may TD(18) = 10
 be reported as established by this program. CUDA tests require a configured
 CUDA environment; a proof needing only CPU certificates does not require GPU use.
 
-## Checked migration scope on 2026-11-13
+## RTX 5090 / AMD EPYC 7742 verification status
 
-The required CPU test suites and new forward/inverse/persistence regressions
-passed. All 53 active root rows agree independently; all 74 endpoint census
-rows agree. Both direct root classes have CPU certificates independently
-replayed in their full partitions. The direct-root phase is discharged.
-The 61,798,462 non-elementary endpoint obligations, complete inverse coverage,
-and full unfiltered proof run remain pending. See [validation](VALIDATION.md).
+The source inventory retains all 53 root partitions and all 74 endpoint types,
+including 2 direct root classes and 61,798,462 non-elementary endpoint
+obligations. These inventory values do not certify the current run. Regenerate
+the count reports, persist and replay direct-root witnesses, discharge endpoints
+or reconstruct every residual, and complete the unfiltered independent checker.
+No completed simulation or TD(18) proof is claimed here. See
+[validation](VALIDATION.md) for commands and run storage.

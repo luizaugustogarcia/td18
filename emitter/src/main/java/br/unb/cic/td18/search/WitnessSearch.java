@@ -44,8 +44,8 @@ public final class WitnessSearch {
 
     private static GPUSortingSearch gpu() {
         final var devices = GpuDeviceLayout.parseDevices(System.getProperty("td18.gpuDevices", "0"));
-        final int slots = Integer.parseInt(System.getProperty("td18.gpuSlots", "7"));
-        final long budget = Long.parseLong(System.getProperty("td18.gpuBudgetMB", "1024"));
+        final int slots = Integer.parseInt(System.getProperty("td18.gpuSlots", "32"));
+        final long budget = Long.parseLong(System.getProperty("td18.gpuBudgetMB", "896"));
         GPUSortingSearch.init(devices, slots, Math.multiplyExact(budget, 1024L * 1024L));
         gpuInitialized = true;
         return GPUSortingSearch.getInstance();

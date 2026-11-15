@@ -1,138 +1,63 @@
-# Checked active route on 2026-11-13
+# RTX 5090 / AMD EPYC 7742 validation
 
-This is a completed route migration and CPU validation, not a completed
-TD(18) proof. Endpoint sorting and final inverse coverage remain pending.
-
+The simulation profile and launch commands are in [RTX5090.md](RTX5090.md).
 The source specification is [td18-reduction-count.tex](td18-reduction-count.tex).
-Java computations ran through JShell on JDK 21, using all 16 JVM-visible CPU
-cores. Counts use runtime worker detection, without a machine-specific default.
-The checker builds independently and has no emitter artifact dependency.
+The source inventory retains 53 root partitions, 74 endpoint annotations,
+2 direct root classes after support clearing, and 61,798,462 non-elementary
+endpoint obligations. These values must be independently regenerated for the
+current run; inventory tables do not supply sorting certificates.
 
-| Check | Result |
-| --- | --- |
-| `mvn -pl emitter -am test` | Passed |
-| `mvn -pl checker -am test` | Passed |
-| Full-cycle small-domain forward oracle | Complete class sets through 8 symbols agree |
-| Independent inverse oracle | All gains 0–3, both endpoints, through 7 symbols agree |
-| Async root persistence and three-wave resume regressions | Passed |
-| Explicit certificate budgets in both modules | Passed; longer valid results are misses at smaller budgets |
-| Emitter and checker endpoint census | All 74 rows agree; 76,048,061 classes, 61,798,462 requiring discharge |
-| JShell driver exit checks | Passed for success, runtime errors, and compilation failure |
-| Source paper and reading PDF | Built successfully with resolved references |
-| Emitter and independent root census | All 53 rows agree; 2 direct classes after support clearing |
-| Direct-root CPU certificates | Both `(11,4,4)` and `(7,6,6)` discharged within 10 |
-| Independent direct-root replay | Passed for both complete direct-root partitions, 10 and 29 |
-| Full TD(18) proof | Pending endpoint sorting and inverse coverage |
+No completed simulation or TD(18) proof is claimed by this document. All exit
+artifacts in [RESEARCH_PLAN.md](RESEARCH_PLAN.md) are required.
 
-The endpoint domain has 14 symbols and budget 7; the direct root domain
-has 19 symbols and budget 10. Both `(1,2,2)` and `(0,3,2)` inverse
-patterns participate on both endpoints. Gain-zero first moves are included.
-No stricter endpoint 3-norm cutoff or predicted sorting-failure list is assumed.
+## Build, test and regenerate inventories
 
-## Reproduce and inspect artifacts
+Configure JDK 21 and the CUDA toolkit in `~/.bashrc`. Run from the repository:
 
 ```bash
-tools/td18 build
-tools/td18 test
-tools/td18 inventory
-tools/td18 count-roots
-tools/td18 audit-roots
-tools/td18 count-endpoints
-tools/td18 audit-endpoints
+bash -ic './tools/td18 build'
+bash -ic './tools/td18 test'
+bash -ic './tools/td18 inventory'
+bash -ic './tools/td18 count-roots'
+bash -ic './tools/td18 audit-roots'
+bash -ic './tools/td18 count-endpoints'
+bash -ic './tools/td18 audit-endpoints'
 ```
 
-The complete root commands validate and resume versioned per-partition reports.
-`count-roots` publishes active paper rows only after the complete inventory is
-present. A partial source census does not authorize emission or a proof claim.
+Java entry points use JShell and all allocated CPU cores. Both required CPU
+suites must pass. Small-domain tests compare complete forward class sets,
+inverse gains zero through three on both endpoints, and Burnside counts with
+direct generation. The checker builds independently of the emitter artifact.
+CUDA-dependent tests require the configured RTX 5090 environment.
 
-Generated artifacts stay untracked:
+The optional native memory-preflight regression uses the 32-slot, 896 MiB
+queue profile. It rejects queue-only and one-byte-short memory reports before
+allocation, checks exact allocations and tiny-queue minimums, and rejects
+oversized capacities. Build it with `-DTD18_BUILD_NATIVE_TESTS=ON` and run
+`ctest --test-dir <build> --output-on-failure` on that environment.
 
-- `data/eriksson-root-counts-v1/` and `data/eriksson-root-counts-checker-v1/`:
-  versioned emitter/independent counts, explicit route, domain and budget.
-- `data/eriksson-endpoint-counts-v1/` and
-  `data/eriksson-endpoint-counts-checker-v1/`: full annotated endpoint census.
-- `certificates/`: intrinsic witnesses, replayed at the requested budget.
-- `logs/eriksson-route-v1/`: census, tests, certificate and verification logs.
+## Run data and complete verification
 
-The checker regenerates obligations and replays the database; count summaries,
-emitter checkpoints, checksums and sidecar manifests are not proof inputs.
-Missing data are errors, and missing obstruction markers cannot omit work.
-Partial runs do not discharge the complete route.
-CUDA-dependent tests were skipped in this CPU migration validation.
+Versioned count reports are generated under `data/eriksson-root-counts-v1/`,
+`data/eriksson-root-counts-checker-v1/`, `data/eriksson-endpoint-counts-v1/`, and
+`data/eriksson-endpoint-counts-checker-v1/`. Reports must cover every inventory
+row and reject missing, malformed, incompatible or pending data.
 
-## Targeted follow-up on 2026-11-15
+The dedicated launchers use `/workspace/td18` by default:
 
-Local review fixes passed 33 emitter avoidance/persistence tests and 15 CUDA
-tests through the JUnit launcher in JDK 21 JShell, with 22 available CPU cores.
-The resume regression covers all three checkpoint stages: each mandatory scan
-processes records and then rejects a mismatched exact count without publishing
-the next checkpoint. ROOTS checkpoint timing remains unchanged.
+- `certificates/`: intrinsic witnesses replayed at each explicit move budget.
+- `work/`: versioned emitter checkpoints and independently regenerated checker sets.
+- `logs/`: per-run logs and settings, including revision, JVM options and exit status.
+- `build/native-5090/` and `tmp/`: native build and temporary JNI files.
 
-The CUDA memory-preflight regression passed on a configured RTX 4070 Laptop GPU.
-It substitutes queue-only and one-byte-short free-memory reports and requires
-rejection before any device-buffer allocation. Exact-fit cases compare the
-preflight total against actual `cudaMalloc` requests, including tiny-queue
-minimums; oversized capacities are rejected. The simulated P100 case keeps
-16 slots and 896 MiB queues, without allocating 14 GiB on the local GPU.
-Build this optional Linux native test with `-DTD18_BUILD_NATIVE_TESTS=ON` in a
-configured CUDA build, then run `ctest --test-dir <build> --output-on-failure`.
+Direct roots require budget 10; endpoints require budget 7. Endpoint misses
+generate all three inverse waves for both `(1,2,2)` and `(0,3,2)` paths on
+both endpoints. The after-two and after-one budgets are 8 and 9; final roots
+require 10. No predicted obstruction list or stricter endpoint 3-norm cutoff
+may omit an obligation.
 
-Both modules emitted valid millisecond timestamps with timezone offsets at all
-five SLF4J levels using their default logger resources. The reading PDF rebuilt
-successfully and includes the source paper's cache discussion. Logs and JShell
-drivers are untracked under `logs/review-fixes-*`; the native build is under
-`emitter/target/native-review/`. These targeted checks do not complete the
-required full proof verification. The running P100 simulation was not modified.
-
-The CPU root helper is `tools/audit/DischargeErikssonRootsCpu.jsh`; it uses
-all available processors, replays each found result, and verifies persistence.
-It defaults to at most 100 direct classes, with `td18.cpuRootAuditMaxClasses`
-controlling that bound; larger inventories use the bounded production emitter.
-Run it through JShell with the prepared emitter classpath. For full proof replay:
-
-```bash
-tools/td18 verify --phase=all
-```
-
-## Cleanup validation on 2026-11-13
-
-The superseded selectors, inventories, inverse waves, launch entries, census
-publishers, prototype comparisons, historical appendix and counting reports
-have been removed. The emitter now owns a single active root generator; shared
-move operations and the checker's budgeted search state have independent,
-route-neutral classes. Existing intrinsic certificate wire formats and checked
-witnesses remain replayable.
-
-Both required CPU suites passed from cleaned module outputs. The inventory
-checks cover missing, duplicate, reordered, malformed and pending rows. Current
-endpoint budgets round-trip through the checker's disk set; no former phase
-minimum is inferred from a state domain. Empty-database tests reject missing
-root certificates and regenerate endpoint obligations without stored markers.
-The checker remains independent of the emitter artifact.
-
-Both direct-root partitions were independently regenerated and their certificates
-replayed after cleanup. The source generator also rechecked both direct classes
-and the support-cleared partition. Endpoint sorting and final coverage remain pending.
-
-## Endpoint tables checked on 2026-11-14
-
-The complete endpoint table is embedded in the source paper and reading PDF,
-including zero-count annotations, move budgets, 3-norms, total class counts and
-non-elementary discharge obligations. Every table row matches both versioned
-census report sets. Root inventory totals are printed as well. PDF text and
-layout were checked after rebuilding; both required CPU suites passed.
-Reproduce the table using `tools/td18 endpoint-table` after the two endpoint
-censuses. The checked tables are summaries; proof verification still regenerates
-obligations and replays certificates independently.
-
-## Checker canonicalization optimization on 2026-11-15
-
-JDK 21 CPU suites passed: 87 checker tests and 157 emitter tests, with the 15
-CUDA-dependent emitter tests skipped. The new checker tests compare the exact
-canonical word with the preserved full-word orbit minimum for every permutation
-through seven symbols, including implicit fixed points, mixed equal-size
-annotations, all images of a twisted-reflection example, and 1,000 deterministic
-random cases on 14, 16, 18, 19 and 23 symbols with arbitrary current cycles.
-
-The independent full-word oracle remains in the tests. The changed checker
-must start with fresh work and regenerate every obligation.
+After complete emission, run `bash -ic './tools/run-5090-checker.sh'`. The
+checker regenerates every obligation and replays the database. Missing
+obstruction markers cannot suppress work. Count summaries, emitter checkpoints,
+checksums and sidecar manifests are not proof inputs. Every final root must
+have a checked result, and partial runs certify only their stated scope.

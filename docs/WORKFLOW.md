@@ -1,7 +1,11 @@
 # Active Eriksson-route workflow
 
 The [source paper](td18-reduction-count.tex) defines the active route.
-The emitter count is complete: **2 direct root classes**, after support clearing. Independent checker regeneration matches every partition. The endpoint cover contains all 74 even fixed-point-free annotated types on 14 symbols, with budget 7.
+The source inventory records **2 direct root classes** after support clearing.
+Regenerate and independently audit all counts for the current run. The endpoint
+cover contains all 74 even fixed-point-free annotated types on 14 symbols,
+with budget 7. Use the [RTX 5090 / AMD EPYC 7742 launchers](RTX5090.md) for
+complete emission and independent verification.
 
 ## Validate and count
 

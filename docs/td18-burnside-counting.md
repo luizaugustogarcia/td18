@@ -137,13 +137,14 @@ supports are still enumerated; this is not a closed formula for every term.
 ## Active Eriksson route
 
 The full endpoint cover has 74 even fixed-point-free annotated types on
-14 symbols with budget 7. The Java Burnside counter independently
-regenerated all 74 rows in the emitter and checker modules: 76,048,061
+14 symbols with budget 7. The source inventory records 76,048,061
 classes in total, 61,798,462 outside elementary diameter closures.
+Regenerate all 74 rows independently in the emitter and checker modules
+for the RTX 5090 / AMD EPYC 7742 run.
 The active cover imposes no stricter 3-norm cutoff. Fixed points must be
 contracted before using this fixed-point-free census.
 
-Independent active generation agrees on all 53 root partitions: 2
+The source inventory contains all 53 root partitions and 2
 direct classes after support clearing. Root selection is not determined by
 annotated type, so it uses the constrained generator rather than Burnside.
 

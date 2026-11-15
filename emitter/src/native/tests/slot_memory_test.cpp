@@ -76,8 +76,8 @@ int main() {
         CHECK_CUDA(cudaSetDevice(0));
         constexpr size_t MiB = size_t{1} << 20;
         rejectBeforeAllocation(2, 32 * MiB, 64 * MiB);
-        // Simulate the P100 queue-only budget without allocating 14 GiB.
-        rejectBeforeAllocation(16, 896 * MiB, 16 * 896 * MiB);
+        // Check the RTX 5090 queue-only budget without allocating 28 GiB.
+        rejectBeforeAllocation(32, 896 * MiB, 32 * 896 * MiB);
         rejectBeforeAllocation(3, 32 * MiB, plannedBytes(3, 32 * MiB) - 1);
         allocateAtExactBoundary(3, 32 * MiB);
         // Minimum queue capacities can exceed a tiny configured queue budget.

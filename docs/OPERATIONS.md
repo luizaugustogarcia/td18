@@ -67,13 +67,14 @@ and `td18.gpuStatsPeriodSeconds`. CPU prefix properties are
 `td18.reconstructionCpuPrefixMillis`. Limits bound a heuristic; they do not
 remove the original sorting obligation.
 
-`tools/run-p100.sh` launches a complete emission on 200.20.15.153 through
-JShell after Java and CUDA have been built. Its profile uses devices 1, 2 and 3,
-16 slots per device, 896 MiB per slot and every available CPU core. It creates
-a fresh work directory and writes the source revision, class hashes and runtime
-settings to `logs/run-settings.json`. The script does not delete old data.
-All RocksDB writes disable WAL; completed phases explicitly flush certificates.
-An interruption may lose unflushed results, which must be regenerated.
+The [RTX 5090 / AMD EPYC 7742 profile](RTX5090.md) is the runtime profile.
+`tools/run-5090-emitter.sh` launches complete emission through JShell with
+device 0, 32 slots, 896 MiB per slot and all allocated CPU cores.
+`tools/run-5090-checker.sh` independently regenerates and verifies the complete
+scope using the same CPU allocation. Each launcher creates fresh work and
+records its settings under `/workspace/td18/logs`. All RocksDB writes disable
+WAL; completed phases explicitly flush certificates. An interruption may lose
+unflushed results, which must be regenerated.
 
 Reconstruction runs CPU searches, GPU dispatch and inverse generation in separate worker pools.
 CPU workers scan the sealed source wave without waiting for GPU capacity;
@@ -162,8 +163,9 @@ queued after all generators join. Every writer drains and joins before sealing.
 td18.reconstructionWriters defaults to at most eight writers.
 td18.reconstructionBufferKeys defaults to 16,777,216 aggregate keys;
 td18.reconstructionQueueBatches defaults to 1,024 aggregate batches.
-Both capacities are divided across shards with rounding up. On the 128 GiB
-server, use 64 writers, 67,108,864 buffer keys and 32,768 queue batches.
+Both capacities are divided across shards with rounding up. The RTX 5090 /
+AMD EPYC 7742 profile uses up to 64 writers, 67,108,864 buffer keys and
+32,768 queue batches.
 Each writer has a 1,048,576-key buffer budget; the 524,288-entry database
 batch limit flushes its distinct keys earlier. Queues remain
 bounded, and full queues apply backpressure when storage cannot keep up.
@@ -191,11 +193,10 @@ or proof coverage counts.
 
 ## Budgets and persistence
 
-The next restart on the P100 server uses `td18.gpuSlots=16` and
-`td18.gpuBudgetMB=896`. This preserves the existing 14 GiB aggregate GPU
-queue allocation per device while doubling concurrent search slots. Prepared
-overrides are recorded in `logs/next-run-settings.json`; active run settings
-continue to describe the current execution.
+The emitter profile uses `td18.gpuSlots=32` and `td18.gpuBudgetMB=896`,
+for 28 GiB of GPU queues plus state caches and metadata. Per-run settings
+under `/workspace/td18/logs` record the actual JVM options, source revision,
+work path and completion status.
 
 | State | Symbols | Budget |
 | --- | ---: | ---: |
@@ -219,7 +220,7 @@ inverse-state external SST keys per writer, and independent checker-state
 buffers further limit batch sizes. Final partial batches still drain at
 completed persistence boundaries. A certificate entry can produce both a
 witness put and an obstruction delete, so entries do not count individual
-RocksDB operations. Both hardware launchers explicitly select 524,288 entries.
+RocksDB operations. Both RTX 5090 profile launchers explicitly select 524,288 entries.
 
 Certificate persistence also uses `td18.certificateQueueCapacity` and
 `td18.certificateFlushSeconds`. Inverse sets use

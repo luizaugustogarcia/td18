@@ -31,7 +31,7 @@ Examples:
   tools/td18 emit --phase=roots --partitions=1-1
   tools/td18 verify --phase=all
 Set TD18_JSHELL_OPTIONS for remote JVM options, for example:
-  TD18_JSHELL_OPTIONS='-R-Dtd18.gpuSlots=2 -R-Dtd18.gpuBudgetMB=256'
+  TD18_JSHELL_OPTIONS='-R-Dtd18.gpuSlots=32 -R-Dtd18.gpuBudgetMB=896'
 Phases: roots, endpoints, avoidance, all (count supports roots/endpoints/all).
 Ranges cover only their selected scope. Obstruction counts are not prerequisites.
 The checker regenerates obligations and replays the certificate database directly.
