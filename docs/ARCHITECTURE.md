@@ -99,6 +99,9 @@ probe sequences fall back to ordinary exploration. It is cleared between
 searches, and a duplicate removal decrements the outstanding-work count.
 Its 524,288 entries use 12 MiB per slot in addition to the configured queues.
 The P100 queue allocation remains 16 times 896 MiB, or 14 GiB per device.
+Its 16 caches add 192 MiB per device. Memory preflight uses the allocator's
+queue capacities and includes all device buffers: queues, caches, support
+tables, input vectors and result metadata, before allocating any slot.
 
 At an exploration cap, the consecutive-support scan first tests all moves
 gaining at least two fixed symbols. If neither gain zero nor gain one can

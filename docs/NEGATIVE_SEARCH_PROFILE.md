@@ -3,8 +3,9 @@
 The main problem in the sampled negative cases is repeated exploration of the
 same states. The rank bound rejects most otherwise permitted moves, but CUDA
 enumerates billions of supports across millions of repeated paths before
-exhausting the restricted tree. An experimental exact state cache removes much
-of this work. These are profiling experiments, not computational proof artifacts
+exhausting the restricted tree. An experimental state cache removes much
+of this work. Its measured key layout uses a 32-bit upper field; production uses
+64 bits. These are profiling experiments, not computational proof artifacts
 or production performance claims.
 
 ## Source and scope
@@ -146,12 +147,20 @@ from supports while retaining their original beta positions.
 
 ## CUDA cache and timeout experiments
 
-The isolated CUDA prototype adds a bounded, per-search cache with full
-95-bit omega keys and least visited depths. Hash collisions compare complete
-keys; an unsuccessful bounded probe falls back to ordinary exploration. Entries
-are synchronized, and the cache is cleared between inputs. It allocates 12 MiB
-per slot in addition to the original queues. It does not yet implement direct
-split generation.
+The measured isolated CUDA prototype adds a bounded, per-search cache with a
+64-bit lower key field, a **32-bit upper field**, and least visited depths.
+The lower field packs 12 omega images in 60 bits. An 18-symbol input needs
+30 upper bits and fits; a 19-symbol input needs 35 upper bits, so the prototype
+loses the highest three packed bits of the final image. It therefore does not
+literally store all 95 bits. For a valid 19-symbol permutation, its first 18
+images determine the last image uniquely, and those first 18 images are stored
+in full; the omitted bits alone do not create aliases between valid states
+within that fixed-domain search. Hash collisions compare the stored fields;
+an unsuccessful bounded probe falls back to ordinary exploration. Entries are
+synchronized, and the cache is cleared between inputs. Its padded 24-byte
+entries allocate 12 MiB per slot
+in addition to the original queues. It does not yet implement direct split
+generation.
 
 For the 16-case current-position sample, the original kernel returned seven
 closures and nine restricted-tree misses. Three cache rounds returned the same
@@ -172,14 +181,16 @@ negative kernel falls from 13.65 seconds to 176.40 ms. Nsight Systems records
 A separate 32-case spread sample contains 13 domain-18 and 19 domain-19 cases.
 The original took 9.555 seconds. The cache took 0.339, 0.222 and 0.218 seconds,
 with identical per-record outcomes: 20 closures and 12 misses. This comparison
-has only one original baseline round. These measurements establish a promising
-local result, not a P100 throughput prediction.
+has only one original baseline round. These measurements describe the local
+prototype; production performance with its different key layout requires
+remeasurement, and no P100 throughput prediction follows.
 
 Three full-depth cache rounds over all 512 spread cases took 1.975, 1.964 and
 1.914 seconds, each returning 333 closures and 179 restricted-tree misses.
 Every successful witness replayed, all rounds agreed per record, and the
 32-case subset agreed with the original uncapped search. The other 480 spread
-cases were not run to exhaustion with the original kernel.
+cases were not run to exhaustion with the original kernel. Sampled outcome
+agreement and witness replay do not constitute exhaustive proof coverage.
 
 The existing 15 CUDA test methods passed against the cache library through
 JShell. They include independent small-domain searches, concurrent dispatch,
@@ -187,7 +198,11 @@ rotated beta, exploration caps, timeouts, reuse, and certificate persistence.
 At the time of profiling, the cache remained an experimental library under
 `emitter/target/native-memo`. On 2026-11-15 it was integrated into the production
 source with explicit dominance documentation and two 64-bit key fields retaining
-all 95 omega bits. The user requested source synchronization, a remote rebuild
+all 95 omega bits. These production key fields differ from the measured
+prototype; its timings must not be attributed to the complete-key build without
+remeasurement. Both layouts occupy 24 bytes per entry, hence 12 MiB per slot
+and 192 MiB per device at 16 slots, in addition to the 14 GiB P100 queue budget.
+The user requested source synchronization, a remote rebuild
 and reconstruction restart without running tests. The historical tests above
 apply to the profiled prototype; no new test execution or P100 speedup is claimed
 for that deployment.

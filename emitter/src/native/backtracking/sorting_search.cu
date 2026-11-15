@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstring>
 #include <cmath>
+#include <limits>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
@@ -1025,6 +1026,41 @@ namespace {
         const int remainder = fullQueueCount % divisor;
         return base + (slotOrdinalOnDevice >= 0 && slotOrdinalOnDevice < remainder ? 1 : 0);
     }
+
+    struct SlotAllocation {
+        int queueCount;
+        int localCapacity;
+        int overflowCapacity;
+    };
+
+    // Keep preflight and allocation on the same capacity calculation, including
+    // the minimum queues used when the configured budget is very small.
+    SlotAllocation slotAllocation(const int device, const size_t queueBytesBudget,
+                                  const int slotsOnDevice, const int slotOrdinalOnDevice) {
+        const int queueCount = getQueueCountForSlot(device, slotsOnDevice, slotOrdinalOnDevice);
+        const size_t overflowBudget = queueBytesBudget / 4;
+        const size_t localBudget = queueBytesBudget - overflowBudget;
+        const size_t localCapacity = std::max(size_t{2}, localBudget / (queueCount * sizeof(BacktrackingNode)));
+        const size_t overflowCapacity = std::max(size_t{1024}, overflowBudget / sizeof(BacktrackingNode));
+        if (localCapacity > static_cast<size_t>(std::numeric_limits<int>::max())
+            || overflowCapacity > static_cast<size_t>(std::numeric_limits<int>::max())) {
+            throw std::invalid_argument("GPU queue capacity exceeds the supported integer range");
+        }
+        return {queueCount, static_cast<int>(localCapacity), static_cast<int>(overflowCapacity)};
+    }
+}
+
+size_t gpuSortingSearchSlotBytes(const int device, const size_t queueBytesBudget,
+                                const int slotsOnDevice, const int slotOrdinalOnDevice) {
+    const auto plan = slotAllocation(device, queueBytesBudget, slotsOnDevice, slotOrdinalOnDevice);
+    const size_t nodeCount = static_cast<size_t>(plan.queueCount) * plan.localCapacity + plan.overflowCapacity;
+    const size_t maxTriples = static_cast<size_t>(triple_table_offset(MAX_N + 1));
+    return nodeCount * sizeof(BacktrackingNode)
+           + (static_cast<size_t>(plan.queueCount) + 1) * sizeof(BacktrackingQueue)
+           + 3 * maxTriples * sizeof(short)
+           + 2 * MAX_N * sizeof(short)
+           + sizeof(BacktrackingResult)
+           + MEMO_CAPACITY * sizeof(MemoEntry);
 }
 
 void allocateGpuSortingSearchSlot(const int slot, const int device,
@@ -1039,11 +1075,10 @@ void allocateGpuSortingSearchSlot(const int slot, const int device,
     auto &buffers = gSlots[slot];
     buffers.device = device;
 
-    const int queueCount = getQueueCountForSlot(device, slotsOnDevice, slotOrdinalOnDevice);
-    const size_t overflowBudget = queueBytesBudget / 4;
-    const size_t localBudget = queueBytesBudget - overflowBudget;
-    const int localCapacity = std::max(2, (int)(localBudget / (queueCount * sizeof(BacktrackingNode))));
-    const int overflowCapacity = std::max(1024, (int)(overflowBudget / sizeof(BacktrackingNode)));
+    const auto plan = slotAllocation(device, queueBytesBudget, slotsOnDevice, slotOrdinalOnDevice);
+    const int queueCount = plan.queueCount;
+    const int localCapacity = plan.localCapacity;
+    const int overflowCapacity = plan.overflowCapacity;
 
     buffers.queues = allocateDeviceBuffer<BacktrackingQueue>(
             static_cast<size_t>(queueCount), "sort.queues");

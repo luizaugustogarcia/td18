@@ -75,3 +75,23 @@ if(JNI_FOUND)
 
     install(TARGETS td18_jni DESTINATION lib)
 endif()
+
+option(TD18_BUILD_NATIVE_TESTS "Build CUDA-dependent native regression tests (Linux linker)" OFF)
+if(TD18_BUILD_NATIVE_TESTS)
+    enable_testing()
+    add_executable(td18_slot_memory_test
+        tests/slot_memory_test.cpp
+        backtracking/slot_manager.cu
+        backtracking/sorting_search.cu
+    )
+    target_include_directories(td18_slot_memory_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(td18_slot_memory_test PRIVATE CUDA::cudart)
+    target_compile_definitions(td18_slot_memory_test PRIVATE MAX_N=${TD18_NATIVE_MAX_N} MAX_DEPTH=${TD18_NATIVE_MAX_DEPTH})
+    set_target_properties(td18_slot_memory_test PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_options(td18_slot_memory_test PRIVATE
+        "LINKER:--wrap=cudaMemGetInfo" "LINKER:--wrap=cudaMalloc")
+    add_test(NAME slot_memory_preflight COMMAND td18_slot_memory_test)
+endif()

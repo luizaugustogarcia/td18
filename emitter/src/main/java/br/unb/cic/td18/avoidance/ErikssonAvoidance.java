@@ -60,11 +60,8 @@ public final class ErikssonAvoidance {
         var checkpoint=ErikssonCheckpoint.read(source);
         String name=checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_TWO ? "after-two":checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_ONE ? "after-one":"roots";
         long count=checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_TWO ? checkpoint.afterTwo():checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_ONE ? checkpoint.afterOne():checkpoint.roots();
-        // Final-root processing validates the checkpoint in its mandatory scan;
-        // do not decode the entire root inventory once merely to reopen it.
-        try (var states=checkpoint.stage()==ErikssonCheckpoint.Stage.ROOTS
-                ? DiskStateSet.openSealedForScan(source.resolve(name),count)
-                : DiskStateSet.openSealed(source.resolve(name),count)) {
+        // Every resumed wave validates its inventory during mandatory processing.
+        try (var states=DiskStateSet.openSealedForScan(source.resolve(name),count)) {
             return switch (checkpoint.stage()) {
                 case AFTER_TWO -> afterTwo(checkpoint,states,work,cpu,gpu,lookup,prefetchGpu);
                 case AFTER_ONE -> afterOne(checkpoint,states,work,cpu,gpu,lookup,prefetchGpu);

@@ -13,6 +13,40 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ActiveErikssonAvoidanceTest {
+    @Test void everyResumedWaveChecksItsCountDuringProcessing(@TempDir Path directory) throws Exception {
+        for (var stage:ErikssonCheckpoint.Stage.values()) {
+            Path source=Files.createDirectory(directory.resolve(stage.name()));
+            String name=switch (stage) {
+                case AFTER_TWO -> "after-two";
+                case AFTER_ONE -> "after-one";
+                case ROOTS -> "roots";
+            };
+            int symbols=stage==ErikssonCheckpoint.Stage.AFTER_TWO ? ErikssonRoute.ROOT_SYMBOLS-3:ErikssonRoute.ROOT_SYMBOLS;
+            int budget=switch (stage) {
+                case AFTER_TWO -> ErikssonRoute.ROOT_BUDGET-2;
+                case AFTER_ONE -> ErikssonRoute.ROOT_BUDGET-1;
+                case ROOTS -> ErikssonRoute.ROOT_BUDGET;
+            };
+            try (var set=new DiskStateSet(source.resolve(name))) {
+                set.add(pair(symbols),budget); assertEquals(1,set.seal());
+            }
+            var checkpoint=switch (stage) {
+                case AFTER_TWO -> new ErikssonCheckpoint(stage,1,2,-1,-1);
+                case AFTER_ONE -> new ErikssonCheckpoint(stage,1,1,2,-1);
+                case ROOTS -> new ErikssonCheckpoint(stage,1,1,1,2);
+            };
+            checkpoint.write(source);
+            var processed=new java.util.concurrent.atomic.AtomicInteger();
+            Path work=Files.createDirectory(directory.resolve(stage.name()+"-work"));
+            assertThrows(IllegalStateException.class,()->ErikssonAvoidance.resume(source,work,(p,b)->{
+                assertEquals(budget,b); processed.incrementAndGet(); return true;
+            },null));
+            assertEquals(1,processed.get(),"The mandatory scan must process records before rejecting the count mismatch: "+stage);
+            assertEquals(checkpoint,ErikssonCheckpoint.read(source));
+            assertThrows(IllegalStateException.class,()->ErikssonCheckpoint.read(work));
+        }
+    }
+
     @Test void splitStagesPreserveEveryRootInBothInverseBranches(@TempDir Path directory) throws Exception {
         Path source=Files.createDirectory(directory.resolve("source"));
         try (var set=new DiskStateSet(source.resolve("after-one"))) {

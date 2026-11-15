@@ -11,6 +11,10 @@ all JVM-visible processors, bounded generation queues and disjoint rank-placemen
 prefix tasks. `tools/td18 test` runs both required Maven CPU suites.
 CUDA-dependent tests run only in a configured environment.
 
+SLF4J logs in both modules default to `showDateTime=true`, with timestamps in
+`yyyy-MM-dd'T'HH:mm:ss.SSSXXX` format (milliseconds and timezone offset).
+The classpath `simplelogger.properties` files apply to JShell and packaged runs.
+
 Set `TD18_JSHELL_OPTIONS` for execution-VM options, for example
 `-R-Xmx3g` or `-R-Dtd18.twistedBraceletWorkers=auto`. The launcher passes
 `-R-Dtd18.countModule=emitter|checker` to keep report ownership separate.
@@ -37,10 +41,10 @@ defaults 4,096 and 262,144. Checkpoint inventory validation uses the same parall
 decoding. Iterator errors, malformed records, incomplete lookup responses and
 worker failures abort the scan; an exact count is published only after every
 batch, including its final remainder, joins successfully.
-Resuming a final-root checkpoint combines its validation with this mandatory
+Resuming any sealed-wave checkpoint combines its validation with this mandatory
 processing scan. The checkpoint count is an expectation for progress and final
-coverage checks, never a completed inventory until the scan succeeds. Other
-checkpoint stages retain validation before inverse generation.
+coverage checks, never a completed inventory until the scan succeeds. A failed
+scan cannot publish the next checkpoint.
 
 `tools/audit/BenchmarkReconstructionScan.jsh` compares the previous serial
 decode/lookup and per-class dispatch path with parallel batches on an immutable

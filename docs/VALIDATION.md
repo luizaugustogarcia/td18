@@ -60,6 +60,30 @@ Missing data are errors, and missing obstruction markers cannot omit work.
 Partial runs do not discharge the complete route.
 CUDA-dependent tests were skipped in this CPU migration validation.
 
+## Targeted follow-up on 2026-11-15
+
+Local review fixes passed 33 emitter avoidance/persistence tests and 15 CUDA
+tests through the JUnit launcher in JDK 21 JShell, with 22 available CPU cores.
+The resume regression covers all three checkpoint stages: each mandatory scan
+processes records and then rejects a mismatched exact count without publishing
+the next checkpoint. ROOTS checkpoint timing remains unchanged.
+
+The CUDA memory-preflight regression passed on a configured RTX 4070 Laptop GPU.
+It substitutes queue-only and one-byte-short free-memory reports and requires
+rejection before any device-buffer allocation. Exact-fit cases compare the
+preflight total against actual `cudaMalloc` requests, including tiny-queue
+minimums; oversized capacities are rejected. The simulated P100 case keeps
+16 slots and 896 MiB queues, without allocating 14 GiB on the local GPU.
+Build this optional Linux native test with `-DTD18_BUILD_NATIVE_TESTS=ON` in a
+configured CUDA build, then run `ctest --test-dir <build> --output-on-failure`.
+
+Both modules emitted valid millisecond timestamps with timezone offsets at all
+five SLF4J levels using their default logger resources. The reading PDF rebuilt
+successfully and includes the source paper's cache discussion. Logs and JShell
+drivers are untracked under `logs/review-fixes-*`; the native build is under
+`emitter/target/native-review/`. These targeted checks do not complete the
+required full proof verification. The running P100 simulation was not modified.
+
 The CPU root helper is `tools/audit/DischargeErikssonRootsCpu.jsh`; it uses
 all available processors, replays each found result, and verifies persistence.
 It defaults to at most 100 direct classes, with `td18.cpuRootAuditMaxClasses`

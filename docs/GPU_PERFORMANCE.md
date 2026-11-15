@@ -9,9 +9,12 @@ search workload.
 
 On 2026-11-15 the bounded state cache was integrated into the CUDA search.
 The integrated representation stores all 95 omega bits in two 64-bit fields.
-The historical local prototype measurements below and in the negative-search
-report remain experiments; no P100 speedup is inferred from them. The remote
-deployment rebuild skips tests at the user's request.
+The measured local prototype used a 32-bit upper field, omitting three packed
+bits on 19-symbol inputs. Its retained first 18 images still determine the final
+image of a valid permutation, but that layout differs from production. The local
+prototype measurements in the negative-search report remain experiments;
+production performance requires remeasurement, and no P100 speedup is inferred
+from them. That remote deployment rebuild skipped tests at the user's request.
 
 On 2026-11-14 the kernel with zero-move allowance pruning completed a
 production sample **about 64 times as fast** as the original kernel on a
