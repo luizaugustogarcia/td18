@@ -1,5 +1,19 @@
 # Runtime operations
 
+The independent checker owns its scratch storage implementation. Inverse
+producers retain bounded per-thread key batches and distribute them across
+deterministic persistence shards. Each shard deduplicates and sorts its own
+window, builds an SST, and ingests it without WAL. All producer remainders and
+writers drain before sealing. Parallel read batches decode and replay complete
+lookup responses before processing misses; iterator errors, count mismatches,
+malformed records and asynchronous failures abort verification. The checker
+continues to regenerate its own obligations and never resumes emitter scratch
+sets. Certificate databases remain read-only. Scratch sizing uses
+`td18.reconstructionGeneratedBatchKeys`, `td18.reconstructionWriters`,
+`td18.reconstructionQueueBatches`, `td18.reconstructionBufferKeys`, and
+`td18.reconstructionScanBatchKeys`, with the same bounded batching approach as
+the emitter. A changed checker must restart with fresh work.
+
 The default commands use the active route in
 [the source paper](td18-reduction-count.tex).
 

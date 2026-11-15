@@ -37,4 +37,36 @@ class CheckerStateSetTest {
         assertThrows(IllegalStateException.class,
                 () -> new CheckerStateSet(directory.resolve("states")));
     }
+
+    @Test void concurrentBatchesDrainAndParallelReadsCoverEveryBudget(@TempDir Path directory) throws Exception {
+        String[] properties = {"td18.reconstructionGeneratedBatchKeys", "td18.reconstructionWriters",
+                "td18.reconstructionBufferKeys", "td18.reconstructionQueueBatches", "td18.reconstructionScanBatchKeys"};
+        String[] previous = java.util.Arrays.stream(properties).map(System::getProperty).toArray(String[]::new);
+        String[] values = {"17", "3", "128", "3", "3"};
+        for (int i=0;i<properties.length;i++) System.setProperty(properties[i], values[i]);
+        try (var states = new CheckerStateSet(directory.resolve("parallel"))) {
+            var pair = CyclicTargetPair.of(new MulticyclePermutation(Cycle.of(0,1,2)), Cycle.of(0,1,2));
+            try (var pool = java.util.concurrent.Executors.newFixedThreadPool(4)) {
+                var jobs = new ArrayList<java.util.concurrent.Future<?>>();
+                for (int worker=0;worker<4;worker++) jobs.add(pool.submit(() -> {
+                    for (int i=0;i<103;i++) states.add(new SearchState(1+i%10,pair));
+                }));
+                for (var job:jobs) job.get(30, java.util.concurrent.TimeUnit.SECONDS);
+            }
+            assertEquals(10, states.seal().count());
+            var seen = java.util.concurrent.ConcurrentHashMap.<Integer>newKeySet();
+            states.forEachConcurrently(4, batch -> {
+                boolean[] hits = new boolean[batch.size()];
+                for(int i=0;i<hits.length;i++) hits[i]=batch.get(i).maximumMoves()%2==0;
+                return hits;
+            }, state -> assertTrue(seen.add(state.maximumMoves())),
+               state -> assertTrue(seen.add(state.maximumMoves())));
+            assertEquals(10,seen.size());
+            assertThrows(IllegalStateException.class, () -> states.forEachConcurrently(4,
+                    batch -> new boolean[0], state -> {}, state -> {}));
+        } finally {
+            for(int i=0;i<properties.length;i++)
+                if(previous[i]==null) System.clearProperty(properties[i]); else System.setProperty(properties[i], previous[i]);
+        }
+    }
 }
