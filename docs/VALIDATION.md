@@ -134,29 +134,5 @@ through seven symbols, including implicit fixed points, mixed equal-size
 annotations, all images of a twisted-reflection example, and 1,000 deterministic
 random cases on 14, 16, 18, 19 and 23 symbols with arbitrary current cycles.
 
-The completed comparison ran the previous orbit minimum and the optimized
-implementation in the same JDK 21 JShell process. It used all available CPUs,
-warmed both implementations, alternated their order, and checked every
-per-source multiset of encoded inverse parents, including duplicates. Its
-versioned input format rejected incomplete inventories and required
-fixed-point-free valid pairs in both after-one domains, with budget 9.
-Inverse generation requires any fixed points to be contracted beforehand.
-
-The local 22-CPU experiment used 32 deterministic random source pairs on each
-of 18 and 19 symbols, covering inverse gains one and zero on both endpoints.
-Every trial generated the same 217,048 parent keys. Across three measured rounds,
-median elapsed time fell from 0.949855 s to 0.219361 s: 228,506 to 989,455
-generated parents/s, a **4.3301x speedup (+333.01% throughput, 76.91% less elapsed
-time)**. Average CPU use was approximately 19 cores in both modes.
-
-The timed scope includes inverse generation, canonicalization, normalization,
-encoding and per-source sorting. It excludes certificate lookups, disk persistence
-and complete proof verification; this is a performance experiment, not a proof
-artifact or a whole-checker speedup measurement. The input, input-generation
-JShell driver and results remain untracked under `logs/canonicalization-20261115/`.
-The comparison tool was removed after validation to retire its legacy algorithm;
-its complete source remains in commit `fbc3f99` at
-`tools/audit/BenchmarkCheckerCanonicalization.jsh`. The independent full-word
-oracle remains in the tests. The additional server benchmark was cancelled at
-the user's request. The changed checker must start with fresh work and
-regenerate every obligation.
+The independent full-word oracle remains in the tests. The changed checker
+must start with fresh work and regenerate every obligation.

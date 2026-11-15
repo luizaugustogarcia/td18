@@ -60,31 +60,6 @@ processing scan. The checkpoint count is an expectation for progress and final
 coverage checks, never a completed inventory until the scan succeeds. A failed
 scan cannot publish the next checkpoint.
 
-`tools/audit/BenchmarkReconstructionScan.jsh` compares the previous serial
-decode/lookup and per-class dispatch path with parallel batches on an immutable
-sample of a sealed root inventory. Set `td18.scanBenchmarkSource` to its `roots`
-directory and `td18.scanBenchmarkCertificates` to the certificate database, then
-run the script through JShell with the emitter classpath. The benchmark opens
-production inputs read-only, replays all certificate hits and CPU closures, and
-compares every record's classification exactly. Its temporary sample disables
-WAL and flushes explicitly; it does not write production certificates.
-
-On 2026-11-15, JDK 21 / JShell comparisons on the P100 server's 80 logical CPU
-cores used 1,048,579 sealed root records per sample. Both paths used the same
-read-only certificate view, and every per-record outcome matched:
-
-| Sample | Previous records/s | Parallel records/s | Speedup |
-| --- | ---: | ---: | ---: |
-| First keys, all certificate hits, round 1 | 54,254 | 444,823 | 8.20 |
-| First keys, all certificate hits, round 2 | 50,919 | 592,374 | 11.63 |
-| Starting at key prefix `020a1340` | 24,701 | 527,519 | 21.36 |
-
-The later sample contained 5,414 certificate hits and 1,043,165 CPU closures,
-with no residuals. These measurements cover decoding, lookup/replay, CPU search
-and exact outcome comparison on samples. They exclude new-certificate
-persistence, GPU work and a complete root inventory; they are performance
-experiments, not proof artifacts or whole-run throughput guarantees.
-
 GPU properties retain the shared machinery: `td18.gpuDevices`,
 `td18.gpuSlots`, `td18.gpuBudgetMB`, `td18.gpuQueueCapacity`,
 and `td18.gpuStatsPeriodSeconds`. CPU prefix properties are
@@ -172,12 +147,7 @@ with the exact count only after the processing workers drain. An interruption
 before that boundary resumes the preceding sealed wave. The independent checker
 continues to regenerate and verify its own inventories.
 
-For a reproducible GPU comparison, use
-`tools/audit/BenchmarkGpuSearch.jsh`. It samples an immutable handoff queue,
-reports both completed searches and successful certificates per second,
-and replays every successful witness. See [CUDA throughput measurements](GPU_PERFORMANCE.md)
-for the checked P100 comparison and slot sweep.
-The capped search also combines the zero-move allowance with the invariant
+The capped CUDA search combines the zero-move allowance with the invariant
 that rank-decreasing moves preserve all-odd cycle structure. Its table-driven
 subtree rejection leaves the class unresolved and preserves every inverse
 obligation; the source paper proves the rule. A zero move here preserves the
