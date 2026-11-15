@@ -50,6 +50,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
     private final Object drainLock = new Object();
     private final java.util.concurrent.ExecutorService persistenceWorkers;
     private final int persistenceParallelism;
+    private final Path tableDirectory;
     private volatile boolean closed;
 
     public AsyncCertificateWriter(Path directory, long flushSeconds) {
@@ -64,6 +65,7 @@ public final class AsyncCertificateWriter implements AutoCloseable {
         persistenceWorkers = Executors.newFixedThreadPool(persistenceParallelism,
                 Thread.ofPlatform().daemon(true).name("certificate-db-", 0).factory());
         Path absolute = directory.toAbsolutePath();
+        tableDirectory = absolute.resolve("certificate-sst-staging");
         boolean existing = Files.isRegularFile(absolute.resolve("CURRENT"));
         if (existing) requireFamilies(absolute);
         else if (Files.exists(absolute)) {
@@ -292,6 +294,19 @@ public final class AsyncCertificateWriter implements AutoCloseable {
     }
 
     private void persistShard(List<Entry> entries) throws RocksDBException {
+        // Shards have disjoint keys and previous batches have joined. A missing
+        // marker therefore remains missing until this shard finishes. Pure
+        // certificate batches can bypass memtables without changing marker
+        // precedence or per-key atomicity. Mixed/marked batches use WriteBatch.
+        if (entries.stream().allMatch(entry -> entry.value != null)) {
+            var keys = entries.stream().map(Entry::key).toList();
+            var markers = database.multiGetAsList(Collections.nCopies(keys.size(), obstructions), keys);
+            if (markers.size() != keys.size()) throw new IllegalStateException("Incomplete obstruction lookup");
+            if (markers.stream().allMatch(java.util.Objects::isNull)) {
+                persistCertificateTable(entries);
+                return;
+            }
+        }
         var certified = new HashSet<ByteBuffer>();
         for (Entry entry : entries) if (entry.value != null) certified.add(ByteBuffer.wrap(entry.key));
         try (var batch = new WriteBatch(); var writes = new WriteOptions().setDisableWAL(true)) {
@@ -312,6 +327,42 @@ public final class AsyncCertificateWriter implements AutoCloseable {
                 }
             }
             database.write(writes, batch);
+        }
+    }
+
+    /** Exact sorted certificate keys; no WAL or per-key memtable insertion. */
+    private void persistCertificateTable(List<Entry> entries) throws RocksDBException {
+        entries.sort((left, right) -> Arrays.compareUnsigned(left.key, right.key));
+        Path path = null;
+        try {
+            Files.createDirectories(tableDirectory);
+            path = Files.createTempFile(tableDirectory, "certificates-", ".sst");
+            try (var environment = new EnvOptions();
+                 var tableOptions = new Options();
+                 var table = new SstFileWriter(environment, tableOptions);
+                 var ingest = new IngestExternalFileOptions().setMoveFiles(true)
+                         .setAllowGlobalSeqNo(true).setAllowBlockingFlush(true)) {
+                table.open(path.toString());
+                for (int i = 0; i < entries.size();) {
+                    int last = i;
+                    while (last + 1 < entries.size()
+                            && Arrays.equals(entries.get(i).key, entries.get(last + 1).key)) last++;
+                    // Stable sorting retains queue order for duplicate keys.
+                    Entry entry = entries.get(last);
+                    table.put(entry.key, entry.value);
+                    i = last + 1;
+                }
+                table.finish();
+                database.ingestExternalFile(witnesses, List.of(path.toString()), ingest);
+            }
+        } catch (java.io.IOException error) {
+            throw new IllegalStateException("Cannot build certificate table", error);
+        } finally {
+            if (path != null) try { Files.deleteIfExists(path); }
+            catch (java.io.IOException error) {
+                failure.compareAndSet(null, error);
+                throw new IllegalStateException("Cannot clean certificate table", error);
+            }
         }
     }
 
