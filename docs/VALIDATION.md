@@ -134,13 +134,13 @@ through seven symbols, including implicit fixed points, mixed equal-size
 annotations, all images of a twisted-reflection example, and 1,000 deterministic
 random cases on 14, 16, 18, 19 and 23 symbols with arbitrary current cycles.
 
-`tools/audit/BenchmarkCheckerCanonicalization.jsh` compares the previous orbit
-minimum with the optimized implementation in the same JDK 21 JShell process.
-It uses all available CPUs, warms both implementations, alternates their order,
-and checks every per-source multiset of encoded inverse parents, including
-duplicates. Its versioned input format rejects incomplete inventories and
-requires fixed-point-free valid pairs in both after-one domains, with budget 9.
-Fixed points must be contracted before using this inverse benchmark.
+The completed comparison ran the previous orbit minimum and the optimized
+implementation in the same JDK 21 JShell process. It used all available CPUs,
+warmed both implementations, alternated their order, and checked every
+per-source multiset of encoded inverse parents, including duplicates. Its
+versioned input format rejected incomplete inventories and required
+fixed-point-free valid pairs in both after-one domains, with budget 9.
+Inverse generation requires any fixed points to be contracted beforehand.
 
 The local 22-CPU experiment used 32 deterministic random source pairs on each
 of 18 and 19 symbols, covering inverse gains one and zero on both endpoints.
@@ -152,7 +152,11 @@ time)**. Average CPU use was approximately 19 cores in both modes.
 The timed scope includes inverse generation, canonicalization, normalization,
 encoding and per-source sorting. It excludes certificate lookups, disk persistence
 and complete proof verification; this is a performance experiment, not a proof
-artifact or a whole-checker speedup measurement. The input, JShell driver and
-results remain untracked under `logs/canonicalization-20261115/`. The additional
-server benchmark was cancelled at the user's request. The changed checker must
-start with fresh work and regenerate every obligation.
+artifact or a whole-checker speedup measurement. The input, input-generation
+JShell driver and results remain untracked under `logs/canonicalization-20261115/`.
+The comparison tool was removed after validation to retire its legacy algorithm;
+its complete source remains in commit `fbc3f99` at
+`tools/audit/BenchmarkCheckerCanonicalization.jsh`. The independent full-word
+oracle remains in the tests. The additional server benchmark was cancelled at
+the user's request. The changed checker must start with fresh work and
+regenerate every obligation.
