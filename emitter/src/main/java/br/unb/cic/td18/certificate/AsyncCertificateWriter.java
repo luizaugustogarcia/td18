@@ -294,18 +294,29 @@ public final class AsyncCertificateWriter implements AutoCloseable {
     }
 
     private void persistShard(List<Entry> entries) throws RocksDBException {
-        // Shards have disjoint keys and previous batches have joined. A missing
-        // marker therefore remains missing until this shard finishes. Pure
-        // certificate batches can bypass memtables without changing marker
-        // precedence or per-key atomicity. Mixed/marked batches use WriteBatch.
-        if (entries.stream().allMatch(entry -> entry.value != null)) {
-            var keys = entries.stream().map(Entry::key).toList();
+        // Equal keys have one owner for this batch, and earlier batches have
+        // joined. Marker reads cannot race with writes to those same keys.
+        var certificates = entries.stream().filter(entry -> entry.value != null).toList();
+        if (!certificates.isEmpty()) {
+            var keys = certificates.stream().map(Entry::key).toList();
             var markers = database.multiGetAsList(Collections.nCopies(keys.size(), obstructions), keys);
             if (markers.size() != keys.size()) throw new IllegalStateException("Incomplete obstruction lookup");
-            if (markers.stream().allMatch(java.util.Objects::isNull)) {
-                persistCertificateTable(entries);
-                return;
+            var certifiedKeys = new HashSet<ByteBuffer>();
+            var tables = new ArrayList<Entry>();
+            var atomic = new ArrayList<Entry>();
+            for (int i = 0; i < certificates.size(); i++) {
+                Entry entry = certificates.get(i);
+                certifiedKeys.add(ByteBuffer.wrap(entry.key));
+                if (markers.get(i) == null) tables.add(entry); else atomic.add(entry);
             }
+            for (Entry entry : entries)
+                if (entry.value == null && !certifiedKeys.contains(ByteBuffer.wrap(entry.key))) atomic.add(entry);
+            // Only the keys with existing markers need a cross-family atomic
+            // put/delete. A few markers must not force an entire shard back
+            // through the serialized per-key memtable path.
+            if (!tables.isEmpty()) persistCertificateTable(tables);
+            if (atomic.isEmpty()) return;
+            entries = atomic;
         }
         var certified = new HashSet<ByteBuffer>();
         for (Entry entry : entries) if (entry.value != null) certified.add(ByteBuffer.wrap(entry.key));
