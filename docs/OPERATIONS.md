@@ -27,6 +27,46 @@ paths do not repeat individual `get` calls. Root prefetch also uses bulk
 lookup followed by searches of prepared misses. Every new result still passes
 certificate validation before persistence.
 
+Concurrent reconstruction scans copy encoded RocksDB keys into bounded batches.
+Workers decode each batch, perform its certificate lookup and replay, then search
+its misses directly. This removes serial decoding/replay and per-class task
+submission from the iterator thread. At most the JVM's available CPU count runs
+these batches; the bounded task queue applies backpressure. The batch size is
+`min(td18.reconstructionScanBatchKeys, td18.certificateLookupBatchSize)`, with
+defaults 4,096 and 262,144. Checkpoint inventory validation uses the same parallel
+decoding. Iterator errors, malformed records, incomplete lookup responses and
+worker failures abort the scan; an exact count is published only after every
+batch, including its final remainder, joins successfully.
+Resuming a final-root checkpoint combines its validation with this mandatory
+processing scan. The checkpoint count is an expectation for progress and final
+coverage checks, never a completed inventory until the scan succeeds. Other
+checkpoint stages retain validation before inverse generation.
+
+`tools/audit/BenchmarkReconstructionScan.jsh` compares the previous serial
+decode/lookup and per-class dispatch path with parallel batches on an immutable
+sample of a sealed root inventory. Set `td18.scanBenchmarkSource` to its `roots`
+directory and `td18.scanBenchmarkCertificates` to the certificate database, then
+run the script through JShell with the emitter classpath. The benchmark opens
+production inputs read-only, replays all certificate hits and CPU closures, and
+compares every record's classification exactly. Its temporary sample disables
+WAL and flushes explicitly; it does not write production certificates.
+
+On 2026-11-15, JDK 21 / JShell comparisons on the P100 server's 80 logical CPU
+cores used 1,048,579 sealed root records per sample. Both paths used the same
+read-only certificate view, and every per-record outcome matched:
+
+| Sample | Previous records/s | Parallel records/s | Speedup |
+| --- | ---: | ---: | ---: |
+| First keys, all certificate hits, round 1 | 54,254 | 444,823 | 8.20 |
+| First keys, all certificate hits, round 2 | 50,919 | 592,374 | 11.63 |
+| Starting at key prefix `020a1340` | 24,701 | 527,519 | 21.36 |
+
+The later sample contained 5,414 certificate hits and 1,043,165 CPU closures,
+with no residuals. These measurements cover decoding, lookup/replay, CPU search
+and exact outcome comparison on samples. They exclude new-certificate
+persistence, GPU work and a complete root inventory; they are performance
+experiments, not proof artifacts or whole-run throughput guarantees.
+
 GPU properties retain the shared machinery: `td18.gpuDevices`,
 `td18.gpuSlots`, `td18.gpuBudgetMB`, `td18.gpuQueueCapacity`,
 and `td18.gpuStatsPeriodSeconds`. CPU prefix properties are
@@ -104,6 +144,15 @@ the reconstruction pipeline's unresolved GPU count includes both outcomes.
 A wave completes only after CPU production, GPU dispatch and all inverse work
 have joined. Coverage checks require every GPU input to be closed or transferred
 and every transferred case to finish inverse processing.
+
+The final root inventory is counted during the mandatory root-processing scan.
+Persistence writers drain before that scan starts; there is no preliminary
+count-only traversal. Until the iterator completes, progress reports an unknown
+total. The iterator validates every record and its status, and processing still
+checks all CPU/GPU/inverse coverage equalities. The ROOTS checkpoint is written
+with the exact count only after the processing workers drain. An interruption
+before that boundary resumes the preceding sealed wave. The independent checker
+continues to regenerate and verify its own inventories.
 
 For a reproducible GPU comparison, use
 `tools/audit/BenchmarkGpuSearch.jsh`. It samples an immutable handoff queue,

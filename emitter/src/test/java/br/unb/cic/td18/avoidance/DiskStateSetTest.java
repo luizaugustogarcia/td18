@@ -79,7 +79,10 @@ class DiskStateSetTest {
         var lastPair = ActiveErikssonAvoidanceTest.pair(3);
         String oldBuffer = System.getProperty("td18.reconstructionBufferKeys");
         String oldGeneratedBatch = System.getProperty("td18.reconstructionGeneratedBatchKeys");
-        System.setProperty("td18.reconstructionBufferKeys", "3");
+        // This test stresses producer remainders and cross-batch duplicates.
+        // Keep a useful deduplication window instead of ingesting one SST per
+        // repeated reference insertion; tiny writer buffers are covered above.
+        System.setProperty("td18.reconstructionBufferKeys", "4096");
         System.setProperty("td18.reconstructionGeneratedBatchKeys", "1024");
         Path batchedPath = directory.resolve("batched");
         List<String> expected;
@@ -236,7 +239,7 @@ class DiskStateSetTest {
             for (int budget=1;budget<=7;budget++) states.add(pair,budget);
             for (int budget=1;budget<=7;budget++) states.add(pair,budget);
             assertEquals(7,states.seal());
-            var sizes = new ArrayList<Integer>();
+            var sizes = new java.util.concurrent.ConcurrentLinkedQueue<Integer>();
             var hits = new java.util.concurrent.atomic.AtomicInteger();
             var misses = java.util.concurrent.ConcurrentHashMap.<Integer>newKeySet();
             states.forEachConcurrently(2,batch->{
@@ -247,7 +250,7 @@ class DiskStateSetTest {
                 assertEquals(1,state.maximumMoves()%2);
                 assertTrue(misses.add(state.maximumMoves()),"A duplicate reached sorting");
             });
-            assertEquals(java.util.List.of(3,3,1),sizes);
+            assertEquals(java.util.List.of(1,3,3),sizes.stream().sorted().toList());
             assertEquals(3,hits.get());assertEquals(java.util.Set.of(1,3,5,7),misses);
             assertThrows(IllegalStateException.class,()->states.forEachConcurrently(2,
                     batch->new boolean[batch.size()-1],state->fail("Incomplete lookup cannot skip work"),
@@ -255,6 +258,109 @@ class DiskStateSetTest {
         } finally {
             if(oldBatch==null)System.clearProperty("td18.certificateLookupBatchSize");else System.setProperty("td18.certificateLookupBatchSize",oldBatch);
             if(oldBuffer==null)System.clearProperty("td18.reconstructionBufferKeys");else System.setProperty("td18.reconstructionBufferKeys",oldBuffer);
+        }
+    }
+
+    @Test void parallelLookupAndCallbacksJoinBeforePublishingTheInventory(@TempDir Path directory) throws Exception {
+        String oldBatch = System.getProperty("td18.reconstructionScanBatchKeys");
+        System.setProperty("td18.reconstructionScanBatchKeys", "1");
+        var entered = new CountDownLatch(2);
+        var release = new CountDownLatch(1);
+        try (var states = new DiskStateSet(directory.resolve("states"));
+             var executor = Executors.newSingleThreadExecutor()) {
+            var pair = ActiveErikssonAvoidanceTest.pair(3);
+            for (int budget = 1; budget <= 7; budget++) states.add(pair, budget);
+            var observed = java.util.concurrent.ConcurrentHashMap.<Integer>newKeySet();
+            var lookupThreads = java.util.concurrent.ConcurrentHashMap.<Long>newKeySet();
+            var scan = executor.submit(() -> states.forEachConcurrently(2, batch -> {
+                lookupThreads.add(Thread.currentThread().threadId());
+                entered.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) throw new AssertionError("Lookup did not resume");
+                } catch (InterruptedException failure) {
+                    Thread.currentThread().interrupt(); throw new IllegalStateException(failure);
+                }
+                return new boolean[batch.size()];
+            }, state -> fail("Unexpected cache hit"), state ->
+                    assertTrue(observed.add(state.maximumMoves()), "Duplicate scan callback")));
+            try {
+                assertTrue(entered.await(10, TimeUnit.SECONDS), "Lookup batches must run concurrently");
+                assertEquals(-1, states.knownSize(), "An unfinished scan is not a checked inventory");
+                assertFalse(scan.isDone());
+            } finally { release.countDown(); }
+            scan.get(10, TimeUnit.SECONDS);
+            assertEquals(2, lookupThreads.size());
+            assertEquals(java.util.Set.of(1,2,3,4,5,6,7), observed);
+            assertEquals(7, states.knownSize());
+        } finally {
+            release.countDown();
+            restore("td18.reconstructionScanBatchKeys", oldBatch);
+        }
+    }
+
+    @Test void failedParallelLookupCannotPublishAnUncheckedInventory(@TempDir Path directory) {
+        String oldBatch = System.getProperty("td18.reconstructionScanBatchKeys");
+        System.setProperty("td18.reconstructionScanBatchKeys", "1");
+        try (var states = new DiskStateSet(directory.resolve("states"))) {
+            var pair = ActiveErikssonAvoidanceTest.pair(3);
+            states.add(pair, 8); states.add(pair, 9);
+            assertThrows(IllegalStateException.class, () -> states.forEachConcurrently(2,
+                    batch -> null, state -> fail("Incomplete lookup cannot close a class"),
+                    state -> fail("Incomplete lookup cannot dispatch a class")));
+            assertEquals(-1, states.knownSize());
+            var completed = new java.util.concurrent.atomic.AtomicInteger();
+            states.forEachConcurrently(2, state -> completed.incrementAndGet());
+            assertEquals(2, completed.get());
+            assertEquals(2, states.knownSize());
+        } finally { restore("td18.reconstructionScanBatchKeys", oldBatch); }
+    }
+
+    @Test void parallelCheckpointValidationRejectsMalformedFinalRecords(@TempDir Path directory) throws Exception {
+        String oldBatch = System.getProperty("td18.reconstructionScanBatchKeys");
+        System.setProperty("td18.reconstructionScanBatchKeys", "1");
+        try {
+            for (boolean invalidValue : new boolean[]{false, true}) {
+                Path path = directory.resolve("invalid-" + invalidValue);
+                byte[] valid = DiskStateSet.encode(new DiskStateSet.State(ActiveErikssonAvoidanceTest.pair(3), 8));
+                byte[] invalid = valid.clone();
+                if (invalidValue) invalid[1] = 9; else invalid[0] = 3;
+                try (var options = new org.rocksdb.Options().setCreateIfMissing(true);
+                     var database = org.rocksdb.RocksDB.open(options, path.toString());
+                     var writes = new org.rocksdb.WriteOptions().setDisableWAL(true);
+                     var flush = new org.rocksdb.FlushOptions().setWaitForFlush(true)) {
+                    database.put(writes, valid, new byte[0]);
+                    database.put(writes, invalid, invalidValue ? new byte[]{1} : new byte[0]);
+                    database.flush(flush);
+                }
+                assertThrows(IllegalStateException.class, () -> DiskStateSet.openSealed(path, 2));
+                try (var states = DiskStateSet.openSealedForScan(path, 2)) {
+                    assertThrows(IllegalStateException.class, () -> states.forEachConcurrently(2, state -> { }));
+                    assertEquals(-1, states.knownSize());
+                }
+            }
+        } finally { restore("td18.reconstructionScanBatchKeys", oldBatch); }
+    }
+
+    @Test void checkpointCountIsAnExpectationUntilTheMandatoryScanCompletes(@TempDir Path directory) {
+        Path path = directory.resolve("states");
+        var pair = ActiveErikssonAvoidanceTest.pair(3);
+        try (var states = new DiskStateSet(path)) {
+            states.add(pair, 8); states.add(pair, 9); assertEquals(2, states.seal());
+        }
+        assertThrows(IllegalStateException.class, () -> DiskStateSet.openSealedForScan(directory.resolve("missing"), 0));
+        try (var states = DiskStateSet.openSealedForScan(path, 3)) {
+            assertEquals(3, states.prepareScan());
+            assertEquals(-1, states.knownSize());
+            assertThrows(IllegalStateException.class, () -> states.forEachConcurrently(2, state -> { }));
+            assertEquals(-1, states.knownSize(), "A count mismatch cannot publish a checked inventory");
+        }
+        try (var states = DiskStateSet.openSealedForScan(path, 2)) {
+            assertEquals(-1, states.knownSize());
+            assertThrows(IllegalStateException.class, () -> states.add(pair, 10));
+            var count = new java.util.concurrent.atomic.AtomicInteger();
+            states.forEachConcurrently(2, state -> count.incrementAndGet());
+            assertEquals(2, count.get());
+            assertEquals(2, states.knownSize());
         }
     }
 }

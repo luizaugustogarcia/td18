@@ -60,7 +60,11 @@ public final class ErikssonAvoidance {
         var checkpoint=ErikssonCheckpoint.read(source);
         String name=checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_TWO ? "after-two":checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_ONE ? "after-one":"roots";
         long count=checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_TWO ? checkpoint.afterTwo():checkpoint.stage()==ErikssonCheckpoint.Stage.AFTER_ONE ? checkpoint.afterOne():checkpoint.roots();
-        try (var states=DiskStateSet.openSealed(source.resolve(name),count)) {
+        // Final-root processing validates the checkpoint in its mandatory scan;
+        // do not decode the entire root inventory once merely to reopen it.
+        try (var states=checkpoint.stage()==ErikssonCheckpoint.Stage.ROOTS
+                ? DiskStateSet.openSealedForScan(source.resolve(name),count)
+                : DiskStateSet.openSealed(source.resolve(name),count)) {
             return switch (checkpoint.stage()) {
                 case AFTER_TWO -> afterTwo(checkpoint,states,work,cpu,gpu,lookup,prefetchGpu);
                 case AFTER_ONE -> afterOne(checkpoint,states,work,cpu,gpu,lookup,prefetchGpu);
@@ -101,9 +105,14 @@ public final class ErikssonAvoidance {
                 roots.addGenerated(ErikssonRoute.ROOT_BUDGET,
                         output -> ErikssonInverseReconstruction.preimages(state.pair(),gain,output));
             });
-            var next=new ErikssonCheckpoint(ErikssonCheckpoint.Stage.ROOTS,checkpoint.endpoints(),checkpoint.afterTwo(),checkpoint.afterOne(),roots.seal());
+            roots.prepareScan();
             prefetch.finish();
-            next.write(work); return roots(next,roots,work,cpu,gpu,lookup);
+            // Count while processing roots; publish a counted checkpoint only
+            // after the exhaustive scan and all search workers have joined.
+            var result = roots(checkpoint,roots,work,cpu,gpu,lookup);
+            new ErikssonCheckpoint(ErikssonCheckpoint.Stage.ROOTS,checkpoint.endpoints(),
+                    checkpoint.afterTwo(),checkpoint.afterOne(),result.roots()).write(work);
+            return result;
         }
     }
     private static Result roots(ErikssonCheckpoint checkpoint,DiskStateSet states,Path work,
@@ -114,7 +123,7 @@ public final class ErikssonAvoidance {
                 ReconstructionPipeline.configuredGpuWorkers(),checked(lookup,3),cpu,gpu,state -> {
             require(state,3); unresolved.incrementAndGet();
         });
-        return new Result(checkpoint.endpoints(),checkpoint.afterTwo(),checkpoint.afterOne(),checkpoint.roots(),unresolved.get());
+        return new Result(checkpoint.endpoints(),checkpoint.afterTwo(),checkpoint.afterOne(),states.knownSize(),unresolved.get());
     }
     private static int workers() { return DirectTwistedBraceletGenerator.configuredWorkerCount(); }
     private static Function<List<DiskStateSet.State>,boolean[]> checked(Function<List<DiskStateSet.State>,boolean[]> lookup,int stage) {

@@ -88,6 +88,18 @@ before publication. Stop and completion polls use device-scoped relaxed
 loads, with the libcu++ PTX mapping for Pascal and later architectures.
 They do not publish queue entries or witness payloads.
 
+Each search slot also holds a bounded cache of complete algebraic permutation
+keys and the least depth visited. The target rho is fixed within that search,
+so omega determines beta as a cycle, up to its starting position. A shallower
+occurrence has at least as much remaining budget and exploration depth. The
+only history restriction skips an immediate inverse edge to an already visited
+parent; erasing that adjacent inverse pair preserves any successful continuation.
+The cache compares all key bits under fenced locks. Hash collisions and full
+probe sequences fall back to ordinary exploration. It is cleared between
+searches, and a duplicate removal decrements the outstanding-work count.
+Its 524,288 entries use 12 MiB per slot in addition to the configured queues.
+The P100 queue allocation remains 16 times 896 MiB, or 14 GiB per device.
+
 At an exploration cap, the consecutive-support scan first tests all moves
 gaining at least two fixed symbols. If neither gain zero nor gain one can
 close with the actual remaining obligation budget and known-diameter table,

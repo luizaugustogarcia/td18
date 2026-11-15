@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -45,7 +46,7 @@ public final class ReconstructionPipeline {
                                BiPredicate<CyclicTargetPair, Integer> cpu,
                                BiPredicate<CyclicTargetPair, Integer> gpu,
                                Consumer<DiskStateSet.State> residual, Runnable gpuDrained) {
-        long total = states.seal();
+        var total = new AtomicLong(states.prepareScan());
         int inverseWorkers = Integer.getInteger("td18.reconstructionInverseWorkers",
                 Math.min(cpuWorkers, Runtime.getRuntime().availableProcessors()));
         if (inverseWorkers < 1) throw new IllegalArgumentException("Inverse workers must be positive");
@@ -59,11 +60,13 @@ public final class ReconstructionPipeline {
                 long cachedCount = cached.sum(), cpuCount = cpuClosed.sum(), gpuCount = gpuClosed.sum();
                 long inverseCount = inverseCompleted.sum(), submitted = queue.appended(), misses = inverseQueue.appended();
                 long processed = cachedCount + cpuCount + gpuCount + inverseCount;
-                String percent = String.format(Locale.ROOT, "%.2f", total == 0 ? 100.0 : 100.0 * processed / total);
+                long expected = total.get();
+                String percent = expected < 0 ? "unknown" : String.format(Locale.ROOT, "%.2f", expected == 0 ? 100.0 : 100.0 * processed / expected);
                 log.info("Inverse reconstruction {} search/inverse: processed={}/{} ({}%), remaining={}, cached={}, cpuClosed={}, "
                                 + "cpuRemaining={}, gpuSubmitted={}, gpuClosed={}, gpuMisses={}, gpuRemaining={}, inverseCompleted={}, inverseRemaining={}",
-                        spool.getFileName(), processed, total, percent, total - processed, cachedCount, cpuCount,
-                        total - cachedCount - cpuCount - submitted, submitted, gpuCount, misses,
+                        spool.getFileName(), processed, expected < 0 ? "unknown" : expected, percent,
+                        expected < 0 ? "unknown" : expected - processed, cachedCount, cpuCount,
+                        expected < 0 ? "unknown" : expected - cachedCount - cpuCount - submitted, submitted, gpuCount, misses,
                         submitted - gpuCount - misses, inverseCount, misses - inverseCount);
             };
             log.info("Reconstruction pipeline {}: CPU workers={}, GPU workers={}, inverse workers={}, disk queue={}",
@@ -103,6 +106,8 @@ public final class ReconstructionPipeline {
                                 if (cpu.test(state.pair(), state.maximumMoves())) cpuClosed.increment();
                                 else queue.add(state);
                             });
+                            total.set(states.knownSize());
+                            if (total.get() < 0) throw new IllegalStateException("Missing exhaustive source inventory");
                             queue.finish();
                         } catch (RuntimeException | Error error) {
                             queue.abort(error); inverseQueue.abort(error); throw error;
@@ -116,7 +121,7 @@ public final class ReconstructionPipeline {
                 }
             }
             queue.check(); inverseQueue.check();
-            if (cached.sum() + cpuClosed.sum() + queue.appended() != total
+            if (cached.sum() + cpuClosed.sum() + queue.appended() != total.get()
                     || gpuClosed.sum() + inverseQueue.appended() != queue.appended()
                     || inverseCompleted.sum() != inverseQueue.appended())
                 throw new IllegalStateException("Incomplete reconstruction pipeline coverage");

@@ -1,5 +1,18 @@
 # CUDA throughput measurements
 
+For the later full-depth reconstruction phase, see the
+[local negative-search profile](NEGATIVE_SEARCH_PROFILE.md). It identifies
+repeated states as a major cost, relates direct move generation to the
+Mühle–Nadeau paper, and compares an experimental CUDA state cache with 100 ms
+search allowances. The historical depth-five results below describe a different
+search workload.
+
+On 2026-11-15 the bounded state cache was integrated into the CUDA search.
+The integrated representation stores all 95 omega bits in two 64-bit fields.
+The historical local prototype measurements below and in the negative-search
+report remain experiments; no P100 speedup is inferred from them. The remote
+deployment rebuild skips tests at the user's request.
+
 On 2026-11-14 the kernel with zero-move allowance pruning completed a
 production sample **about 64 times as fast** as the original kernel on a
 Tesla P100-SXM2-16GB: median throughput increased from **25.756 to 1649.462

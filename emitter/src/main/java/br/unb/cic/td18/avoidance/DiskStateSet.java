@@ -44,8 +44,10 @@ public final class DiskStateSet implements AutoCloseable {
     private final AtomicReference<Throwable> persistenceFailure = new AtomicReference<>();
     private final LongAdder ingestedTables = new LongAdder(), ingestedKeys = new LongAdder();
     private long size = -1;
+    private boolean scanPrepared;
     private volatile boolean closed;
     private final boolean readOnly;
+    private final long checkpointCount;
 
     public record State(CyclicTargetPair pair, int maximumMoves) {
         public State {
@@ -72,9 +74,25 @@ public final class DiskStateSet implements AutoCloseable {
         return new DiskStateSet(directory, true, expectedCount, null);
     }
 
+    /**
+     * Opens a checkpoint for mandatory processing. Its count remains an expected
+     * count until that exhaustive scan validates every record, joins every
+     * callback and checks the exact count. This avoids a duplicate traversal.
+     */
+    public static DiskStateSet openSealedForScan(Path directory, long expectedCount) {
+        if (expectedCount < 0) throw new IllegalArgumentException("Nonnegative checkpoint count required");
+        return new DiskStateSet(directory, true, expectedCount, null, false);
+    }
+
     private DiskStateSet(Path directory, boolean readOnly, long expectedCount,
                          Consumer<List<byte[]>> generatedObserver) {
+        this(directory, readOnly, expectedCount, generatedObserver, true);
+    }
+
+    private DiskStateSet(Path directory, boolean readOnly, long expectedCount,
+                         Consumer<List<byte[]>> generatedObserver, boolean validateBeforeUse) {
         this.readOnly = readOnly;
+        checkpointCount = readOnly ? expectedCount : -1;
         this.generatedObserver = generatedObserver;
         stagingDirectory = directory.resolve("sst-staging");
         int writerCount = readOnly ? 0 : Math.min(bufferKeys, positiveProperty("td18.reconstructionWriters",
@@ -109,7 +127,7 @@ public final class DiskStateSet implements AutoCloseable {
                     }
                 }, () -> flushPending(pending), persistenceFailure);
             }
-            if (readOnly && seal() != expectedCount)
+            if (readOnly && validateBeforeUse && seal() != expectedCount)
                 throw new IllegalStateException("Checkpoint state count disagrees at " + directory
                         + ": expected " + expectedCount + ", found " + size);
         } catch (IOException | RocksDBException | RuntimeException failure) {
@@ -225,46 +243,42 @@ public final class DiskStateSet implements AutoCloseable {
         }
     }
 
-    public synchronized long seal() {
+    /** Drain persistence without a preliminary inventory scan. */
+    public synchronized long prepareScan() {
         requireOpen();
         requireSuccessfulGeneration();
-        if (size >= 0) return size;
-        if (!readOnly) {
-            stopAdmissions();
-            finishWriters();
-            requireSuccessfulGeneration();
+        if (!scanPrepared) {
+            if (!readOnly) {
+                stopAdmissions();
+                finishWriters();
+                requireSuccessfulGeneration();
+            }
+            scanPrepared = true;
         }
-        long count = 0;
-        var counted = new AtomicLong();
+        return size >= 0 ? size : checkpointCount;
+    }
+
+    /** Unknown until an exhaustive iterator and its callbacks complete. */
+    public synchronized long knownSize() { return size; }
+
+    public synchronized long seal() {
+        prepareScan();
+        if (size >= 0) return size;
         // This set writes exclusively through completed external-SST ingests.
         // There is no memtable to flush; a synchronous flush can wait behind
         // compactions even though the complete inventory is already readable.
-        var advisory = generatedObserver == null ? null : new ArrayList<byte[]>(generatedBatchKeys);
-        try (var progress = new ReconstructionProgress("State inventory " + stagingDirectory.getParent().getFileName() + " unique-class counting",
-                     -1, counted::get);
-             var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads)) {
-            for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
-                byte[] key = iterator.key();
-                decode(key, iterator.value());
-                count = Math.addExact(count, 1);
-                if ((count & 4095) == 0) counted.set(count);
-                // Keep advisory GPU work available during the count. Drops
-                // remain optional: final processing scans every sealed key.
-                if (advisory != null) {
-                    advisory.add(key);
-                    if (advisory.size() == generatedBatchKeys) { generatedObserver.accept(advisory); advisory.clear(); }
-                }
-            }
-            iterator.status();
-            if (advisory != null && !advisory.isEmpty()) generatedObserver.accept(advisory);
-            counted.set(count); progress.countedTotal(count);
-        } catch (RocksDBException failure) { throw new IllegalStateException("Cannot seal reconstruction states", failure); }
-        size = count;
-        return count;
+        size = scanEncodedConcurrently(Runtime.getRuntime().availableProcessors(), checkpointCount,
+                "unique-class counting", keys -> {
+                    for (byte[] key : keys) decode(key, EMPTY);
+                    // Advisory work follows validation; the mandatory processing
+                    // scan still visits every persisted record.
+                    if (generatedObserver != null) generatedObserver.accept(keys);
+                });
+        return size;
     }
 
     public void forEach(Consumer<State> consumer) {
-        long expected = seal();
+        long expected = prepareScan();
         long scanned = 0;
         var scannedCount = new AtomicLong();
         try (var progress = new ReconstructionProgress("State inventory " + stagingDirectory.getParent().getFileName() + " scan",
@@ -278,14 +292,13 @@ public final class DiskStateSet implements AutoCloseable {
             iterator.status();
             scannedCount.set(scanned);
         } catch (RocksDBException failure) { throw new IllegalStateException("Cannot scan reconstruction states", failure); }
-        if (scanned != expected) throw new IllegalStateException("Reconstruction scan missed states");
+        if (expected >= 0 && scanned != expected) throw new IllegalStateException("Reconstruction scan missed states");
+        synchronized (this) { size = scanned; }
     }
 
     /** Reads deterministic keys with bounded parallel callbacks, waiting for all work to finish. */
     public void forEachConcurrently(int workers, Consumer<State> consumer) {
-        try (var tasks = new BoundedTasks(workers, "reconstruction-")) {
-            forEach(state -> tasks.submit(() -> consumer.accept(state)));
-        }
+        forEachConcurrently(workers, null, state -> { }, consumer);
     }
 
     public static int lookupBatchSize() { return positiveProperty("td18.certificateLookupBatchSize", 262144); }
@@ -311,24 +324,72 @@ public final class DiskStateSet implements AutoCloseable {
         if (!batch.isEmpty()) consumer.accept(List.copyOf(batch));
     }
 
-    /** Bulk replay precedes bounded submission; cached classes never enter the worker queue. */
+    /**
+     * Workers decode bounded key batches, replay their bulk lookups, then process
+     * misses directly. The iterator submits encoded batches rather than per-state
+     * tasks; bounded-queue backpressure lets it help workers when they are busy.
+     * Callbacks and lookups must support concurrent calls. Every worker joins
+     * before the exact inventory becomes available, including the final batch.
+     */
     public void forEachConcurrently(int workers, Function<List<State>, boolean[]> lookup,
                                     Consumer<State> cached, Consumer<State> missing) {
-        if (lookup == null) { forEachConcurrently(workers, missing); return; }
-        try (var tasks = new BoundedTasks(workers, "reconstruction-")) {
-            forEachBatch(batch -> {
-                tasks.check();
-                boolean[] hits = lookup.apply(batch);
+        long expected = prepareScan();
+        long scanned = scanEncodedConcurrently(workers, expected, "scan", keys -> {
+            if (lookup == null) {
+                for (byte[] key : keys) missing.accept(decode(key, EMPTY));
+            } else {
+                var batch = new ArrayList<State>(keys.size());
+                for (byte[] key : keys) batch.add(decode(key, EMPTY));
+                boolean[] hits = lookup.apply(List.copyOf(batch));
                 if (hits == null || hits.length != batch.size())
                     throw new IllegalStateException("Incomplete reconstruction batch lookup");
-                for (int i = 0; i < batch.size(); i++) if (hits[i]) cached.accept(batch.get(i));
                 for (int i = 0; i < batch.size(); i++) {
-                    if (hits[i]) continue;
-                    State state = batch.get(i);
-                    tasks.submit(() -> missing.accept(state));
+                    if (hits[i]) cached.accept(batch.get(i));
+                    else missing.accept(batch.get(i));
                 }
-            });
-        }
+            }
+        });
+        synchronized (this) { size = scanned; }
+    }
+
+    /** The single RocksDB iterator owns ordering; bounded batches own all costly work. */
+    private long scanEncodedConcurrently(int workers, long expected, String phase,
+                                         Consumer<List<byte[]>> consumer) {
+        if (workers < 1) throw new IllegalArgumentException("Positive scan worker count required");
+        int batchKeys = Math.min(lookupBatchSize(), positiveProperty("td18.reconstructionScanBatchKeys", 4096));
+        int parallelism = Math.min(workers, Runtime.getRuntime().availableProcessors());
+        long scanned = 0;
+        var completed = new LongAdder();
+        try (var progress = new ReconstructionProgress("State inventory " + stagingDirectory.getParent().getFileName() + " " + phase,
+                     expected, completed::sum);
+             var tasks = new BoundedTasks(parallelism, "reconstruction-");
+             var reads = new ReadOptions().setFillCache(false); var iterator = database.newIterator(reads)) {
+            var batch = new ArrayList<byte[]>(batchKeys);
+            for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
+                tasks.check();
+                if (iterator.value().length != 0) throw new IllegalStateException("Malformed reconstruction state");
+                batch.add(iterator.key());
+                scanned = Math.addExact(scanned, 1);
+                if (batch.size() == batchKeys) {
+                    submitScanBatch(tasks, batch, consumer, completed);
+                    batch.clear();
+                }
+            }
+            iterator.status();
+            if (!batch.isEmpty()) submitScanBatch(tasks, batch, consumer, completed);
+        } catch (RocksDBException failure) { throw new IllegalStateException("Cannot scan reconstruction states", failure); }
+        if (expected >= 0 && scanned != expected) throw new IllegalStateException("Reconstruction scan missed states");
+        if (completed.sum() != scanned) throw new IllegalStateException("Incomplete reconstruction scan callbacks");
+        return scanned;
+    }
+
+    private static void submitScanBatch(BoundedTasks tasks, List<byte[]> batch,
+                                         Consumer<List<byte[]>> consumer, LongAdder completed) {
+        var keys = List.copyOf(batch);
+        tasks.submit(() -> {
+            consumer.accept(keys);
+            completed.add(keys.size());
+        });
     }
 
     static State decode(byte[] key, byte[] value) {

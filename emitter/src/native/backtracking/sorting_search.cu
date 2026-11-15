@@ -31,6 +31,16 @@ namespace {
         uint8_t betaStart;  // first element of beta cycle (reconstructed via rho invariant)
     };
 
+    constexpr int MEMO_CAPACITY = 1 << 19;
+    struct MemoEntry {
+        int lock;
+        int depth;
+        unsigned long long low;
+        unsigned long long high;
+    };
+    static_assert(MAX_N <= 24, "Search state keys use two 60-bit symbol fields");
+    static_assert(sizeof(MemoEntry) == 24, "Search cache memory accounting changed");
+
     struct BacktrackingQueue {
         int head;
         int tail;
@@ -78,6 +88,7 @@ namespace {
         unsigned long long *startedAtNanos;
         unsigned long long maximumNanos;
 
+        MemoEntry *memo;
         int reverseTripleOrder;
         int allowDiameterClosure;
         uint8_t rhoInv[MAX_N];  // precomputed rho^{-1} for beta reconstruction
@@ -98,6 +109,7 @@ namespace {
         DeviceAsyncUniquePtr<short> tripleThird{};
         DeviceAsyncUniquePtr<short> inputVectors{};
         DeviceAsyncUniquePtr<BacktrackingResult> result{};
+        DeviceAsyncUniquePtr<MemoEntry> memo{};
         HostPinnedUniquePtr<BacktrackingResult> hostResult{};
     };
 
@@ -129,6 +141,7 @@ namespace {
         buffers.inputVectors.reset();
         buffers.result.reset();
         buffers.hostResult.reset();
+        buffers.memo.reset();
         buffers.queueCount = 0;
         buffers.localCapacity = 0;
         buffers.overflowCapacity = 0;
@@ -234,6 +247,44 @@ namespace {
         __threadfence();
         release_lock(&q.lock);
         return true;
+    }
+
+    // Within a search rho is fixed, so omega determines beta as a cycle.
+    // A cyclic rotation of beta does not change legal supports. An occurrence
+    // at no greater depth has at least as much budget and exploration depth.
+    // The preceding inverse edge leads to its already visited parent; omitting
+    // that edge cannot add a new reachable state. Compare every key bit: hash
+    // collisions or a full bounded probe always fall back to exploration.
+    // Volatile fields and the fenced lock publication keep entries coherent
+    // on Pascal as well as newer CUDA devices. Entries reset between searches.
+    __device__ bool memo_dominated(const DeviceSearchContext &ctx, const BacktrackingNode &node) {
+        unsigned long long low = 0;
+        unsigned long long high = 0;
+        for (int i = 0; i < ctx.n; ++i) {
+            if (i < 12) low |= static_cast<unsigned long long>(node.omega[i]) << (5 * i);
+            else high |= static_cast<unsigned long long>(node.omega[i]) << (5 * (i - 12));
+        }
+        unsigned long long hash = low ^ (static_cast<unsigned long long>(high) * 0x9e3779b97f4a7c15ULL);
+        hash ^= hash >> 30; hash *= 0xbf58476d1ce4e5b9ULL;
+        hash ^= hash >> 27; hash *= 0x94d049bb133111ebULL; hash ^= hash >> 31;
+        for (int probe = 0; probe < 8; ++probe) {
+            volatile MemoEntry &entry = ctx.memo[(hash + probe) & (MEMO_CAPACITY - 1)];
+            auto *lock = const_cast<int *>(&entry.lock);
+            acquire_lock(lock);
+            bool matched = false, dominated = false;
+            if (entry.depth == 0) {
+                entry.low = low; entry.high = high; entry.depth = node.depth;
+                matched = true;
+            } else if (entry.low == low && entry.high == high) {
+                dominated = entry.depth <= node.depth;
+                if (!dominated) entry.depth = node.depth;
+                matched = true;
+            }
+            __threadfence();
+            release_lock(lock);
+            if (matched) return dominated;
+        }
+        return false;
     }
 
     // The device-wide nanosecond timer has one time base across SMs, unlike clock64().
@@ -634,6 +685,13 @@ namespace {
                 continue;
             }
 
+            int dominated = 0;
+            if (lane == 0) dominated = memo_dominated(ctx, node);
+            if (__shfl_sync(0xFFFFFFFF, dominated, 0)) {
+                if (lane == 0) atomicAdd(ctx.outstandingWork, ~0ULL);
+                continue;
+            }
+
             // With no zero-move allowance left, every continuing move must
             // lower rank (n - oddCycles)/2 by one. An all-odd permutation then
             // stays all odd (Muehle--Nadeau, Corollary 3.3). At rank r > 0 its
@@ -1002,6 +1060,7 @@ void allocateGpuSortingSearchSlot(const int slot, const int device,
             static_cast<size_t>(MAX_N) * 2, "sort.inputVectors");
     buffers.result = allocateDeviceBuffer<BacktrackingResult>(1, "sort.result");
     buffers.hostResult = makePinnedHostBuffer<BacktrackingResult>(1);
+    buffers.memo = allocateDeviceBuffer<MemoEntry>(MEMO_CAPACITY, "sort.memo");
 
     buffers.queueCount = queueCount;
     buffers.localCapacity = localCapacity;
@@ -1180,6 +1239,8 @@ GpuSortingResult performGpuSortingSearch(std::vector<short> beta,
     host.outstandingWork = dOutstandingWork;
     host.startedAtNanos = dStartedAtNanos;
     host.maximumNanos = maximumNanos;
+    host.memo = buffers.memo.get();
+    CHECK_CUDA(cudaMemsetAsync(host.memo, 0, MEMO_CAPACITY * sizeof(MemoEntry), stream));
     host.reverseTripleOrder = (queueCount == 1) ? 1 : 0;
 
     constexpr int INIT_THREADS = 128;

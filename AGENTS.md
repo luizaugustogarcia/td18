@@ -83,8 +83,10 @@
 
 - On 200.20.15.153, use 16 GPU slots per device and 896 MiB of queue memory
   per slot. The total queue allocation remains 14 GiB per P100.
-- Always load ~/.bashrc for server commands, builds and launches. Use
-  bash -ic for SSH commands so the configured toolchain is available.
+- Always load ~/.bashrc for every shell command, locally and on servers,
+  including inspection, profiling, builds and launches. Use bash -ic locally
+  and for the remote command passed to SSH so the configured toolchain is
+  available. Use plain ssh for server access.
 
 - Run Java computations through JShell and use all available CPU cores.
   Keep CPU-bound runs saturated with useful work, bounded queues and enough

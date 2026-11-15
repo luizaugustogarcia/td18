@@ -407,12 +407,26 @@ bound by the triangle inequality, and quotient representatives transport all
 supports and gaps bijectively. Intermediate checked results close their paths
 within the stated budgets. Missing obstruction markers cannot omit a branch.
 An intermediate sorting search may stop at an exploration-depth limit or a
-time allowance without finding a result. The default intermediate CUDA depth
-limit is five moves, with no time allowance. Either limit leaves the class
+time allowance without finding a result. By default, intermediate CUDA searches
+explore their full obligation budgets, eight or nine moves, with no time
+allowance. Either limit leaves the class
 unresolved and therefore retains every
 applicable inverse branch. Final roots still require checked budget-10 results;
 their searches use full exploration depth ten with no time cutoff. The actual obligation budget continues to
 govern every diameter closure.
+
+Within one sorting search, the target $\rho$ is fixed, so the full algebraic
+permutation $\omega$ determines the current cycle
+$\beta=\omega^{-1}\rho$; choosing another starting position of that cycle
+does not change its legal supports. A bounded search cache may therefore
+retain the least spent depth for each exact $\omega$. A shallower occurrence
+has at least as much remaining obligation budget and exploration depth.
+The immediate-inverse restriction only omits an edge back to an already visited
+parent: deleting the adjacent inverse pair preserves a successful continuation.
+Thus exact-state depth dominance preserves the existence of a permitted
+certificate. Hash collisions are compared using the complete key; an exhausted
+cache probe falls back to ordinary exploration. The cache is cleared between
+inputs and supplies no proof discharge by itself.
 
 \subsection{The zero-move allowance and capped all-odd searches}
 Here a \emph{zero move} preserves the number of odd-length cycles; this is
