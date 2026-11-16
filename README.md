@@ -51,13 +51,14 @@ under WSL2: 22 CPU workers, a 16 GiB Java heap, and 8 GPU slots with 768 MiB
 of queue memory each. [The reference record](docs/REFERENCE_SIMULATION.md)
 contains the configuration, start/finish times, durations, and log locations.
 The local launchers use those memory and queue limits with all allocated CPU
-cores. They build SM 89 native code and record each new run separately from
+cores. Their default build targets SM 89, and each new run is recorded separately from
 the retained historical emission.
 
 Java entry points run through JShell, using all JVM-visible CPUs by default.
 The generic `tools/td18 build-gpu` retains the CMake default SM 120 target;
-the local emitter launcher selects SM 89 explicitly. CPU counts,
-checks and successful CPU prefixes do not initialize CUDA. Generated databases,
+the local emitter launcher defaults to SM 89 and accepts an architecture
+override. CPU counts, checks and successful CPU prefixes do not initialize CUDA.
+Generated databases,
 checkpoints and count reports remain untracked. Completed reference logs and
 settings in `logs/reference/` are committed; other run logs remain untracked. The checker has no emitter artifact dependency. See [workflow](docs/WORKFLOW.md),
 [operations](docs/OPERATIONS.md), [architecture](docs/ARCHITECTURE.md), and

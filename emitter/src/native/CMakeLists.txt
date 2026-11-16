@@ -4,10 +4,10 @@ project(td18_native LANGUAGES CXX CUDA)
 find_package(CUDAToolkit REQUIRED)
 
 set(TD18_CUDA_ARCHITECTURES "120-real;120-virtual"
-    CACHE STRING "CUDA architectures (default: RTX 5090 native code and forward PTX)")
+    CACHE STRING "CUDA architectures (default: SM 120 native code and forward PTX)")
 if(TD18_CUDA_ARCHITECTURES MATCHES "(^|;)120(-real|-virtual)?(;|$)"
         AND CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 12.8)
-    message(FATAL_ERROR "The RTX 5090 profile requires CUDA Toolkit 12.8 or newer")
+    message(FATAL_ERROR "CUDA architecture SM 120 requires CUDA Toolkit 12.8 or newer")
 endif()
 set(CMAKE_CUDA_ARCHITECTURES ${TD18_CUDA_ARCHITECTURES})
 message(STATUS "CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")

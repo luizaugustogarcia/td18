@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 source "$HOME/.bashrc"
-source "$(dirname -- "${BASH_SOURCE[0]}")/runtime-profile.sh"
-td18_profile_main checker local "$@"
+source "$(dirname -- "${BASH_SOURCE[0]}")/local-profile.sh"
+td18_local_main checker "$@"

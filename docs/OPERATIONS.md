@@ -114,15 +114,25 @@ Override `TD18_RUN_ROOT`, `TD18_CERTIFICATE_DB`, `TD18_CPU_WORKERS`,
 `TD18_GPU_QUEUE_CAPACITY`, `TD18_CERTIFICATE_WRITERS` or `TD18_MIN_FREE_GIB`
 when required by the executing machine. Changing the local run root relocates
 work, logs and settings; database and native paths keep their repository defaults.
-The build accepts `TD18_CUDA_HOST_COMPILER`; locally it uses `g++-12` when
-available, matching the CUDA 12.4 reference toolchain.
+The build accepts `TD18_CUDA_ARCHITECTURE` (89 by default),
+`TD18_CUDA_HOST_COMPILER` and `TD18_BUILD_NATIVE_TESTS` (off by default).
+It uses `g++-12` when available, matching the CUDA 12.4 reference toolchain.
+The installed toolkit must support the chosen architecture. For example,
+this selects SM 120 native code and forward PTX on a compatible machine:
+
+```bash
+bash -ic 'TD18_CUDA_ARCHITECTURE=120 ./tools/run-local-emitter.sh --build'
+```
+
+Select GPU slot counts, queue sizes and JVM limits separately for the executing
+machine; a compilation target does not determine those resource limits.
 
 `--dry-run` reports settings without creating files or allocating GPU memory.
 Before execution, the launcher checks available GPU memory for queues, caches
 and a 1 GiB reserve; native initialization checks exact allocation sizes. The
 32 GiB free-disk startup guard is not an estimate of full-run storage.
-Ordinary GPU entry points default to 8 slots and 768 MiB per slot; the optional
-server launchers explicitly select their larger configuration.
+Ordinary GPU entry points default to 8 slots and 768 MiB per slot.
+Other machines use explicit resource overrides with the maintained launchers.
 All RocksDB writes disable WAL; completed phases explicitly flush certificates.
 An interruption may lose unflushed results, which must be regenerated.
 

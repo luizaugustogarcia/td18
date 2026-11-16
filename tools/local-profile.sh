@@ -1,38 +1,19 @@
 #!/usr/bin/env bash
-# Shared launch configuration; neither module depends on the other artifact.
-td18_profile_main() {
+# Local launch configuration; neither module depends on the other artifact.
+td18_local_main() {
     set -euo pipefail
-    local module=$1 profile=$2 action=run resume= option phase=all
-    shift 2
+    local module=$1 action=run resume= option phase=all
+    shift
     local project_root default_base default_database architecture
-    local max_heap max_writers initial_heap max_gc max_concurrent_gc
-    local default_slots default_budget default_gpu_queue default_buffer default_queue
-    local default_certificate_queue default_lookup default_pipelines
-    local preparation_workers prepared_batches prefetch_batches seen_keys
+    local max_heap=16 max_writers=8 initial_heap=2 max_gc=8 max_concurrent_gc=2
+    local default_slots=8 default_budget=768 default_gpu_queue=16
+    local default_buffer=4194304 default_queue=512 default_certificate_queue=262144
+    local default_lookup=32768 default_pipelines=4
+    local preparation_workers=4 prepared_batches=16 prefetch_batches=32 seen_keys=262144
     project_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-    case $profile in
-        local)
-            default_base=$project_root/target/local-runtime
-            default_database=$project_root/certificates
-            architecture=89
-            max_heap=16 max_writers=8 initial_heap=2 max_gc=8 max_concurrent_gc=2
-            default_slots=8 default_budget=768 default_gpu_queue=16
-            default_buffer=4194304 default_queue=512 default_certificate_queue=262144
-            default_lookup=32768 default_pipelines=4
-            preparation_workers=4 prepared_batches=16 prefetch_batches=32 seen_keys=262144
-            ;;
-        5090)
-            default_base=/workspace/td18
-            default_database=$default_base/certificates
-            architecture=120
-            max_heap=160 max_writers=64 initial_heap=16 max_gc=64 max_concurrent_gc=16
-            default_slots=32 default_budget=896 default_gpu_queue=64
-            default_buffer=67108864 default_queue=32768 default_certificate_queue=1048576
-            default_lookup=65536 default_pipelines=8
-            preparation_workers=16 prepared_batches=128 prefetch_batches=256 seen_keys=1048576
-            ;;
-        *) printf 'Unknown runtime profile: %s\n' "$profile" >&2; return 2 ;;
-    esac
+    default_base=$project_root/target/local-runtime
+    default_database=$project_root/certificates
+    architecture=${TD18_CUDA_ARCHITECTURE:-89}
     [[ $module == emitter || $module == checker ]] || return 2
     for option in "$@"; do
         case "$option" in
@@ -40,7 +21,7 @@ td18_profile_main() {
             --dry-run) action=dry-run ;;
             --resume-work=*) resume=${option#*=} ;;
             --help|-h)
-                printf 'Usage: tools/run-%s-{emitter,checker}.sh [--build|--dry-run] [--resume-work=PATH]\n' "$profile"
+                printf '%s\n' 'Usage: tools/run-local-{emitter,checker}.sh [--build|--dry-run] [--resume-work=PATH]'
                 printf '%s\n' "Default: full foreground run with output also saved under $default_base/logs." \
                     'Emitter resume requires a compatible sealed checkpoint; checker always starts fresh.'
                 return ;;
@@ -53,13 +34,11 @@ td18_profile_main() {
     fi
     local base database native_dir
     base=${TD18_RUN_ROOT:-$default_base}
-    if [[ $profile == 5090 ]]; then default_database=$base/certificates; fi
     database=${TD18_CERTIFICATE_DB:-$default_database}
-    if [[ $profile == local ]]; then native_dir=$project_root/emitter/target/native;
-    else native_dir=$base/build/native-$profile; fi
+    native_dir=$project_root/emitter/target/native
     cd -- "$project_root"
 
-    # Respect affinity, CPU quota and memory limits on either host.
+    # Respect affinity, CPU quota and memory limits on the executing host.
     local detected_cpu detected_memory
     read -r detected_cpu detected_memory < <(python3 - <<'PY'
 import os, pathlib
@@ -97,7 +76,7 @@ PY
     local concurrent_gc=$(((cpu + 3) / 4))
     (( concurrent_gc > max_concurrent_gc )) && concurrent_gc=$max_concurrent_gc
     local value
-    for value in "$cpu" "$heap" "$writers" "$slots" "$budget"; do
+    for value in "$cpu" "$heap" "$writers" "$slots" "$budget" "$architecture"; do
         [[ $value =~ ^[1-9][0-9]*$ ]] || { printf 'Invalid positive setting: %s\n' "$value" >&2; return 2; }
     done
     [[ $gpu_queue =~ ^[0-9]+$ ]] || return 2
@@ -151,7 +130,7 @@ PY
     printf -v TD18_JSHELL_OPTIONS '%s ' "${jvm[@]}"
     export TD18_JSHELL_OPTIONS
     if [[ $action == dry-run ]]; then
-        printf 'profile=%s module=%s cpuWorkers=%s heapGiB=%s writers=%s\n' "$profile" "$module" "$cpu" "$heap" "$writers"
+        printf 'profile=local module=%s cpuWorkers=%s heapGiB=%s writers=%s\n' "$module" "$cpu" "$heap" "$writers"
         [[ $module != emitter ]] || printf 'gpuSlots=%s queueMiBPerSlot=%s aggregateQueueGiB=%s GPUCallers=%s\n' \
             "$slots" "$budget" "$((slots * budget / 1024))" "$callers"
         [[ $module != emitter ]] || printf 'nativeArchitecture=sm_%s nativeBuild=%s\n' "$architecture" "$native_dir"
@@ -170,7 +149,7 @@ PY
     [[ $java_version =~ version\ \"21[.\"] ]] || {
         printf '%s\n' 'Set JAVA_HOME to JDK 21 (including jshell and javac).' >&2; return 2;
     }
-    mkdir -p "$base/logs" "$base/work" "$base/tmp" "$base/build"
+    mkdir -p "$base/logs" "$base/work" "$base/tmp"
     exec 9>"$base/run.lock"
     flock -n 9 || { printf '%s\n' 'Another emitter/checker run or build holds the workspace lock.' >&2; return 2; }
     if [[ $action == build ]]; then
@@ -181,7 +160,7 @@ PY
                 printf 'The installed CUDA toolkit does not support sm_%s.\n' "$architecture" >&2; return 2;
             }
             local host_compiler=${TD18_CUDA_HOST_COMPILER:-}
-            if [[ $profile == local && -z $host_compiler ]] && command -v g++-12 >/dev/null; then
+            if [[ -z $host_compiler ]] && command -v g++-12 >/dev/null; then
                 host_compiler=$(command -v g++-12)
             fi
             local -a compiler_options=()
@@ -214,7 +193,7 @@ PY
     touch "$log"
     ln -sfn "$(basename -- "$log")" "$base/logs/$module-latest.log"
     printf '%s\n' "$$" > "$base/logs/$module.pid"
-    python3 - "$module" "$work" "$database" "$settings" "$$" "$phase" "$profile" "$native_dir" <<'PY'
+    python3 - "$module" "$work" "$database" "$settings" "$$" "$phase" local "$native_dir" <<'PY'
 import datetime, hashlib, json, os, pathlib, subprocess, sys
 settings = dict(format='td18-'+sys.argv[7]+'-run-v1', profile=sys.argv[7], module=sys.argv[1], work=sys.argv[2],
     database=sys.argv[3], launcherPid=int(sys.argv[5]), phase=sys.argv[6], status='starting',

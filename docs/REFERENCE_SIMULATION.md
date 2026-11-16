@@ -26,9 +26,9 @@ regenerated report. That separate-machine record is not attached yet.
 The native patch permits this CUDA 12.4 / SM 89 build.
 The [original settings](../logs/reference/emitter-settings.json) retain every JVM
 option and the hashes of the frozen Java classes used by this run.
-For current-code runs, `tools/run-local-emitter.sh --build` selects SM 89
-explicitly; the CMake default SM 120 target remains available. The maintained
-local launchers use the recorded memory and queue limits with all allocated
+For current-code runs, `tools/run-local-emitter.sh --build` defaults to SM 89;
+the CMake default SM 120 target and explicit build overrides remain available.
+The maintained local launchers use the recorded memory and queue limits with all allocated
 CPU cores; see [OPERATIONS.md](OPERATIONS.md). New runs have their own revision,
 settings and logs and do not replace this historical execution record.
 The current emitter does not read the historical `td18.workers` or

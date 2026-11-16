@@ -88,9 +88,9 @@
 - The designated reference simulation uses the Intel Core Ultra 9 185H / RTX
   4070 Laptop setup: 22 CPU workers, a 16 GiB Java heap, and 8 GPU slots with
   768 MiB of queue memory per slot (6 GiB total). Record configuration and
-  timings in docs/REFERENCE_SIMULATION.md. The optional RTX 5090 / AMD EPYC
-  7742 profile retains 32 slots with 896 MiB per slot (28 GiB total); see
-  docs/RTX5090.md.
+  timings in docs/REFERENCE_SIMULATION.md. Preserve SM 120 compilation; other
+  machines use explicit architecture and resource overrides rather than
+  unmeasured machine presets.
 - Always load ~/.bashrc for every shell command, locally and on servers,
   including inspection, profiling, builds and launches. Use bash -ic locally
   and for the remote command passed to SSH so the configured toolchain is
