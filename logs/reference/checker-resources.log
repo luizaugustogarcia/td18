@@ -1,0 +1,1898 @@
+2026-11-16T08:25:38+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.0 17768 jshell
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2209460224  7950053376     7815168  2576027648 10331140096
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:26:08+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  9.8 149356 jshell
+   4273    4218 1467 427388 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2716192768  7336751104     7880704  2682781696  9824407552
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:26:38+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  4.9 149420 jshell
+   4273    4218 1517 442984 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2728574976  7324282880     7880704  2682855424  9812025344
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:27:08+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  3.3 149424 jshell
+   4273    4218 1533 448852 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2724077568  7328727040     7880704  2682896384  9816522752
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:27:38+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  2.5 149424 jshell
+   4273    4218 1542 451668 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2747498496  7294332928     7880704  2694172672  9793101824
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:28:08+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  2.0 149424 jshell
+   4273    4218 1547 454788 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2731479040  7310213120     7913472  2694369280  9809121280
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:28:38+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  1.7 149448 jshell
+   4273    4218 1550 462956 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2744979456  7296651264     7880704  2694393856  9795620864
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:29:08+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  1.5 149448 jshell
+   4273    4218 1552 476240 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2758995968  7281438720     7880704  2695581696  9781604352
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:29:38+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  1.3 149448 jshell
+   4273    4218 1553 481360 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2775355392  7265013760     7880704  2695634944  9765244928
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:30:08+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  1.1 149460 jshell
+   4273    4218 1554 489660 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2743300096  7297019904     7880704  2695696384  9797300224
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:30:38+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  1.0 149460 jshell
+   4273    4218 1555 497292 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2791165952  7249022976     7880704  2695835648  9749434368
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:31:08+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.9 149460 jshell
+   4273    4218 1551 501184 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2763210752  7276322816     7913472  2696544256  9777389568
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:31:38+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.9 149460 jshell
+   4273    4218 1546 501288 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2760138752  7279308800     7880704  2696593408  9780461568
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:32:08+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.8 149464 jshell
+   4273    4218 1534 4976020 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7434964992  1713778688     7880704  3590422528  5105635328
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:32:38+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.8 149464 jshell
+   4273    4218 1529 4993464 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7412580352  1436667904     7876608  3889664000  5128019968
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:33:08+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.7 149468 jshell
+   4273    4218 1525 5010160 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7427137536  1337581568     7876608  3974242304  5113462784
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:33:39+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.7 149480 jshell
+   4273    4218 1521 5017132 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7434170368  1299521536     7909376  4005306368  5106429952
+Swap:     3221225472           0  3221225472
+some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+2026-11-16T08:34:09+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.7 149484 jshell
+   4273    4218 1500 6557004 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9006280704   112689152     7733248  3623636992  3534319616
+Swap:     3221225472      221184  3221004288
+some avg10=0.14 avg60=0.05 avg300=0.01 total=102445
+full avg10=0.04 avg60=0.02 avg300=0.00 total=96563
+2026-11-16T08:34:39+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.6 149484 jshell
+   4273    4218 1487 6767440 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9213157376   199847936     7675904  3333545984  3327442944
+Swap:     3221225472      282624  3220942848
+some avg10=0.69 avg60=0.32 avg300=0.08 total=441370
+full avg10=0.68 avg60=0.30 avg300=0.07 total=415756
+2026-11-16T08:35:09+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.6 148204 jshell
+   4273    4218 1477 6776652 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9273556992   239173632     7675904  3235205120  3267043328
+Swap:     3221225472      282624  3220942848
+some avg10=0.20 avg60=0.34 avg300=0.10 total=592134
+full avg10=0.18 avg60=0.30 avg300=0.09 total=555126
+2026-11-16T08:35:39+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.6 138136 jshell
+   4273    4218 1469 4291800 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6839623680  2623021056     7675904  3284877312  5700976640
+Swap:     3221225472      282624  3220942848
+some avg10=0.01 avg60=0.21 avg300=0.10 total=673055
+full avg10=0.01 avg60=0.19 avg300=0.08 total=630900
+2026-11-16T08:36:09+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.6 138116 jshell
+   4273    4218 1462 6744424 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9293946880   108023808     7667712  3348774912  3246653440
+Swap:     3221225472      364544  3220860928
+some avg10=0.21 avg60=0.18 avg300=0.10 total=751985
+full avg10=0.21 avg60=0.17 avg300=0.08 total=703008
+2026-11-16T08:36:39+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.5 138028 jshell
+   4273    4218 1457 6882168 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9371803648   260825088     7671808  3131740160  3168796672
+Swap:     3221225472      360448  3220865024
+some avg10=0.00 avg60=0.11 avg300=0.08 total=831795
+full avg10=0.00 avg60=0.10 avg300=0.07 total=778696
+2026-11-16T08:37:09+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.5 138028 jshell
+   4273    4218 1453 6887552 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9392459776   106909696     7671808  3253559296  3148140544
+Swap:     3221225472      360448  3220865024
+some avg10=0.00 avg60=0.06 avg300=0.07 total=898177
+full avg10=0.00 avg60=0.06 avg300=0.06 total=838046
+2026-11-16T08:37:39+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.5 138024 jshell
+   4273    4218 1449 6894864 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9410424832    97988608     7671808  3239301120  3130175488
+Swap:     3221225472      360448  3220865024
+some avg10=0.00 avg60=0.03 avg300=0.06 total=937948
+full avg10=0.00 avg60=0.03 avg300=0.05 total=872584
+2026-11-16T08:38:09+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.5 138008 jshell
+   4273    4218 1445 6902688 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9391878144   110649344     3600384  3243638784  3148722176
+Swap:     3221225472     4481024  3216744448
+some avg10=0.41 avg60=0.16 avg300=0.09 total=1117763
+full avg10=0.41 avg60=0.16 avg300=0.08 total=1040721
+2026-11-16T08:38:39+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.5 138008 jshell
+   4273    4218 1442 5569828 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8182063104   544501760     3600384  4029616128  4358537216
+Swap:     3221225472     4481024  3216744448
+some avg10=0.01 avg60=0.09 avg300=0.07 total=1132208
+full avg10=0.01 avg60=0.09 avg300=0.06 total=1050973
+2026-11-16T08:39:09+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.5 138008 jshell
+   4273    4218 1439 6195208 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8705040384   339353600     3600384  3717111808  3835559936
+Swap:     3221225472     4481024  3216744448
+some avg10=0.32 avg60=0.12 avg300=0.08 total=1270190
+full avg10=0.32 avg60=0.12 avg300=0.07 total=1173626
+2026-11-16T08:39:39+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.5 138008 jshell
+   4273    4218 1436 6488280 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9051312128   237719552     3600384  3470315520  3489288192
+Swap:     3221225472     4481024  3216744448
+some avg10=0.03 avg60=0.09 avg300=0.07 total=1344541
+full avg10=0.03 avg60=0.09 avg300=0.07 total=1240602
+2026-11-16T08:40:09+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 138008 jshell
+   4273    4218 1434 5073828 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7588630528   671899648     3600384  4499562496  4951969792
+Swap:     3221225472     4481024  3216744448
+some avg10=0.24 avg60=0.11 avg300=0.07 total=1461614
+full avg10=0.14 avg60=0.08 avg300=0.07 total=1345734
+2026-11-16T08:40:39+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 137944 jshell
+   4273    4218 1431 5545468 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7940534272   725762048     3600384  4097638400  4600066048
+Swap:     3221225472     4481024  3216744448
+some avg10=0.01 avg60=0.06 avg300=0.06 total=1523936
+full avg10=0.00 avg60=0.04 avg300=0.06 total=1400158
+2026-11-16T08:41:09+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 137944 jshell
+   4273    4218 1429 5792088 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8196431872    94928896     3592192  4470280192  4344168448
+Swap:     3221225472     4489216  3216736256
+some avg10=0.00 avg60=0.03 avg300=0.06 total=1617987
+full avg10=0.00 avg60=0.02 avg300=0.05 total=1484172
+2026-11-16T08:41:39+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 137944 jshell
+   4273    4218 1426 6070688 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8476278784   120061952     3592192  4164747264  4064321536
+Swap:     3221225472     4489216  3216736256
+some avg10=0.00 avg60=0.01 avg300=0.05 total=1632131
+full avg10=0.00 avg60=0.01 avg300=0.04 total=1496480
+2026-11-16T08:42:10+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 137944 jshell
+   4273    4218 1424 5521868 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8031940608   105840640     3592192  4617789440  4508659712
+Swap:     3221225472     4489216  3216736256
+some avg10=0.00 avg60=0.01 avg300=0.04 total=1714215
+full avg10=0.00 avg60=0.00 avg300=0.04 total=1527838
+2026-11-16T08:42:40+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 137928 jshell
+   4273    4218 1422 6615760 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9173274624  1435754496     3579904  2142806016  3367325696
+Swap:     3221225472     4583424  3216642048
+some avg10=0.21 avg60=0.11 avg300=0.06 total=1905201
+full avg10=0.00 avg60=0.00 avg300=0.03 total=1600474
+2026-11-16T08:43:10+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 137928 jshell
+   4273    4218 1421 6691636 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9148555264   106029056     3579904  3496939520  3392045056
+Swap:     3221225472    25063424  3196162048
+some avg10=0.31 avg60=0.15 avg300=0.08 total=2067385
+full avg10=0.00 avg60=0.00 avg300=0.02 total=1668536
+2026-11-16T08:43:40+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 125796 jshell
+   4273    4218 1419 6875732 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  9091018752   134356992     3571712  3537043456  3449581568
+Swap:     3221225472   271437824  2949787648
+some avg10=2.14 avg60=0.62 avg300=0.19 total=2567518
+full avg10=1.63 avg60=0.36 avg300=0.10 total=2005589
+2026-11-16T08:44:10+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 125796 jshell
+   4273    4218 1417 6014532 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8405966848  1004908544     3571712  3345162240  4134633472
+Swap:     3221225472   270536704  2950688768
+some avg10=0.13 avg60=0.40 avg300=0.17 total=2646437
+full avg10=0.08 avg60=0.22 avg300=0.08 total=2033963
+2026-11-16T08:44:40+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 125792 jshell
+   4273    4218 1416 5095384 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7383961600   980197376     3571712  4392878080  5156638720
+Swap:     3221225472   275898368  2945327104
+some avg10=0.00 avg60=0.24 avg300=0.15 total=2731748
+full avg10=0.00 avg60=0.13 avg300=0.07 total=2076349
+2026-11-16T08:45:10+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.4 124344 jshell
+   4273    4218 1415 6730288 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8880283648   125333504     3571712  3741794304  3660316672
+Swap:     3221225472   367144960  2854080512
+some avg10=0.36 avg60=0.20 avg300=0.14 total=2896764
+full avg10=0.36 avg60=0.14 avg300=0.07 total=2225128
+2026-11-16T08:45:40+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 124288 jshell
+   4273    4218 1414 6607488 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8673165312   952401920     3571712  3130863616  3867435008
+Swap:     3221225472   366387200  2854838272
+some avg10=0.11 avg60=0.15 avg300=0.13 total=2981430
+full avg10=0.01 avg60=0.08 avg300=0.06 total=2280185
+2026-11-16T08:46:10+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 124188 jshell
+   4273    4218 1414 6778912 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8837128192   120893440     3563520  3796070400  3703472128
+Swap:     3221225472   427495424  2793730048
+some avg10=0.38 avg60=0.17 avg300=0.14 total=3157426
+full avg10=0.37 avg60=0.13 avg300=0.08 total=2435122
+2026-11-16T08:46:40+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 123104 jshell
+   4273    4218 1412 6804324 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8557699072   122642432     3563520  4071616512  3982901248
+Swap:     3221225472   701566976  2519658496
+some avg10=0.92 avg60=0.43 avg300=0.20 total=3522405
+full avg10=0.92 avg60=0.40 avg300=0.14 total=2784266
+2026-11-16T08:47:10+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 99660 jshell
+   4273    4218 1411 6809168 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8393424896   110747648     3547136  4248297472  4147175424
+Swap:     3221225472   892862464  2328363008
+some avg10=0.81 avg60=0.54 avg300=0.25 total=3838747
+full avg10=0.81 avg60=0.52 avg300=0.19 total=3079397
+2026-11-16T08:47:40+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 39952 jshell
+   4273    4218 1410 6778976 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8229273600   101658624     3543040  4423618560  4311326720
+Swap:     3221225472  1072910336  2148315136
+some avg10=0.31 avg60=0.49 avg300=0.27 total=4084121
+full avg10=0.31 avg60=0.48 avg300=0.21 total=3313317
+2026-11-16T08:48:10+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 38448 jshell
+   4273    4218 1409 5705460 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7127261184   432558080     3543040  5200220160  5413339136
+Swap:     3221225472  1131728896  2089496576
+some avg10=0.71 avg60=0.54 avg300=0.30 total=4388568
+full avg10=0.57 avg60=0.48 avg300=0.24 total=3583222
+2026-11-16T08:48:40+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 38304 jshell
+   4273    4218 1407 6439072 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7848853504   107798528     3518464  4800397312  4691746816
+Swap:     3221225472  1213808640  2007416832
+some avg10=0.81 avg60=0.56 avg300=0.32 total=4719710
+full avg10=0.81 avg60=0.52 avg300=0.27 total=3895927
+2026-11-16T08:49:10+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 38252 jshell
+   4273    4218 1405 6518132 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7919828992  1483509760     3506176  3357282304  4620771328
+Swap:     3221225472  1244938240  1976287232
+some avg10=0.95 avg60=0.61 avg300=0.36 total=5075880
+full avg10=0.95 avg60=0.59 avg300=0.31 total=4237031
+2026-11-16T08:49:41+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 38228 jshell
+   4273    4218 1402 6523604 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7966846976  1455239168     3506176  3343761408  4573753344
+Swap:     3221225472  1247473664  1973751808
+some avg10=0.44 avg60=0.53 avg300=0.36 total=5314478
+full avg10=0.42 avg60=0.49 avg300=0.31 total=4463279
+2026-11-16T08:50:11+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 38232 jshell
+   4273    4218 1399 6494104 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7960047616   120283136     3497984  4685955072  4580552704
+Swap:     3221225472  1270890496  1950334976
+some avg10=0.14 avg60=0.45 avg300=0.36 total=5582266
+full avg10=0.11 avg60=0.41 avg300=0.31 total=4717198
+2026-11-16T08:50:41+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 38240 jshell
+   4273    4218 1395 6476360 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7915069440  1211985920     3493888  3639836672  4625530880
+Swap:     3221225472  1287254016  1933971456
+some avg10=0.40 avg60=0.41 avg300=0.35 total=5756174
+full avg10=0.33 avg60=0.31 avg300=0.29 total=4827452
+2026-11-16T08:51:11+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 38240 jshell
+   4273    4218 1393 6491476 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7978786816   114176000     3489792  4673458176  4561813504
+Swap:     3221225472  1297100800  1924124672
+some avg10=0.16 avg60=0.32 avg300=0.34 total=5922165
+full avg10=0.14 avg60=0.24 avg300=0.27 total=4976256
+2026-11-16T08:51:41+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 36736 jshell
+   4273    4218 1390 6640560 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8128331776  2517278720     3477504  2112856064  4412268544
+Swap:     3221225472  1312841728  1908383744
+some avg10=0.00 avg60=0.19 avg300=0.30 total=5971633
+full avg10=0.00 avg60=0.14 avg300=0.24 total=5020451
+2026-11-16T08:52:11+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 36716 jshell
+   4273    4218 1389 5088796 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6582804480  1828429824     3477504  4355223552  5957795840
+Swap:     3221225472  1312423936  1908801536
+some avg10=0.00 avg60=0.11 avg300=0.27 total=5989340
+full avg10=0.00 avg60=0.08 avg300=0.21 total=5036532
+2026-11-16T08:52:41+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 36124 jshell
+   4273    4218 1388 5648096 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7079342080   119717888     3489792  5567733760  5461258240
+Swap:     3221225472  1312620544  1908604928
+some avg10=0.02 avg60=0.09 avg300=0.25 total=6138069
+full avg10=0.02 avg60=0.07 avg300=0.20 total=5176349
+2026-11-16T08:53:11+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 31356 jshell
+   4273    4218 1385 5890320 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7312814080   109727744     3489792  5338615808  5227786240
+Swap:     3221225472  1335422976  1885802496
+some avg10=0.02 avg60=0.07 avg300=0.22 total=6248444
+full avg10=0.02 avg60=0.06 avg300=0.18 total=5278418
+2026-11-16T08:53:41+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 31196 jshell
+   4273    4218 1383 5946636 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7473766400  1324695552     3489792  3968860160  5066833920
+Swap:     3221225472  1334607872  1886617600
+some avg10=0.00 avg60=0.04 avg300=0.20 total=6254012
+full avg10=0.00 avg60=0.03 avg300=0.16 total=5283615
+2026-11-16T08:54:11+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 31136 jshell
+   4273    4218 1380 6084756 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7591383040   105791488     3489792  5069484032  4949217280
+Swap:     3221225472  1333825536  1887399936
+some avg10=0.78 avg60=0.30 avg300=0.24 total=6586125
+full avg10=0.78 avg60=0.30 avg300=0.21 total=5600574
+2026-11-16T08:54:41+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 31140 jshell
+   4273    4218 1379 6134144 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7620313088    99741696     3489792  5042737152  4920287232
+Swap:     3221225472  1333071872  1888153600
+some avg10=0.03 avg60=0.18 avg300=0.22 total=6631302
+full avg10=0.03 avg60=0.18 avg300=0.19 total=5640542
+2026-11-16T08:55:11+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 29472 jshell
+   4273    4218 1377 6210912 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7667417088   120467456     3481600  4968484864  4873183232
+Swap:     3221225472  1340325888  1880899584
+some avg10=0.00 avg60=0.10 avg300=0.19 total=6714189
+full avg10=0.00 avg60=0.10 avg300=0.16 total=5711170
+2026-11-16T08:55:41+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 24948 jshell
+   4273    4218 1375 6345348 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7930703872  1664180224     3481600  3189100544  4609896448
+Swap:     3221225472  1348239360  1872986112
+some avg10=0.00 avg60=0.06 avg300=0.17 total=6751156
+full avg10=0.00 avg60=0.06 avg300=0.14 total=5746656
+2026-11-16T08:56:11+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 25004 jshell
+   4273    4218 1374 4910776 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6486810624  1339822080     3481600  4939984896  6053789696
+Swap:     3221225472  1348743168  1872482304
+some avg10=0.00 avg60=0.03 avg300=0.15 total=6795024
+full avg10=0.00 avg60=0.03 avg300=0.13 total=5785619
+2026-11-16T08:56:42+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 16752 jshell
+   4273    4218 1373 6457064 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7895928832   106995712     3481600  4760756224  4644671488
+Swap:     3221225472  1360080896  1861144576
+some avg10=0.32 avg60=0.08 avg300=0.14 total=6949057
+full avg10=0.32 avg60=0.08 avg300=0.13 total=5923952
+2026-11-16T08:57:12+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 15480 jshell
+   4273    4218 1372 6656400 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8126140416   104218624     3440640  4527341568  4414459904
+Swap:     3221225472  1370439680  1850785792
+some avg10=0.19 avg60=0.08 avg300=0.13 total=7056139
+full avg10=0.19 avg60=0.08 avg300=0.12 total=6018182
+2026-11-16T08:57:42+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 14132 jshell
+   4273    4218 1369 6669480 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8115331072   106946560     3436544  4534759424  4425269248
+Swap:     3221225472  1389289472  1831936000
+some avg10=2.24 avg60=0.75 avg300=0.29 total=7692078
+full avg10=1.47 avg60=0.52 avg300=0.22 total=6476133
+2026-11-16T08:58:12+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 14020 jshell
+   4273    4218 1367 6686924 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8172716032  1938587648     3428352  2649427968  4367884288
+Swap:     3221225472  1385586688  1835638784
+some avg10=0.16 avg60=0.54 avg300=0.28 total=7844746
+full avg10=0.11 avg60=0.37 avg300=0.21 total=6589380
+2026-11-16T08:58:42+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.3 13828 jshell
+   4273    4218 1366 6672960 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8140464128   533680128     3428352  4091977728  4400136192
+Swap:     3221225472  1385222144  1836003328
+some avg10=0.60 avg60=0.52 avg300=0.30 total=8107622
+full avg10=0.56 avg60=0.40 avg300=0.23 total=6836279
+2026-11-16T08:59:12+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13748 jshell
+   4273    4218 1364 6676816 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8157237248    95485952     3424256  4514013184  4383363072
+Swap:     3221225472  1387450368  1833775104
+some avg10=0.03 avg60=0.33 avg300=0.27 total=8219306
+full avg10=0.03 avg60=0.26 avg300=0.21 total=6938802
+2026-11-16T08:59:42+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13716 jshell
+   4273    4218 1362 6681732 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8139702272   111214592     3424256  4515401728  4400898048
+Swap:     3221225472  1387937792  1833287680
+some avg10=0.00 avg60=0.20 avg300=0.24 total=8261785
+full avg10=0.00 avg60=0.15 avg300=0.19 total=6971703
+2026-11-16T09:00:12+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13648 jshell
+   4273    4218 1360 3896108 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  5308981248  2107822080     3424256  5349199872  7231619072
+Swap:     3221225472  1383911424  1837314048
+some avg10=0.00 avg60=0.11 avg300=0.21 total=8317587
+full avg10=0.00 avg60=0.09 avg300=0.16 total=7022652
+2026-11-16T09:00:42+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13920 jshell
+   4273    4218 1358 5854304 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7293976576    95186944     3424256  5377073152  5246623744
+Swap:     3221225472  1385340928  1835884544
+some avg10=0.26 avg60=0.30 avg300=0.25 total=8660037
+full avg10=0.23 avg60=0.24 avg300=0.20 total=7343135
+2026-11-16T09:01:12+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 14040 jshell
+   4273    4218 1357 6233296 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7688192000   104091648     3411968  4974575616  4852408320
+Swap:     3221225472  1388552192  1832673280
+some avg10=0.01 avg60=0.18 avg300=0.22 total=8742826
+full avg10=0.01 avg60=0.14 avg300=0.18 total=7419580
+2026-11-16T09:01:42+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 14028 jshell
+   4273    4218 1355 6395140 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7879225344  1363431424     3411968  3525029888  4661374976
+Swap:     3221225472  1386246144  1834979328
+some avg10=0.00 avg60=0.10 avg300=0.20 total=8753451
+full avg10=0.00 avg60=0.08 avg300=0.16 total=7429363
+2026-11-16T09:02:12+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13988 jshell
+   4273    4218 1354 6454992 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7868178432   169213952     3411968  4728893440  4672421888
+Swap:     3221225472  1385635840  1835589632
+some avg10=0.20 avg60=0.14 avg300=0.20 total=8977943
+full avg10=0.20 avg60=0.12 avg300=0.16 total=7636722
+2026-11-16T09:02:42+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13996 jshell
+   4273    4218 1352 6522524 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7986339840   105988096     3411968  4674105344  4554260480
+Swap:     3221225472  1385840640  1835384832
+some avg10=0.01 avg60=0.10 avg300=0.18 total=9068483
+full avg10=0.01 avg60=0.09 avg300=0.14 total=7719618
+2026-11-16T09:03:13+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13980 jshell
+   4273    4218 1351 6618172 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8085499904   113889280     3411968  4567736320  4455100416
+Swap:     3221225472  1386283008  1834942464
+some avg10=0.00 avg60=0.06 avg300=0.16 total=9121220
+full avg10=0.00 avg60=0.05 avg300=0.12 total=7767903
+2026-11-16T09:03:43+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13756 jshell
+   4273    4218 1349 6648980 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8124997632    99840000     3407872  4541902848  4415602688
+Swap:     3221225472  1385504768  1835720704
+some avg10=0.00 avg60=0.03 avg300=0.14 total=9165737
+full avg10=0.00 avg60=0.03 avg300=0.11 total=7806213
+2026-11-16T09:04:13+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13612 jshell
+   4273    4218 1347 6661032 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8130723840   103387136     3407872  4532719616  4409876480
+Swap:     3221225472  1387401216  1833824256
+some avg10=0.00 avg60=0.01 avg300=0.12 total=9227280
+full avg10=0.00 avg60=0.01 avg300=0.10 total=7857246
+2026-11-16T09:04:43+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13520 jshell
+   4273    4218 1345 5309044 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6771945472  1352658944     3407872  4641964032  5768654848
+Swap:     3221225472  1402097664  1819127808
+some avg10=0.00 avg60=0.00 avg300=0.11 total=9306460
+full avg10=0.00 avg60=0.00 avg300=0.08 total=7929140
+2026-11-16T09:05:13+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13892 jshell
+   4273    4218 1343 4582072 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6073282560   764567552     3399680  5929066496  6467317760
+Swap:     3221225472  1398939648  1822285824
+some avg10=0.39 avg60=0.25 avg300=0.16 total=9649962
+full avg10=0.39 avg60=0.25 avg300=0.14 total=8254651
+2026-11-16T09:05:43+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13824 jshell
+   4273    4218 1341 5687356 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7143964672    99434496     3399680  5523156992  5396635648
+Swap:     3221225472  1398476800  1822748672
+some avg10=0.36 avg60=0.24 avg300=0.16 total=9873735
+full avg10=0.36 avg60=0.24 avg300=0.14 total=8462251
+2026-11-16T09:06:13+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13816 jshell
+   4273    4218 1338 6091380 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7664386048  3017924608     3432448  2085195776  4876214272
+Swap:     3221225472  1351258112  1869967360
+some avg10=0.01 avg60=0.13 avg300=0.14 total=9978510
+full avg10=0.01 avg60=0.13 avg300=0.13 total=8549311
+2026-11-16T09:06:46+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13824 jshell
+   4273    4218 1337 2954384 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  4579983360  3816153088     3399680  4374040576  7960616960
+Swap:     3221225472  1347203072  1874022400
+some avg10=0.00 avg60=0.08 avg300=0.12 total=9978510
+full avg10=0.00 avg60=0.08 avg300=0.11 total=8549311
+2026-11-16T09:07:16+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13828 jshell
+   4273    4218 1337 5324944 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6891851776   283770880     3399680  5590876160  5648748544
+Swap:     3221225472  1345114112  1876111360
+some avg10=0.97 avg60=0.26 avg300=0.16 total=10277350
+full avg10=0.97 avg60=0.26 avg300=0.15 total=8831944
+2026-11-16T09:07:46+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13800 jshell
+   4273    4218 1336 5914804 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7453106176   106553344     3399680  5207162880  5087494144
+Swap:     3221225472  1355309056  1865916416
+some avg10=0.29 avg60=0.33 avg300=0.19 total=10561413
+full avg10=0.29 avg60=0.33 avg300=0.17 total=9101134
+2026-11-16T09:08:16+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 13776 jshell
+   4273    4218 1336 6142452 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7684857856   102117376     3399680  4979519488  4855742464
+Swap:     3221225472  1355612160  1865613312
+some avg10=0.04 avg60=0.22 avg300=0.17 total=10643495
+full avg10=0.04 avg60=0.22 avg300=0.16 total=9170814
+2026-11-16T09:08:46+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16032 jshell
+   4273    4218 1335 6267492 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7825039360   120066048     3399680  4821716992  4715560960
+Swap:     3221225472  1353445376  1867780096
+some avg10=0.00 avg60=0.13 avg300=0.15 total=10714295
+full avg10=0.00 avg60=0.13 avg300=0.14 total=9234616
+2026-11-16T09:09:16+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16012 jshell
+   4273    4218 1335 6397496 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7936401408   112680960     3399680  4717064192  4604198912
+Swap:     3221225472  1367142400  1854083072
+some avg10=0.00 avg60=0.07 avg300=0.13 total=10804576
+full avg10=0.00 avg60=0.07 avg300=0.12 total=9316194
+2026-11-16T09:09:46+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 15564 jshell
+   4273    4218 1334 6540632 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8100970496   111656960     3399680  4553506816  4439629824
+Swap:     3221225472  1369448448  1851777024
+some avg10=0.00 avg60=0.04 avg300=0.12 total=10862615
+full avg10=0.00 avg60=0.04 avg300=0.11 total=9366359
+2026-11-16T09:10:16+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 15328 jshell
+   4273    4218 1333 6647628 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8164376576   132964352     3399680  4468645888  4376223744
+Swap:     3221225472  1374326784  1846898688
+some avg10=0.00 avg60=0.02 avg300=0.10 total=10935980
+full avg10=0.00 avg60=0.02 avg300=0.09 total=9431902
+2026-11-16T09:10:46+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 15328 jshell
+   4273    4218 1331 2306264 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  3806105600  3503738880     3432448  5456744448  8734494720
+Swap:     3221225472  1375883264  1845342208
+some avg10=0.75 avg60=0.22 avg300=0.14 total=11166058
+full avg10=0.75 avg60=0.22 avg300=0.13 total=9652732
+2026-11-16T09:11:16+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 15188 jshell
+   4273    4218 1330 6308532 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7876550656   112340992     3428352  4777242624  4664049664
+Swap:     3221225472  1380921344  1840304128
+some avg10=0.22 avg60=0.23 avg300=0.14 total=11396440
+full avg10=0.21 avg60=0.20 avg300=0.13 total=9855359
+2026-11-16T09:11:46+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19644 jshell
+   4273    4218 1328 6727032 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8289869824    99962880     3395584  4376363008  4250730496
+Swap:     3221225472  1389187072  1832038400
+some avg10=0.19 avg60=0.17 avg300=0.14 total=11461463
+full avg10=0.19 avg60=0.15 avg300=0.13 total=9915173
+2026-11-16T09:12:16+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19612 jshell
+   4273    4218 1327 6787876 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8319344640   108912640     3395584  4338114560  4221255680
+Swap:     3221225472  1391149056  1830076416
+some avg10=0.00 avg60=0.10 avg300=0.12 total=11509115
+full avg10=0.00 avg60=0.09 avg300=0.11 total=9956214
+2026-11-16T09:12:46+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19600 jshell
+   4273    4218 1326 6811688 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8352886784   107507712     3395584  4305379328  4187713536
+Swap:     3221225472  1391906816  1829318656
+some avg10=0.05 avg60=0.08 avg300=0.11 total=11597425
+full avg10=0.00 avg60=0.05 avg300=0.10 total=10017283
+2026-11-16T09:13:16+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19528 jshell
+   4273    4218 1325 6817240 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8384831488   107544576     3362816  4273795072  4155768832
+Swap:     3221225472  1390407680  1830817792
+some avg10=0.00 avg60=0.04 avg300=0.10 total=11669146
+full avg10=0.00 avg60=0.02 avg300=0.08 total=10083001
+2026-11-16T09:13:46+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19520 jshell
+   4273    4218 1325 6831512 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8369553408   125263872     3395584  4271210496  4171046912
+Swap:     3221225472  1390120960  1831104512
+some avg10=0.00 avg60=0.02 avg300=0.08 total=11749913
+full avg10=0.00 avg60=0.01 avg300=0.07 total=10158948
+2026-11-16T09:14:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19468 jshell
+   4273    4218 1324 6858100 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8437850112   323883008     3428352  4005093376  4102750208
+Swap:     3221225472  1389445120  1831780352
+some avg10=0.00 avg60=0.01 avg300=0.07 total=11801685
+full avg10=0.00 avg60=0.00 avg300=0.06 total=10206093
+2026-11-16T09:14:47+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19348 jshell
+   4273    4218 1325 6846756 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8217677824   150122496     3428352  4399398912  4322922496
+Swap:     3221225472  1388589056  1832636416
+some avg10=0.03 avg60=0.05 avg300=0.07 total=11950269
+full avg10=0.01 avg60=0.02 avg300=0.06 total=10346073
+2026-11-16T09:15:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 21680 jshell
+   4273    4218 1324 5139864 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6521221120   973631488     3428352  5272248320  6019379200
+Swap:     3221225472  1384464384  1836761088
+some avg10=0.87 avg60=0.28 avg300=0.12 total=12292786
+full avg10=0.79 avg60=0.24 avg300=0.11 total=10649027
+2026-11-16T09:15:47+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 21664 jshell
+   4273    4218 1324 5462036 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6847004672    96739328     3395584  5822808064  5693595648
+Swap:     3221225472  1389412352  1831813120
+some avg10=0.77 avg60=0.49 avg300=0.19 total=12653173
+full avg10=0.67 avg60=0.41 avg300=0.16 total=10986967
+2026-11-16T09:16:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 21656 jshell
+   4273    4218 1323 5578952 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6998581248    96485376     3395584  5670981632  5542019072
+Swap:     3221225472  1401593856  1819631616
+some avg10=0.07 avg60=0.36 avg300=0.19 total=12804856
+full avg10=0.07 avg60=0.31 avg300=0.16 total=11134181
+2026-11-16T09:16:47+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 21500 jshell
+   4273    4218 1322 5748420 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7132098560    99246080     3395584  5535408128  5408501760
+Swap:     3221225472  1427185664  1794039808
+some avg10=0.00 avg60=0.21 avg300=0.17 total=12925182
+full avg10=0.00 avg60=0.18 avg300=0.14 total=11245671
+2026-11-16T09:17:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20948 jshell
+   4273    4218 1321 5975884 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7351697408   115458048     3395584  5298790400  5188902912
+Swap:     3221225472  1443069952  1778155520
+some avg10=0.04 avg60=0.17 avg300=0.16 total=13076577
+full avg10=0.04 avg60=0.15 avg300=0.13 total=11380858
+2026-11-16T09:17:47+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20544 jshell
+   4273    4218 1321 6058600 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7412666368   117297152     3395584  5236912128  5127933952
+Swap:     3221225472  1446711296  1774514176
+some avg10=0.00 avg60=0.10 avg300=0.14 total=13176694
+full avg10=0.00 avg60=0.09 avg300=0.12 total=11474574
+2026-11-16T09:18:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20372 jshell
+   4273    4218 1320 4409720 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  5791887360  1729183744     3395584  5245358080  6748712960
+Swap:     3221225472  1441107968  1780117504
+some avg10=0.00 avg60=0.05 avg300=0.12 total=13252283
+full avg10=0.00 avg60=0.05 avg300=0.11 total=11531722
+2026-11-16T09:18:47+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20372 jshell
+   4273    4218 1319 5396476 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6775877632   100294656     3395584  5890330624  5764722688
+Swap:     3221225472  1440395264  1780830208
+some avg10=0.66 avg60=0.46 avg300=0.22 total=13739795
+full avg10=0.54 avg60=0.36 avg300=0.18 total=11954637
+2026-11-16T09:19:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20376 jshell
+   4273    4218 1318 5593396 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6964715520   107065344     3395584  5694021632  5575884800
+Swap:     3221225472  1438539776  1782685696
+some avg10=0.08 avg60=0.32 avg300=0.21 total=13935989
+full avg10=0.06 avg60=0.24 avg300=0.16 total=12079544
+2026-11-16T09:19:47+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20384 jshell
+   4273    4218 1317 5698548 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7088672768   115994624     3391488  5561892864  5451927552
+Swap:     3221225472  1438060544  1783164928
+some avg10=0.34 avg60=0.28 avg300=0.21 total=14162809
+full avg10=0.34 avg60=0.23 avg300=0.16 total=12263676
+2026-11-16T09:20:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20384 jshell
+   4273    4218 1312 5747876 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7129337856   123518976     3391488  5514321920  5411262464
+Swap:     3221225472  1424130048  1797095424
+some avg10=0.01 avg60=0.16 avg300=0.18 total=14320497
+full avg10=0.01 avg60=0.13 avg300=0.14 total=12419618
+2026-11-16T09:20:47+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20632 jshell
+   4273    4218 1305 5747576 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7100514304   106213376     3424256  5559590912  5440086016
+Swap:     3221225472  1433128960  1788096512
+some avg10=0.41 avg60=0.19 avg300=0.18 total=14558481
+full avg10=0.41 avg60=0.17 avg300=0.15 total=12656927
+2026-11-16T09:21:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20612 jshell
+   4273    4218 1298 5748804 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7134277632   108904448     3387392  5523509248  5406322688
+Swap:     3221225472  1435242496  1785982976
+some avg10=0.71 avg60=0.64 avg300=0.31 total=15050807
+full avg10=0.71 avg60=0.63 avg300=0.27 total=13148811
+2026-11-16T09:21:47+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20584 jshell
+   4273    4218 1292 5739300 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7121641472   110718976     3391488  5534203904  5418958848
+Swap:     3221225472  1448017920  1773207552
+some avg10=0.15 avg60=0.41 avg300=0.28 total=15152895
+full avg10=0.15 avg60=0.41 avg300=0.25 total=13250814
+2026-11-16T09:22:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20416 jshell
+   4273    4218 1286 5721732 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7133515776    96382976     3391488  5536698368  5407084544
+Swap:     3221225472  1469767680  1751457792
+some avg10=1.26 avg60=0.50 avg300=0.30 total=15414228
+full avg10=1.16 avg60=0.47 avg300=0.27 total=13510629
+2026-11-16T09:22:47+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20164 jshell
+   4273    4218 1280 5715912 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7143366656   110936064     3391488  5512630272  5397233664
+Swap:     3221225472  1478201344  1743024128
+some avg10=0.06 avg60=0.30 avg300=0.27 total=15485587
+full avg10=0.05 avg60=0.28 avg300=0.24 total=13581726
+2026-11-16T09:23:17+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19780 jshell
+   4273    4218 1274 5712088 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7112900608    97226752     3391488  5556555776  5427699712
+Swap:     3221225472  1479892992  1741332480
+some avg10=0.00 avg60=0.18 avg300=0.24 total=15548010
+full avg10=0.00 avg60=0.16 avg300=0.21 total=13644021
+2026-11-16T09:23:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19736 jshell
+   4273    4218 1268 5710516 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7131758592   106975232     3395584  5527920640  5408841728
+Swap:     3221225472  1483661312  1737564160
+some avg10=0.29 avg60=0.17 avg300=0.23 total=15637869
+full avg10=0.29 avg60=0.16 avg300=0.20 total=13733728
+2026-11-16T09:24:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19724 jshell
+   4273    4218 1262 5710972 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7116148736    97599488     3395584  5553029120  5424451584
+Swap:     3221225472  1481830400  1739395072
+some avg10=0.11 avg60=0.13 avg300=0.21 total=15773936
+full avg10=0.11 avg60=0.12 avg300=0.19 total=13869698
+2026-11-16T09:24:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18656 jshell
+   4273    4218 1256 5707712 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7116144640   100696064     3428352  5550096384  5424455680
+Swap:     3221225472  1487699968  1733525504
+some avg10=0.63 avg60=0.22 avg300=0.22 total=15974763
+full avg10=0.63 avg60=0.22 avg300=0.20 total=14070440
+2026-11-16T09:25:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18656 jshell
+   4273    4218 1250 5707592 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7102750720   144408576     3379200  5518921728  5437849600
+Swap:     3221225472  1487949824  1733275648
+some avg10=0.47 avg60=0.23 avg300=0.21 total=16110443
+full avg10=0.47 avg60=0.22 avg300=0.20 total=14206040
+2026-11-16T09:25:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18660 jshell
+   4273    4218 1244 5710880 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7113834496   108294144     3411968  5544058880  5426765824
+Swap:     3221225472  1486188544  1735036928
+some avg10=1.16 avg60=0.39 avg300=0.25 total=16319920
+full avg10=1.16 avg60=0.38 avg300=0.23 total=14415222
+2026-11-16T09:26:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18652 jshell
+   4273    4218 1240 5716232 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7111610368   106557440     3375104  5548683264  5428989952
+Swap:     3221225472  1481588736  1739636736
+some avg10=0.27 avg60=0.57 avg300=0.32 total=16732861
+full avg10=0.25 avg60=0.55 avg300=0.30 total=14827215
+2026-11-16T09:26:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18584 jshell
+   4273    4218 1237 5715500 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7101014016   118214656     3375104  5547429888  5439586304
+Swap:     3221225472  1483292672  1737932800
+some avg10=0.37 avg60=0.41 avg300=0.30 total=16918184
+full avg10=0.37 avg60=0.39 avg300=0.28 total=15012330
+2026-11-16T09:27:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18540 jshell
+   4273    4218 1234 5715552 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7136165888   109309952     3375104  5520404480  5404434432
+Swap:     3221225472  1483264000  1737961472
+some avg10=0.06 avg60=0.31 avg300=0.28 total=17041370
+full avg10=0.06 avg60=0.30 avg300=0.27 total=15135346
+2026-11-16T09:27:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18488 jshell
+   4273    4218 1231 5716672 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7158145024    97017856     3375104  5510692864  5382455296
+Swap:     3221225472  1482829824  1738395648
+some avg10=0.02 avg60=0.20 avg300=0.26 total=17138299
+full avg10=0.02 avg60=0.20 avg300=0.25 total=15232167
+2026-11-16T09:28:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18400 jshell
+   4273    4218 1228 5713360 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7146221568   116924416     3375104  5502996480  5394378752
+Swap:     3221225472  1486991360  1734234112
+some avg10=0.00 avg60=0.12 avg300=0.23 total=17233980
+full avg10=0.00 avg60=0.12 avg300=0.22 total=15327731
+2026-11-16T09:28:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18284 jshell
+   4273    4218 1224 5713024 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7154434048   102191104     3375104  5509353472  5386166272
+Swap:     3221225472  1487409152  1733816320
+some avg10=0.05 avg60=0.10 avg300=0.21 total=17340882
+full avg10=0.05 avg60=0.09 avg300=0.20 total=15432926
+2026-11-16T09:29:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18640 jshell
+   4273    4218 1218 5712768 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7122165760   100790272     3375104  5543063552  5418434560
+Swap:     3221225472  1487310848  1733914624
+some avg10=0.00 avg60=0.05 avg300=0.19 total=17389867
+full avg10=0.00 avg60=0.05 avg300=0.18 total=15481884
+2026-11-16T09:29:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 19048 jshell
+   4273    4218 1211 5712844 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7124897792   102465536     3375104  5538631680  5415702528
+Swap:     3221225472  1487261696  1733963776
+some avg10=0.00 avg60=0.03 avg300=0.16 total=17391340
+full avg10=0.00 avg60=0.03 avg300=0.16 total=15483356
+2026-11-16T09:30:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43828 jshell
+   4273    4218 1204 5712092 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7161282560   105197568     3379200  5499445248  5379317760
+Swap:     3221225472  1484627968  1736597504
+some avg10=0.00 avg60=0.01 avg300=0.14 total=17413428
+full avg10=0.00 avg60=0.01 avg300=0.14 total=15505430
+2026-11-16T09:30:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43828 jshell
+   4273    4218 1198 5711812 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7178530816   123297792     3379200  5464080384  5362069504
+Swap:     3221225472  1485148160  1736077312
+some avg10=0.00 avg60=0.00 avg300=0.13 total=17432623
+full avg10=0.00 avg60=0.00 avg300=0.12 total=15524611
+2026-11-16T09:31:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43828 jshell
+   4273    4218 1190 5711504 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7176716288   112570368     3379200  5476794368  5363884032
+Swap:     3221225472  1485733888  1735491584
+some avg10=0.00 avg60=0.00 avg300=0.11 total=17438692
+full avg10=0.00 avg60=0.00 avg300=0.11 total=15530672
+2026-11-16T09:31:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43836 jshell
+   4273    4218 1183 5710920 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7160897536   106635264     3379200  5498753024  5379702784
+Swap:     3221225472  1486823424  1734402048
+some avg10=0.00 avg60=0.00 avg300=0.10 total=17442292
+full avg10=0.00 avg60=0.00 avg300=0.09 total=15534269
+2026-11-16T09:32:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43796 jshell
+   4273    4218 1176 5710840 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7173500928   100827136     3379200  5491793920  5367099392
+Swap:     3221225472  1487237120  1733988352
+some avg10=0.00 avg60=0.00 avg300=0.08 total=17444744
+full avg10=0.00 avg60=0.00 avg300=0.08 total=15536719
+2026-11-16T09:32:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43728 jshell
+   4273    4218 1170 5707564 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7139946496   109109248     3379200  5516922880  5400653824
+Swap:     3221225472  1491283968  1729941504
+some avg10=0.00 avg60=0.00 avg300=0.07 total=17456147
+full avg10=0.00 avg60=0.00 avg300=0.06 total=15548114
+2026-11-16T09:33:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43664 jshell
+   4273    4218 1163 5704376 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7168008192   120610816     3379200  5477130240  5372592128
+Swap:     3221225472  1495158784  1726066688
+some avg10=0.00 avg60=0.00 avg300=0.06 total=17463221
+full avg10=0.00 avg60=0.00 avg300=0.06 total=15555180
+2026-11-16T09:33:48+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43668 jshell
+   4273    4218 1156 5701448 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7159590912   100855808     3379200  5505552384  5381009408
+Swap:     3221225472  1498611712  1722613760
+some avg10=0.00 avg60=0.00 avg300=0.05 total=17474902
+full avg10=0.00 avg60=0.00 avg300=0.05 total=15566538
+2026-11-16T09:34:18+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43668 jshell
+   4273    4218 1149 5693308 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7137779712   112467968     3379200  5515669504  5402820608
+Swap:     3221225472  1507627008  1713598464
+some avg10=0.00 avg60=0.00 avg300=0.04 total=17499954
+full avg10=0.00 avg60=0.00 avg300=0.04 total=15591578
+2026-11-16T09:34:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43432 jshell
+   4273    4218 1143 5671036 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7118131200   122847232     3362816  5525045248  5422469120
+Swap:     3221225472  1531006976  1690218496
+some avg10=0.00 avg60=0.00 avg300=0.04 total=17583829
+full avg10=0.00 avg60=0.00 avg300=0.04 total=15675427
+2026-11-16T09:35:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43424 jshell
+   4273    4218 1136 5644672 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7109140480    93696000     3362816  5563203584  5431459840
+Swap:     3221225472  1558614016  1662611456
+some avg10=0.19 avg60=0.07 avg300=0.05 total=17799580
+full avg10=0.19 avg60=0.07 avg300=0.05 total=15891003
+2026-11-16T09:35:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43424 jshell
+   4273    4218 1130 5596224 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7046537216   125095936     3358720  5594390528  5494063104
+Swap:     3221225472  1608609792  1612615680
+some avg10=0.04 avg60=0.10 avg300=0.06 total=17911215
+full avg10=0.04 avg60=0.10 avg300=0.06 total=16002610
+2026-11-16T09:36:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 43420 jshell
+   4273    4218 1124 5562664 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7009230848    99434496     3358720  5657735168  5531369472
+Swap:     3221225472  1642938368  1578287104
+some avg10=0.00 avg60=0.06 avg300=0.06 total=17947352
+full avg10=0.00 avg60=0.06 avg300=0.05 total=16038727
+2026-11-16T09:36:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52548 jshell
+   4273    4218 1120 5694212 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7167594496  5138595840     3358720   458514432  5373005824
+Swap:     3221225472  1618112512  1603112960
+some avg10=0.00 avg60=0.03 avg300=0.05 total=17954449
+full avg10=0.00 avg60=0.03 avg300=0.05 total=16045160
+2026-11-16T09:37:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52548 jshell
+   4273    4218 1120 2673160 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  4325761024  7763726336     3358720   675655680  8214839296
+Swap:     3221225472  1471664128  1749561344
+some avg10=0.00 avg60=0.01 avg300=0.04 total=17954550
+full avg10=0.00 avg60=0.01 avg300=0.04 total=16045261
+2026-11-16T09:37:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52548 jshell
+   4273    4218 1120 3070684 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  4758212608  7050502144     3358720   956010496  7782387712
+Swap:     3221225472  1471246336  1749979136
+some avg10=0.00 avg60=0.00 avg300=0.03 total=17954550
+full avg10=0.00 avg60=0.00 avg300=0.03 total=16045261
+2026-11-16T09:38:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52548 jshell
+   4273    4218 1122 6262920 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7773425664  3633311744     3358720  1358966784  4767174656
+Swap:     3221225472  1469919232  1751306240
+some avg10=0.00 avg60=0.00 avg300=0.03 total=17955592
+full avg10=0.00 avg60=0.00 avg300=0.02 total=16045708
+2026-11-16T09:38:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52548 jshell
+   4273    4218 1123 6620908 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8129998848  2840854528     3358720  1794232320  4410601472
+Swap:     3221225472  1469804544  1751420928
+some avg10=0.00 avg60=0.00 avg300=0.02 total=17955592
+full avg10=0.00 avg60=0.00 avg300=0.02 total=16045708
+2026-11-16T09:39:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52548 jshell
+   4273    4218 1125 6725376 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8227758080  2281668608     3358720  2255970304  4312842240
+Swap:     3221225472  1468477440  1752748032
+some avg10=0.00 avg60=0.00 avg300=0.01 total=17955923
+full avg10=0.00 avg60=0.00 avg300=0.01 total=16045779
+2026-11-16T09:39:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52548 jshell
+   4273    4218 1127 6794572 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8301711360  1793757184     3358720  2669711360  4238888960
+Swap:     3221225472  1467719680  1753505792
+some avg10=0.00 avg60=0.00 avg300=0.00 total=17955923
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16045779
+2026-11-16T09:40:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52548 jshell
+   4273    4218 1129 6865624 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8379150336  1300156416     3358720  3085836288  4161449984
+Swap:     3221225472  1467031552  1754193920
+some avg10=0.00 avg60=0.00 avg300=0.00 total=17955923
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16045779
+2026-11-16T09:40:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52608 jshell
+   4273    4218 1130 6866340 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8366628864   886185984     3358720  3512643584  4173971456
+Swap:     3221225472  1467019264  1754206208
+some avg10=0.00 avg60=0.00 avg300=0.00 total=17955923
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16045779
+2026-11-16T09:41:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52608 jshell
+   4273    4218 1132 6868324 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8363798528   459849728     3358720  3941548032  4176801792
+Swap:     3221225472  1465843712  1755381760
+some avg10=0.00 avg60=0.00 avg300=0.00 total=17955923
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16045779
+2026-11-16T09:41:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52528 jshell
+   4273    4218 1133 6869560 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8350740480   158773248     3358720  4255723520  4189859840
+Swap:     3221225472  1464938496  1756286976
+some avg10=0.00 avg60=0.00 avg300=0.00 total=17976178
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16065440
+2026-11-16T09:42:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52524 jshell
+   4273    4218 1135 6865232 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8331653120   105861120     3350528  4327567360  4208947200
+Swap:     3221225472  1470701568  1750523904
+some avg10=0.01 avg60=0.01 avg300=0.00 total=18024975
+full avg10=0.01 avg60=0.01 avg300=0.00 total=16113118
+2026-11-16T09:42:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52524 jshell
+   4273    4218 1136 6865816 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8322834432   109350912     3350528  4332904448  4217765888
+Swap:     3221225472  1470660608  1750564864
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18043780
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16129096
+2026-11-16T09:43:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52524 jshell
+   4273    4218 1138 6346032 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7876665344   266002432     3350528  4674932736  4663934976
+Swap:     3221225472  1470099456  1751126016
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18046612
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16131426
+2026-11-16T09:43:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52524 jshell
+   4273    4218 1140 6644888 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8095830016   111632384     3350528  4557688832  4444770304
+Swap:     3221225472  1469468672  1751756800
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18062742
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16144231
+2026-11-16T09:44:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52524 jshell
+   4273    4218 1141 6706636 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8170852352    99512320     3350528  4494684160  4369747968
+Swap:     3221225472  1470910464  1750315008
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18077231
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16157676
+2026-11-16T09:44:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52524 jshell
+   4273    4218 1143 6799656 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8251392000   110813184     3350528  4402728960  4289208320
+Swap:     3221225472  1472151552  1749073920
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18097562
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16176367
+2026-11-16T09:45:19+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52524 jshell
+   4273    4218 1143 5037432 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6557138944  1626570752     3350528  4580667392  5983461376
+Swap:     3221225472  1472139264  1749086208
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18100002
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16178506
+2026-11-16T09:45:49+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 52524 jshell
+   4273    4218 1145 6305020 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7770898432    97722368     3350528  4896182272  4769701888
+Swap:     3221225472  1472532480  1748692992
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18106380
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16184342
+2026-11-16T09:46:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 51004 jshell
+   4273    4218 1146 6529584 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7980814336    97255424     3350528  4686786560  4559785984
+Swap:     3221225472  1475801088  1745424384
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18144892
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16219110
+2026-11-16T09:46:50+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 51024 jshell
+   4273    4218 1148 6635556 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8084987904   102645760     3350528  4577443840  4455612416
+Swap:     3221225472  1475657728  1745567744
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18158618
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16230635
+2026-11-16T09:47:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 51004 jshell
+   4273    4218 1149 6676264 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8126222336   106016768     3350528  4532752384  4414377984
+Swap:     3221225472  1480773632  1740451840
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18180608
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16250203
+2026-11-16T09:47:50+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 50968 jshell
+   4273    4218 1150 6750628 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8215207936    92512256     3350528  4457103360  4325392384
+Swap:     3221225472  1484644352  1736581120
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18201324
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16268489
+2026-11-16T09:48:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49948 jshell
+   4273    4218 1152 6769260 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8208809984   103497728     3350528  4452442112  4331790336
+Swap:     3221225472  1511268352  1709957120
+some avg10=0.03 avg60=0.02 avg300=0.00 total=18280582
+full avg10=0.03 avg60=0.02 avg300=0.00 total=16344245
+2026-11-16T09:48:50+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49752 jshell
+   4273    4218 1153 6782120 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8215453696   124407808     3350528  4424478720  4325146624
+Swap:     3221225472  1532973056  1688252416
+some avg10=0.00 avg60=0.01 avg300=0.00 total=18357503
+full avg10=0.00 avg60=0.01 avg300=0.00 total=16418481
+2026-11-16T09:49:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49684 jshell
+   4273    4218 1155 6809672 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8249696256    99553280     3350528  4414951424  4290904064
+Swap:     3221225472  1533272064  1687953408
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18377380
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16435058
+2026-11-16T09:49:50+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49560 jshell
+   4273    4218 1156 6820664 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8247836672   103911424     3350528  4412764160  4292763648
+Swap:     3221225472  1533120512  1688104960
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18394773
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16450147
+2026-11-16T09:50:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49176 jshell
+   4273    4218 1157 6822856 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8243568640    99934208     3350528  4420890624  4297031680
+Swap:     3221225472  1532866560  1688358912
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18413486
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16465649
+2026-11-16T09:50:50+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49168 jshell
+   4273    4218 1158 6449068 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7899353088   149925888     3350528  4714250240  4641247232
+Swap:     3221225472  1532968960  1688256512
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18418250
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16469678
+2026-11-16T09:51:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49156 jshell
+   4273    4218 1160 6672100 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8082395136    96800768     3350528  4584914944  4458205184
+Swap:     3221225472  1540493312  1680732160
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18465769
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16511501
+2026-11-16T09:51:50+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49144 jshell
+   4273    4218 1161 6686292 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8098074624    93859840     3350528  4572360704  4442525696
+Swap:     3221225472  1545605120  1675620352
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18489302
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16532521
+2026-11-16T09:52:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49120 jshell
+   4273    4218 1162 6799084 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8213553152   110866432     3350528  4439601152  4327047168
+Swap:     3221225472  1553555456  1667670016
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18519698
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16559736
+2026-11-16T09:52:50+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49112 jshell
+   4273    4218 1163 6847832 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8251416576   105242624     3350528  4407230464  4289183744
+Swap:     3221225472  1565413376  1655812096
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18568414
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16604651
+2026-11-16T09:53:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49076 jshell
+   4273    4218 1164 2672276 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  4333289472  3864784896     3350528  4565479424  8207310848
+Swap:     3221225472  1562071040  1659154432
+some avg10=0.01 avg60=0.02 avg300=0.00 total=18594287
+full avg10=0.01 avg60=0.02 avg300=0.00 total=16629473
+2026-11-16T09:53:50+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49076 jshell
+   4273    4218 1164 5999332 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7449157632   460075008     3350528  4854796288  5091442688
+Swap:     3221225472  1561833472  1659392000
+some avg10=0.00 avg60=0.01 avg300=0.00 total=18594461
+full avg10=0.00 avg60=0.01 avg300=0.00 total=16629647
+2026-11-16T09:54:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49076 jshell
+   4273    4218 1166 6617104 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8022298624    99233792     3350528  4642156544  4518301696
+Swap:     3221225472  1561055232  1660170240
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18623979
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16657311
+2026-11-16T09:54:50+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 49072 jshell
+   4273    4218 1167 6789060 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8195756032   103907328     3362816  4464099328  4344844288
+Swap:     3221225472  1561219072  1660006400
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18644847
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16674517
+2026-11-16T09:55:20+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 48940 jshell
+   4273    4218 1168 6843176 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8255930368   105668608     3362816  4401860608  4284669952
+Swap:     3221225472  1563987968  1657237504
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18666272
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16693417
+2026-11-16T09:55:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 48620 jshell
+   4273    4218 1169 6840752 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8246063104    98492416     3362816  4419555328  4294537216
+Swap:     3221225472  1568559104  1652666368
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18693197
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16717961
+2026-11-16T09:56:21+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 48624 jshell
+   4273    4218 1170 6391968 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7863115776   247980032     3362816  4652433408  4677484544
+Swap:     3221225472  1567105024  1654120448
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18699274
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16722134
+2026-11-16T09:56:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 48592 jshell
+   4273    4218 1171 6821608 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8220401664   104775680     3362816  4438708224  4320198656
+Swap:     3221225472  1566683136  1654542336
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18719561
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16739175
+2026-11-16T09:57:21+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47724 jshell
+   4273    4218 1172 6870992 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8261906432   108953600     3362816  4396642304  4278693888
+Swap:     3221225472  1583996928  1637228544
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18785768
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16802316
+2026-11-16T09:57:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47724 jshell
+   4273    4218 1173 6206744 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7624740864   439037952     3362816  4699664384  4915859456
+Swap:     3221225472  1583431680  1637793792
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18788548
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16803999
+2026-11-16T09:58:21+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47724 jshell
+   4273    4218 1174 6630828 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8022188032    97660928     3362816  4644298752  4518412288
+Swap:     3221225472  1585012736  1636212736
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18809620
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16823254
+2026-11-16T09:58:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47672 jshell
+   4273    4218 1175 4102400 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  5457506304  2798882816     3362816  4506574848  7083094016
+Swap:     3221225472  1600315392  1620910080
+some avg10=0.05 avg60=0.04 avg300=0.00 total=18873645
+full avg10=0.05 avg60=0.04 avg300=0.00 total=16885613
+2026-11-16T09:59:21+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47676 jshell
+   4273    4218 1176 6299344 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7690813440   153391104     3362816  4918996992  4849786880
+Swap:     3221225472  1599897600  1621327872
+some avg10=0.00 avg60=0.02 avg300=0.00 total=18873894
+full avg10=0.00 avg60=0.02 avg300=0.00 total=16885622
+2026-11-16T09:59:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47664 jshell
+   4273    4218 1177 6619880 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7999205376   105009152     3362816  4660387840  4541394944
+Swap:     3221225472  1602031616  1619193856
+some avg10=0.00 avg60=0.01 avg300=0.00 total=18903179
+full avg10=0.00 avg60=0.01 avg300=0.00 total=16912306
+2026-11-16T10:00:21+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47664 jshell
+   4273    4218 1178 2637280 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  4106817536  4074725376     3362816  4581343232  8433782784
+Swap:     3221225472  1601728512  1619496960
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18913288
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16921979
+2026-11-16T10:00:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47664 jshell
+   4273    4218 1178 3480336 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  4827164672  3090755584     3362816  4844683264  7713435648
+Swap:     3221225472  1601105920  1620119552
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18913943
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16922299
+2026-11-16T10:01:21+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47664 jshell
+   4273    4218 1178 5857348 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7287042048   321212416     3362816  5154701312  5253558272
+Swap:     3221225472  1601073152  1620152320
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18914466
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16922553
+2026-11-16T10:01:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47660 jshell
+   4273    4218 1179 6416872 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7772012544    99692544     3362816  4891484160  4768587776
+Swap:     3221225472  1607647232  1613578240
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18953928
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16960039
+2026-11-16T10:02:21+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 47644 jshell
+   4273    4218 1180 6648580 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8030167040    95313920     3366912  4638396416  4510433280
+Swap:     3221225472  1611853824  1609371648
+some avg10=0.00 avg60=0.00 avg300=0.00 total=18982168
+full avg10=0.00 avg60=0.00 avg300=0.00 total=16986374
+2026-11-16T10:02:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 33716 jshell
+   4273    4218 1181 6798556 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8133185536    97009664     3362816  4533194752  4407414784
+Swap:     3221225472  1634275328  1586950144
+some avg10=0.07 avg60=0.04 avg300=0.00 total=19073784
+full avg10=0.07 avg60=0.04 avg300=0.00 total=17075899
+2026-11-16T10:03:21+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 24360 jshell
+   4273    4218 1182 6840408 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8142667776    96067584     3358720  4524699648  4397932544
+Swap:     3221225472  1656438784  1564786688
+some avg10=0.04 avg60=0.07 avg300=0.01 total=19138653
+full avg10=0.04 avg60=0.07 avg300=0.01 total=17138603
+2026-11-16T10:03:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20688 jshell
+   4273    4218 1183 3983000 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  5250736128  2975563776     3358720  4536373248  7289864192
+Swap:     3221225472  1658060800  1563164672
+some avg10=0.00 avg60=0.04 avg300=0.00 total=19163990
+full avg10=0.00 avg60=0.04 avg300=0.00 total=17161132
+2026-11-16T10:04:21+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20696 jshell
+   4273    4218 1184 5632856 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  6944378880   872251392     3358720  4946579456  5596221440
+Swap:     3221225472  1655025664  1566199808
+some avg10=0.00 avg60=0.02 avg300=0.00 total=19163990
+full avg10=0.00 avg60=0.02 avg300=0.00 total=17161132
+2026-11-16T10:04:51+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20700 jshell
+   4273    4218 1185 5909692 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7188635648   210108416     3358720  5364039680  5351964672
+Swap:     3221225472  1654312960  1566912512
+some avg10=0.00 avg60=0.01 avg300=0.00 total=19164182
+full avg10=0.00 avg60=0.01 avg300=0.00 total=17161236
+2026-11-16T10:05:22+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 21176 jshell
+   4273    4218 1186 6070352 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7345307648    95981568     3346432  5321732096  5195292672
+Swap:     3221225472  1658216448  1563009024
+some avg10=0.00 avg60=0.00 avg300=0.00 total=19211533
+full avg10=0.00 avg60=0.00 avg300=0.00 total=17205112
+2026-11-16T10:05:52+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 20580 jshell
+   4273    4218 1187 6174056 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7444533248    98512896     3305472  5219954688  5096067072
+Swap:     3221225472  1664659456  1556566016
+some avg10=0.00 avg60=0.00 avg300=0.00 total=19249417
+full avg10=0.00 avg60=0.00 avg300=0.00 total=17238322
+2026-11-16T10:06:22+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 18264 jshell
+   4273    4218 1188 6387064 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7654334464   106164224     3305472  5002817536  4886265856
+Swap:     3221225472  1679159296  1542066176
+some avg10=0.00 avg60=0.00 avg300=0.00 total=19286435
+full avg10=0.00 avg60=0.00 avg300=0.00 total=17272876
+2026-11-16T10:06:52+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16908 jshell
+   4273    4218 1189 6521192 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7774654464    95301632     3305472  4892610560  4765945856
+Swap:     3221225472  1691373568  1529851904
+some avg10=0.00 avg60=0.00 avg300=0.00 total=19326099
+full avg10=0.00 avg60=0.00 avg300=0.00 total=17310084
+2026-11-16T10:07:22+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16832 jshell
+   4273    4218 1190 2444884 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  3813707776  4158275584     3305472  4790796288  8726892544
+Swap:     3221225472  1699536896  1521688576
+some avg10=0.00 avg60=0.00 avg300=0.00 total=19356265
+full avg10=0.00 avg60=0.00 avg300=0.00 total=17338758
+2026-11-16T10:07:52+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16472 jshell
+   4273    4218 1190 6361376 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7650811904   104984576     3305472  5007020032  4889788416
+Swap:     3221225472  1698488320  1522737152
+some avg10=0.00 avg60=0.00 avg300=0.00 total=19364389
+full avg10=0.00 avg60=0.00 avg300=0.00 total=17345522
+2026-11-16T10:08:22+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16452 jshell
+   4273    4218 1191 6710300 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7958867968    97902592     3305472  4705726464  4581732352
+Swap:     3221225472  1731309568  1489915904
+some avg10=0.12 avg60=0.07 avg300=0.01 total=19493070
+full avg10=0.08 avg60=0.04 avg300=0.00 total=17440975
+2026-11-16T10:08:52+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16304 jshell
+   4273    4218 1192 6762752 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8004231168   102453248     3305472  4656017408  4536369152
+Swap:     3221225472  1762783232  1458442240
+some avg10=0.00 avg60=0.04 avg300=0.00 total=19585744
+full avg10=0.00 avg60=0.02 avg300=0.00 total=17528469
+2026-11-16T10:09:22+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16132 jshell
+   4273    4218 1193 6755916 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7991676928    98816000     3301376  4672057344  4548923392
+Swap:     3221225472  1767948288  1453277184
+some avg10=0.00 avg60=0.02 avg300=0.00 total=19624735
+full avg10=0.00 avg60=0.01 avg300=0.00 total=17562518
+2026-11-16T10:09:52+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16136 jshell
+   4273    4218 1194 6759624 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8002871296   112615424     3301376  4647006208  4537729024
+Swap:     3221225472  1764179968  1457045504
+some avg10=0.00 avg60=0.01 avg300=0.00 total=19643881
+full avg10=0.00 avg60=0.00 avg300=0.00 total=17579012
+2026-11-16T10:10:22+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16136 jshell
+   4273    4218 1195 6763672 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  8012025856    99885056     3301376  4651016192  4528574464
+Swap:     3221225472  1760980992  1460244480
+some avg10=0.00 avg60=0.00 avg300=0.00 total=19662949
+full avg10=0.00 avg60=0.00 avg300=0.00 total=17594574
+2026-11-16T10:10:52+00:00
+    PID    PPID %CPU   RSS COMMAND
+   4218    4182  0.2 16144 jshell
+   4273    4218 1196 6185548 java
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  7471759360   365559808     3301376  4932055040  5068840960
+Swap:     3221225472  1758298112  1462927360
+some avg10=0.00 avg60=0.00 avg300=0.00 total=19671439
+full avg10=0.00 avg60=0.00 avg300=0.00 total=17601617

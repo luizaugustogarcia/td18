@@ -1,0 +1,63 @@
+format=td18-reference-checker-v1
+status=running
+startedUtc=2026-11-16T08:25:38,230656275+00:00
+sourceRevision=5871a309f170d45cbd84d268f41952fb7815c667
+work=/home/luiz/Projects/td18/checker/target/reference-verification-20261116T082538Z/obligations
+certificateDatabase=/home/luiz/Projects/td18/certificates
+tests=skipped by user request
+jshellOptions=-J-Xmx256m -R-Xms512m -R-Xmx6g -R-XX:+UseG1GC -R-XX:MaxGCPauseMillis=200 -R-XX:ActiveProcessorCount=16 -R-XX:ParallelGCThreads=8 -R-XX:ConcGCThreads=2 -R-Duser.timezone=Europe/Lisbon -R-Djava.io.tmpdir=/home/luiz/Projects/td18/checker/target/reference-verification-20261116T082538Z/tmp -R-Dtd18.checkerWorkers=16 -R-Dtd18.twistedBraceletWorkers=16 -R-Dtd18.certificateLookupBatchSize=32768 -R-Dtd18.certificateLookupPipelines=4 -R-Dtd18.reconstructionWriters=4 -R-Dtd18.reconstructionBufferKeys=1048576 -R-Dtd18.reconstructionQueueBatches=64 -R-Dtd18.reconstructionGeneratedBatchKeys=8192 -R-Dtd18.reconstructionScanBatchKeys=4096 -R-Dtd18.dbWriteBatchEntries=262144 -R-Dtd18.checkerStatsPeriodSeconds=10 -R-Xlog:gc:file=/home/luiz/Projects/td18/logs/reference/checker-gc.log:time\,uptime\,level\,tags 
+Linux luiz 6.18.33.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun 18 21:54:43 UTC 2026 x86_64 GNU/Linux
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           48 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  16
+On-line CPU(s) list:                     0-15
+Vendor ID:                               AuthenticAMD
+Model name:                              AMD Ryzen 7 8840HS w/ Radeon 780M Graphics
+CPU family:                              25
+Model:                                   117
+Thread(s) per core:                      2
+Core(s) per socket:                      8
+Socket(s):                               1
+Stepping:                                2
+BogoMIPS:                                6587.72
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext perfctr_core ssbd ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm
+Hypervisor vendor:                       Microsoft
+Virtualization type:                     full
+L1d cache:                               256 KiB (8 instances)
+L1i cache:                               256 KiB (8 instances)
+L2 cache:                                8 MiB (8 instances)
+L3 cache:                                16 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-15
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Ghostwrite:                Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Old microcode:             Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Not affected
+Vulnerability Spec rstack overflow:      Vulnerable: Safe RET, no microcode
+Vulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; Retpolines; IBPB conditional; IBRS_FW; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Mitigation; Clear CPU buffers
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Not affected
+               total        used        free      shared  buff/cache   available
+Mem:     12540600320  2183987200  8017932288     7815168  2533314560 10356613120
+Swap:     3221225472           0  3221225472
+openjdk version "21.0.13.0.3" 2026-10-24
+OpenJDK Runtime Environment (build 21.0.13.0.3+1-1-26.04.1-Ubuntu)
+OpenJDK 64-Bit Server VM (build 21.0.13.0.3+1-1-26.04.1-Ubuntu, mixed mode, sharing)
+pid 4182's current affinity list: 0-15
+finishedUtc=2026-11-16T10:11:21,857738762+00:00
+elapsedSeconds=6343
+exitCode=0
+status=complete

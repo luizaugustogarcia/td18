@@ -86,11 +86,19 @@ classes, 61,798,462 generated non-elementary endpoints, and 1,349,910,890
 final reconstructed root classes. Its configuration, exact timestamps, phase
 durations and completed logs are in [REFERENCE_SIMULATION.md](REFERENCE_SIMULATION.md).
 
-The database will be verified again on a separate machine. Its finished checker
-log, runtime configuration, timings, regenerated counts and exit status will be
-added to `logs/reference/`. That reference verification record is not attached
-yet. The counted census reports and test artifacts specified above remain part
-of the evidence checklist; emission success alone does not label them checked.
+The separate-machine reference verification completed on an AMD Ryzen 7 8840HS
+with 16 workers and a 6 GiB maximum Java heap, on 16 November 2026 from
+08:25:38 to 10:11:21 Lisbon time, in **1 h 45 min 43 s**, with exit 0.
+It independently regenerated and checked all active root rows, the 74-annotation
+endpoint cover and 61,798,462 non-elementary endpoint classes, then rebuilt the
+inverse waves: 19 residual endpoints, 25,544 after-two classes, 6,451,327
+after-one classes and 1,349,910,890 final roots, with complete replay coverage.
+Its full-scope success message, complete logs and runtime settings are retained
+under `logs/reference/` and described in [the reference record](REFERENCE_SIMULATION.md).
+Tests were skipped for this run at the operator's request, and standalone census
+reports were not republished. The counted census reports and test artifacts
+specified above remain separate checklist requirements; this verification does
+not label those unproduced artifacts checked.
 Only this reference reproduction's emission and verification run artifacts are
 retained in the local checkout. See [validation](VALIDATION.md) for the complete
 independent verification procedure.

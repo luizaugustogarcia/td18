@@ -5,8 +5,11 @@ The source inventory records **2 direct root classes** after support clearing.
 Regenerate and independently audit all counts for the current run. The endpoint
 cover contains all 74 even fixed-point-free annotated types on 14 symbols,
 with budget 7. The retained [reference simulation](REFERENCE_SIMULATION.md)
-uses the local Intel Core Ultra 9 185H / RTX 4070 Laptop machine. The database
-will be verified independently on a separate machine with fresh checker work.
+uses the local Intel Core Ultra 9 185H / RTX 4070 Laptop machine for emission.
+Independent verification completed on a separate AMD Ryzen 7 8840HS machine
+with fresh checker work, 16 workers and a 6 GiB maximum heap. It finished on
+16 November 2026 at 10:11:21 Lisbon time after 1 h 45 min 43 s, with exit 0
+and all 1,349,910,890 reconstructed roots verified.
 The maintained local launchers and their bounded settings are described in
 [OPERATIONS.md](OPERATIONS.md).
 
@@ -97,9 +100,11 @@ missing endpoint discharge is propagated regardless of obstruction markers.
 Any missing final root result fails verification. Ranges and partial phases
 certify only their stated scope. The final full-scope report is required for
 the checked computational part of the proof of TD(18) = 10.
-Retain the completed reference emission logs and add the finished separate-machine
-checker logs to `logs/reference/`; record both configurations and durations in
-[the reference record](REFERENCE_SIMULATION.md).
+The completed reference emission and separate-machine checker logs are retained
+in `logs/reference/`; both configurations, durations and checked counts are in
+[the reference record](REFERENCE_SIMULATION.md). Tests were skipped for the
+reference verification at the operator's request. The separate test and census
+artifact requirements in [RESEARCH_PLAN.md](RESEARCH_PLAN.md) remain unchanged.
 
 ## Endpoint table publication
 

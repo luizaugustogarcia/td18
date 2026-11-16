@@ -3,7 +3,9 @@
 The reference configuration, measured timings and retained logs are in
 [REFERENCE_SIMULATION.md](REFERENCE_SIMULATION.md). The local reference emitter
 completed successfully on 16 November 2026 at 07:35:21 Lisbon time, after
-4 h 37 min 49 s. The independent reference checker runs on a separate machine.
+4 h 37 min 49 s. The independent reference checker completed on a separate
+AMD Ryzen 7 8840HS machine at 10:11:21 Lisbon time the same day, after
+1 h 45 min 43 s, with exit 0 and complete regenerated coverage.
 The source specification is [td18-reduction-count.tex](td18-reduction-count.tex).
 The source inventory retains 53 root partitions, 74 endpoint annotations,
 2 direct root classes after support clearing, and 61,798,462 non-elementary
@@ -11,8 +13,11 @@ endpoint obligations. These values must be independently regenerated for the
 current run; inventory tables do not supply sorting certificates.
 
 A full independent checker run has already succeeded. This reference reproduction
-has a closed certificate database and complete emission logs; its separate-machine
-verification logs will be added when that run finishes. The proof evidence is
+has a closed certificate database and complete emission and separate-machine
+verification logs under `logs/reference/`. The checker verified 1,349,910,890
+final reconstructed root classes. Tests were skipped for that run at the
+operator's request; it did not republish standalone census reports. Those
+remain distinct requirements in the evidence checklist. The proof evidence is
 specified in [RESEARCH_PLAN.md](RESEARCH_PLAN.md).
 
 ## Build, test and regenerate inventories
@@ -69,8 +74,8 @@ The reference artifacts use repository-relative paths:
 
 - `certificates/`: the closed reference database, transferred for independent replay.
 - `emitter/target/local-emission-20261116T025732Z-46940/obligations/`: untracked emitter checkpoints and work sets.
-- `logs/reference/`: committed complete emission logs, runtime settings, launcher snapshot and reference summary; finished checker logs will be added here.
-- `checker/target/reference-verification-<timestamp>/`: fresh independent checker work on the verifying machine.
+- `logs/reference/`: complete emission and checker logs, runtime settings, launcher snapshots and reference summary; no build logs.
+- `checker/target/reference-verification-20261116T082538Z/obligations/`: untracked fresh independent checker work for the completed verification.
 
 Other simulation logs, databases and work sets have been removed from this local
 checkout.
@@ -83,10 +88,19 @@ may omit an obligation.
 
 ## Separate-machine verification
 
-Transfer the closed `certificates/` directory and use the same Java source
-revision as the recorded emission. The native compatibility patch changes only
-the GPU build configuration and is not a checker dependency. Configure JDK 21
-in `~/.bashrc`. From the repository on the verifying machine:
+The completed verification used checker revision
+`5871a309f170d45cbd84d268f41952fb7815c667`, with 16 CPU workers and a 6 GiB
+maximum heap. Its checker Java sources are unchanged from emission revision
+`3ee6d121987c734a01872461ae8b0fc92c54fb4a`. The exact historical Bash/JShell
+command is retained in [checker-launch.sh](../logs/reference/checker-launch.sh),
+and the complete result and phase timings are in
+[REFERENCE_SIMULATION.md](REFERENCE_SIMULATION.md).
+
+To reproduce the check, transfer the closed `certificates/` directory and use
+the recorded checker revision, or record and audit any source changes. The
+native compatibility patch changes only the GPU build configuration and is
+not a checker dependency. Configure JDK 21 in `~/.bashrc`. From the repository
+on the verifying machine:
 
 ```bash
 bash -ic 'mvn -q -pl checker -am compile dependency:build-classpath -Dmdep.outputFile=target/jshell-classpath'

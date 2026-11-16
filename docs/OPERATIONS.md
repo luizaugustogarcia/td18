@@ -82,8 +82,11 @@ The [reference profile](REFERENCE_SIMULATION.md) uses an Intel Core Ultra 9
 185H, 22 CPU workers, a 16 GiB Java heap, and an RTX 4070 Laptop GPU with
 8 slots and 768 MiB of queue memory per slot. It emits the complete scope
 through JShell into `certificates/`. Its exact launcher and settings are retained
-with its completed logs in `logs/reference/`. Independent verification runs on
-a separate machine with fresh checker work.
+with its completed logs in `logs/reference/`. Independent reference verification
+completed on a separate AMD Ryzen 7 8840HS machine with fresh checker work,
+16 CPU workers and a 6 GiB maximum heap. It exited 0 after 1 h 45 min 43 s;
+its full configuration, checked counts and logs are in
+[the reference record](REFERENCE_SIMULATION.md).
 The maintained local launchers select the same memory and queue limits and
 use all allocated CPU cores. They create new execution records; the committed
 launcher snapshot is evidence of the historical run.

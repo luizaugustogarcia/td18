@@ -1,7 +1,7 @@
 {
   "format": "td18-reference-simulation-v1",
   "runId": "20261116T025732Z-46940",
-  "status": "emission-complete",
+  "status": "emission-and-verification-complete",
   "startedUtc": "2026-11-16T02:57:32.521365+00:00",
   "finishedUtc": "2026-11-16T07:35:21.975246+00:00",
   "elapsedSeconds": 16669.454,
@@ -117,8 +117,130 @@
   "certificateDatabase": "certificates/",
   "nativeLibrarySha256": "ff358c77b0df95bb8b93fd30686a3c129a9877f6c662b2ade384c50d9c351e20",
   "verification": {
-    "status": "awaiting-separate-machine-run",
-    "logsAttached": false
+    "status": "complete",
+    "logsAttached": true,
+    "format": "td18-reference-checker-v1",
+    "runId": "20261116T082538Z",
+    "sourceRevision": "5871a309f170d45cbd84d268f41952fb7815c667",
+    "checkerJavaSourcesUnchangedFromEmission": true,
+    "startedUtc": "2026-11-16T08:25:38.230656275+00:00",
+    "finishedUtc": "2026-11-16T10:11:21.857738762+00:00",
+    "elapsedSeconds": 6343,
+    "elapsedResolution": "integer seconds recorded by the launcher",
+    "timezone": "Europe/Lisbon",
+    "exitCode": 0,
+    "hardware": {
+      "cpu": "AMD Ryzen 7 8840HS w/ Radeon 780M Graphics",
+      "physicalCores": 8,
+      "logicalCpus": 16,
+      "cpuAffinity": "0-15",
+      "memoryBytes": 12540600320,
+      "swapBytes": 3221225472,
+      "storage": "NVMe, as reported by the operator",
+      "os": "WSL2 / Linux 6.18.33.2-microsoft-standard-WSL2",
+      "jdk": "Ubuntu OpenJDK 21.0.13.0.3+1-1-26.04.1",
+      "cudaUsed": false
+    },
+    "scope": {
+      "phase": "all",
+      "partitions": [1, 53],
+      "endpoints": [1, 74],
+      "freshWork": true,
+      "resumed": false,
+      "certificateDatabaseReadOnly": true
+    },
+    "runtime": {
+      "cpuWorkers": 16,
+      "braceletWorkers": 16,
+      "initialHeapMiB": 512,
+      "maximumHeapMiB": 6144,
+      "jshellHostMaximumHeapMiB": 256,
+      "garbageCollector": "G1",
+      "gcPauseTargetMillis": 200,
+      "parallelGcThreads": 8,
+      "concurrentGcThreads": 2,
+      "lookupBatchKeys": 32768,
+      "lookupPipelines": 4,
+      "stateWriters": 4,
+      "stateBufferKeys": 1048576,
+      "stateQueueBatches": 64,
+      "generatedBatchKeys": 8192,
+      "maximumScanBatchKeys": 4096,
+      "maximumWriterBufferEntries": 262144,
+      "progressPeriodSeconds": 10,
+      "resourceSamplePeriodSeconds": 30
+    },
+    "counts": {
+      "rootPartitions": 53,
+      "endpointTypes": 74,
+      "elementaryEndpointTypes": 26,
+      "nonElementaryEndpointTypes": 48,
+      "directClasses": 2,
+      "nonElementaryEndpointClasses": 61798462,
+      "residualEndpoints": 19,
+      "afterTwo": 25544,
+      "afterOne": 6451327,
+      "reconstructedRoots": 1349910890,
+      "unresolved": 0
+    },
+    "phases": [
+      {
+        "phase": "Launch and independent root regeneration/replay",
+        "startedUtc": "2026-11-16T08:25:38.230656275+00:00",
+        "finishedUtc": "2026-11-16T08:31:46.573173426+00:00",
+        "elapsedSeconds": 368.343
+      },
+      {
+        "phase": "Endpoint Burnside counts, generation and replay",
+        "startedUtc": "2026-11-16T08:31:46.573173426+00:00",
+        "finishedUtc": "2026-11-16T08:33:39.567741918+00:00",
+        "elapsedSeconds": 112.995
+      },
+      {
+        "phase": "Third-move inverse generation and after-two count",
+        "startedUtc": "2026-11-16T08:33:39.567741918+00:00",
+        "finishedUtc": "2026-11-16T08:33:39.906251656+00:00",
+        "elapsedSeconds": 0.339
+      },
+      {
+        "phase": "After-two replay and both second-move inverse branches",
+        "startedUtc": "2026-11-16T08:33:39.906251656+00:00",
+        "finishedUtc": "2026-11-16T08:33:57.001868729+00:00",
+        "elapsedSeconds": 17.096
+      },
+      {
+        "phase": "After-one replay, final-root generation and persistence",
+        "startedUtc": "2026-11-16T08:33:57.001868729+00:00",
+        "finishedUtc": "2026-11-16T09:20:13.464000+00:00",
+        "elapsedSeconds": 2776.462
+      },
+      {
+        "phase": "Final-root unique-class counting",
+        "startedUtc": "2026-11-16T09:20:13.464000+00:00",
+        "finishedUtc": "2026-11-16T09:36:36.145578208+00:00",
+        "elapsedSeconds": 982.682
+      },
+      {
+        "phase": "Final-root replay and resource closure",
+        "startedUtc": "2026-11-16T09:36:36.145578208+00:00",
+        "finishedUtc": "2026-11-16T10:11:21.857738762+00:00",
+        "elapsedSeconds": 2085.712
+      }
+    ],
+    "sampledResources": {
+      "maximumWorkerLifetimeCpuPercent": 1555,
+      "peakWorkerResidentKiB": 6902688,
+      "peakSystemSwapUsedBytes": 1767948288
+    },
+    "tests": "Skipped at the operator's request; no test execution claimed for this verification",
+    "standaloneCensusReportsRepublished": false,
+    "logs": {
+      "application": "checker.log",
+      "settings": "checker-settings.txt",
+      "resources": "checker-resources.log",
+      "gc": "checker-gc.log",
+      "launcher": "checker-launch.sh"
+    }
   },
   "proofInputs": "Independent regeneration and replay from the certificate database; logs and hashes are execution provenance."
 }

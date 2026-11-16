@@ -28,8 +28,9 @@ exhaustive computational coverage with the reverse-permutation lower bound.
 A full independent checker run has already succeeded. The retained reference
 simulation reproduces the computational result; its machine configuration,
 timings, and publication status are recorded in
-\nolinkurl{docs/REFERENCE_SIMULATION.md}. Verification of that reference database
-on a separate machine will be recorded with its completed logs.
+\nolinkurl{docs/REFERENCE_SIMULATION.md}. Independent verification of that
+reference database on a separate machine completed with exit zero, replaying
+all 1,349,910,890 reconstructed root classes. Its complete logs are retained.
 \end{abstract}
 \section{Pairs, moves, fixed symbols, and premises}
 Let $N=n+1$. Let a cyclic-target pair be $(\omega,\beta)$ with even algebraic
@@ -598,9 +599,39 @@ classes, and 1,349,910,890 final root classes, with zero unresolved roots.
 The scope includes all 53 root partitions and 74 endpoint types, the two direct
 classes in $(11,4,4)$ and $(7,6,6)$, and every inverse obligation. The reference
 certificate database remains outside Git; the completed emission logs are
-retained in \nolinkurl{logs/reference/}. Separate-machine verification uses
-fresh checker work and will add its completed logs to that same reference
-record. Commands and artifact requirements are specified in
+retained in \nolinkurl{logs/reference/}.
+
+Independent verification of that database ran on a separate AMD Ryzen 7
+8840HS CPU (8 cores, 16 logical processors) under WSL2, with 11.68 GiB of
+visible RAM and 3 GiB swap. Storage is NVMe, as reported by the operator.
+Ubuntu OpenJDK 21.0.13.0.3 ran the checker through JShell with a 6 GiB maximum
+heap, 16 checker and bracelet workers, four lookup pipelines of 32,768 keys,
+and four inverse-state persistence writers. The latter used 1,048,576 aggregate
+buffered keys and 64 aggregate queued batches. The certificate database was
+read-only; inverse sets used disk-backed deduplication and completed external
+SST ingestion without WAL writes. CUDA was not used.
+
+The checker source revision was
+\nolinkurl{5871a309f170d45cbd84d268f41952fb7815c667}; its Java sources are
+unchanged from the recorded emission revision. The complete-scope check used
+fresh work without ranges or resume. It ran on 16 November 2026 from
+08:25:38.230656275 to 10:11:21.857738762 UTC (also Lisbon time), recording
+6,343 integer elapsed seconds (1 h 45 min 43 s) and exit zero.
+The checker regenerated and compared all 53 active root rows, checked the
+74-annotation structural endpoint cover, and checked all 48 non-elementary
+endpoint counts against Burnside, totaling 61,798,462 classes. It independently
+recovered the 19 residual endpoints, 25,544 after-two classes, 6,451,327
+after-one classes and 1,349,910,890 final roots, replaying the database at each
+required budget and reporting complete joint-selection coverage.
+
+The complete checker log, settings, resource samples, GC log and historical
+Bash/JShell launcher are retained in \nolinkurl{logs/reference/}.
+\nolinkurl{docs/REFERENCE_SIMULATION.md} records the separate emission and
+verification phase timings and resource measurements. Tests were skipped
+for this verification at the operator's request, and standalone census
+reports were not republished; the distinct test and census artifact
+requirements in \nolinkurl{docs/RESEARCH_PLAN.md} remain unchanged.
+Commands and artifact requirements are specified in
 \nolinkurl{docs/VALIDATION.md}.
 
 \begin{thebibliography}{9}

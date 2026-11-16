@@ -24,8 +24,11 @@ A final reconstructed root always needs budget 10.
 The proof combines exhaustive checked upper-bound coverage with the established
 reverse-permutation lower bound of 10. A full independent checker run has
 already succeeded. The retained [reference simulation](docs/REFERENCE_SIMULATION.md)
-reproduces that result on this local computer; its database will also be verified
-on a separate machine, whose finished logs will be added to the project.
+includes the completed emission and independent verification on a separate
+machine. The reference checker finished on 16 November 2026 at 10:11:21 Lisbon
+time, after **1 h 45 min 43 s**, with exit 0 and all **1,349,910,890**
+reconstructed root classes verified. Its complete logs and settings are retained
+under `logs/reference/`.
 [The evidence checklist](docs/RESEARCH_PLAN.md) specifies every required artifact.
 The checker regenerates all obligations and replays intrinsic witnesses; emitter
 checkpoints and sidecar manifests are not proof inputs.
@@ -50,6 +53,9 @@ The reference machine is an **Intel Core Ultra 9 185H / RTX 4070 Laptop GPU**
 under WSL2: 22 CPU workers, a 16 GiB Java heap, and 8 GPU slots with 768 MiB
 of queue memory each. [The reference record](docs/REFERENCE_SIMULATION.md)
 contains the configuration, start/finish times, durations, and log locations.
+The separate CPU verification used an **AMD Ryzen 7 8840HS**, 16 workers,
+and a 6 GiB maximum Java heap. Tests were skipped for that verification run
+at the operator's request; the evidence checklist retains its test requirements.
 The local launchers use those memory and queue limits with all allocated CPU
 cores. Their default build targets SM 89, and each new run is recorded separately from
 the retained historical emission.

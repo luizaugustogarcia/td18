@@ -1,0 +1,1455 @@
+joint-selection inventory checked: rootPartitions=53 endpointAnnotations=74 elementaryEndpoints=26
+checker parallelism: workers=16 braceletWorkers=16 lookupBatch=32768 lookupPipelines=4 reconstructionBufferKeys=1048576
+2026-11-16T08:25:40.450524258Z checker: independent Eriksson root partition 1 elapsed=0.7s heapMiB=13/6144
+2026-11-16T08:25:49.740274217Z checker: independent Eriksson root partition 1 elapsed=10.0s heapMiB=56/6144
+2026-11-16T08:25:59.739973202Z checker: independent Eriksson root partition 1 elapsed=20.0s heapMiB=125/6144
+2026-11-16T08:26:09.739914656Z checker: independent Eriksson root partition 1 elapsed=30.0s heapMiB=188/6144
+2026-11-16T08:26:19.739926089Z checker: independent Eriksson root partition 1 elapsed=40.0s heapMiB=264/6144
+2026-11-16T08:26:20.500778911Z checker: independent Eriksson root partition 2 elapsed=40.8s heapMiB=76/6144
+2026-11-16T08:26:29.739898924Z checker: independent Eriksson root partition 2 elapsed=50.0s heapMiB=153/6144
+2026-11-16T08:26:39.739910460Z checker: independent Eriksson root partition 2 elapsed=60.0s heapMiB=51/6144
+2026-11-16T08:26:49.739931293Z checker: independent Eriksson root partition 2 elapsed=70.0s heapMiB=271/6144
+2026-11-16T08:26:55.994100527Z checker: independent Eriksson root partition 3 elapsed=76.3s heapMiB=104/6144
+2026-11-16T08:26:59.739929782Z checker: independent Eriksson root partition 3 elapsed=80.0s heapMiB=127/6144
+2026-11-16T08:27:09.739883311Z checker: independent Eriksson root partition 3 elapsed=90.0s heapMiB=123/6144
+2026-11-16T08:27:19.739907575Z checker: independent Eriksson root partition 3 elapsed=100.0s heapMiB=48/6144
+2026-11-16T08:27:23.928148885Z checker: independent Eriksson root partition 4 elapsed=104.2s heapMiB=306/6144
+2026-11-16T08:27:29.739890706Z checker: independent Eriksson root partition 4 elapsed=110.0s heapMiB=233/6144
+2026-11-16T08:27:39.739925795Z checker: independent Eriksson root partition 4 elapsed=120.0s heapMiB=115/6144
+2026-11-16T08:27:42.790591705Z checker: independent Eriksson root partition 5 elapsed=123.1s heapMiB=216/6144
+2026-11-16T08:27:49.739884374Z checker: independent Eriksson root partition 5 elapsed=130.0s heapMiB=246/6144
+2026-11-16T08:27:59.739968751Z checker: independent Eriksson root partition 5 elapsed=140.0s heapMiB=83/6144
+2026-11-16T08:28:01.291051107Z checker: independent Eriksson root partition 6 elapsed=141.6s heapMiB=252/6144
+2026-11-16T08:28:09.740000025Z checker: independent Eriksson root partition 6 elapsed=150.0s heapMiB=178/6144
+2026-11-16T08:28:12.750060611Z checker: independent Eriksson root partition 7 elapsed=153.0s heapMiB=281/6144
+2026-11-16T08:28:19.739911730Z checker: independent Eriksson root partition 7 elapsed=160.0s heapMiB=93/6144
+2026-11-16T08:28:23.959834736Z checker: independent Eriksson root partition 8 elapsed=164.2s heapMiB=208/6144
+2026-11-16T08:28:29.739876341Z checker: independent Eriksson root partition 8 elapsed=170.0s heapMiB=39/6144
+2026-11-16T08:28:32.005788180Z checker: independent Eriksson root partition 9 elapsed=172.3s heapMiB=230/6144
+2026-11-16T08:28:39.739916398Z checker: independent Eriksson root partition 9 elapsed=180.0s heapMiB=123/6144
+2026-11-16T08:28:39.798124721Z checker: independent Eriksson root partition 10 elapsed=180.1s heapMiB=132/6144
+2026-11-16T08:28:47.018063018Z checker: independent Eriksson root partition 11 elapsed=187.3s heapMiB=272/6144
+2026-11-16T08:28:49.739955107Z checker: independent Eriksson root partition 11 elapsed=190.0s heapMiB=173/6144
+2026-11-16T08:28:51.212208945Z checker: independent Eriksson root partition 12 elapsed=191.5s heapMiB=61/6144
+2026-11-16T08:28:59.739885937Z checker: independent Eriksson root partition 12 elapsed=200.0s heapMiB=314/6144
+2026-11-16T08:29:00.915152098Z checker: independent Eriksson root partition 13 elapsed=201.2s heapMiB=58/6144
+2026-11-16T08:29:09.739915110Z checker: independent Eriksson root partition 13 elapsed=210.0s heapMiB=77/6144
+2026-11-16T08:29:10.169920170Z checker: independent Eriksson root partition 14 elapsed=210.4s heapMiB=190/6144
+2026-11-16T08:29:18.782345587Z checker: independent Eriksson root partition 15 elapsed=219.0s heapMiB=327/6144
+2026-11-16T08:29:19.739954766Z checker: independent Eriksson root partition 15 elapsed=220.0s heapMiB=286/6144
+2026-11-16T08:29:23.053609964Z checker: independent Eriksson root partition 16 elapsed=223.3s heapMiB=44/6144
+2026-11-16T08:29:29.739914313Z checker: independent Eriksson root partition 16 elapsed=230.0s heapMiB=176/6144
+2026-11-16T08:29:35.758401377Z checker: independent Eriksson root partition 17 elapsed=236.0s heapMiB=94/6144
+2026-11-16T08:29:39.739944202Z checker: independent Eriksson root partition 17 elapsed=240.0s heapMiB=265/6144
+2026-11-16T08:29:47.925802965Z checker: independent Eriksson root partition 18 elapsed=248.2s heapMiB=260/6144
+2026-11-16T08:29:49.739873306Z checker: independent Eriksson root partition 18 elapsed=250.0s heapMiB=157/6144
+2026-11-16T08:29:58.888907832Z checker: independent Eriksson root partition 19 elapsed=259.2s heapMiB=88/6144
+2026-11-16T08:29:59.740106279Z checker: independent Eriksson root partition 19 elapsed=260.0s heapMiB=157/6144
+2026-11-16T08:30:08.631806208Z checker: independent Eriksson root partition 20 elapsed=268.9s heapMiB=64/6144
+2026-11-16T08:30:09.739928563Z checker: independent Eriksson root partition 20 elapsed=270.0s heapMiB=220/6144
+2026-11-16T08:30:15.696035072Z checker: independent Eriksson root partition 21 elapsed=276.0s heapMiB=288/6144
+2026-11-16T08:30:19.097878884Z checker: independent Eriksson root partition 22 elapsed=279.4s heapMiB=321/6144
+2026-11-16T08:30:19.739871158Z checker: independent Eriksson root partition 22 elapsed=280.0s heapMiB=302/6144
+2026-11-16T08:30:24.302540250Z checker: independent Eriksson root partition 23 elapsed=284.6s heapMiB=215/6144
+2026-11-16T08:30:29.739920659Z checker: independent Eriksson root partition 23 elapsed=290.0s heapMiB=335/6144
+2026-11-16T08:30:33.092349370Z checker: independent Eriksson root partition 24 elapsed=293.4s heapMiB=141/6144
+2026-11-16T08:30:39.739921709Z checker: independent Eriksson root partition 24 elapsed=300.0s heapMiB=138/6144
+2026-11-16T08:30:40.414132876Z checker: independent Eriksson root partition 25 elapsed=300.7s heapMiB=64/6144
+2026-11-16T08:30:46.247960663Z checker: independent Eriksson root partition 26 elapsed=306.5s heapMiB=295/6144
+2026-11-16T08:30:49.739923999Z checker: independent Eriksson root partition 26 elapsed=310.0s heapMiB=203/6144
+2026-11-16T08:30:50.595390239Z checker: independent Eriksson root partition 27 elapsed=310.9s heapMiB=289/6144
+2026-11-16T08:30:52.103102720Z checker: independent Eriksson root partition 28 elapsed=312.4s heapMiB=219/6144
+2026-11-16T08:30:54.279737718Z checker: independent Eriksson root partition 29 elapsed=314.5s heapMiB=159/6144
+2026-11-16T08:30:57.597576400Z checker: independent Eriksson root partition 30 elapsed=317.9s heapMiB=91/6144
+2026-11-16T08:30:59.739922488Z checker: independent Eriksson root partition 30 elapsed=320.0s heapMiB=271/6144
+2026-11-16T08:31:00.772242203Z checker: independent Eriksson root partition 31 elapsed=321.0s heapMiB=254/6144
+2026-11-16T08:31:03.723059186Z checker: independent Eriksson root partition 32 elapsed=324.0s heapMiB=208/6144
+2026-11-16T08:31:06.126877065Z checker: independent Eriksson root partition 33 elapsed=326.4s heapMiB=163/6144
+2026-11-16T08:31:08.372458159Z checker: independent Eriksson root partition 34 elapsed=328.6s heapMiB=203/6144
+2026-11-16T08:31:08.887783776Z checker: independent Eriksson root partition 35 elapsed=329.1s heapMiB=212/6144
+2026-11-16T08:31:09.285021100Z checker: independent Eriksson root partition 36 elapsed=329.5s heapMiB=105/6144
+2026-11-16T08:31:09.739870032Z checker: independent Eriksson root partition 36 elapsed=330.0s heapMiB=325/6144
+2026-11-16T08:31:10.948710361Z checker: independent Eriksson root partition 37 elapsed=331.2s heapMiB=269/6144
+2026-11-16T08:31:16.282586061Z checker: independent Eriksson root partition 38 elapsed=336.5s heapMiB=172/6144
+2026-11-16T08:31:19.639461926Z checker: independent Eriksson root partition 39 elapsed=339.9s heapMiB=123/6144
+2026-11-16T08:31:19.739883021Z checker: independent Eriksson root partition 39 elapsed=340.0s heapMiB=169/6144
+2026-11-16T08:31:22.992907992Z checker: independent Eriksson root partition 40 elapsed=343.3s heapMiB=218/6144
+2026-11-16T08:31:25.817483437Z checker: independent Eriksson root partition 41 elapsed=346.1s heapMiB=188/6144
+2026-11-16T08:31:26.409616155Z checker: independent Eriksson root partition 42 elapsed=346.7s heapMiB=307/6144
+2026-11-16T08:31:28.752517995Z checker: independent Eriksson root partition 43 elapsed=349.0s heapMiB=109/6144
+2026-11-16T08:31:29.739872743Z checker: independent Eriksson root partition 43 elapsed=350.0s heapMiB=74/6144
+2026-11-16T08:31:33.055780544Z checker: independent Eriksson root partition 44 elapsed=353.3s heapMiB=212/6144
+2026-11-16T08:31:34.873928858Z checker: independent Eriksson root partition 45 elapsed=355.1s heapMiB=70/6144
+2026-11-16T08:31:38.652590861Z checker: independent Eriksson root partition 46 elapsed=358.9s heapMiB=230/6144
+2026-11-16T08:31:39.741520386Z checker: independent Eriksson root partition 46 elapsed=360.0s heapMiB=63/6144
+2026-11-16T08:31:42.639326993Z checker: independent Eriksson root partition 47 elapsed=362.9s heapMiB=284/6144
+2026-11-16T08:31:44.220316868Z checker: independent Eriksson root partition 48 elapsed=364.5s heapMiB=344/6144
+2026-11-16T08:31:44.743670107Z checker: independent Eriksson root partition 49 elapsed=365.0s heapMiB=277/6144
+2026-11-16T08:31:45.604211321Z checker: independent Eriksson root partition 50 elapsed=365.9s heapMiB=86/6144
+2026-11-16T08:31:46.083434288Z checker: independent Eriksson root partition 51 elapsed=366.3s heapMiB=160/6144
+2026-11-16T08:31:46.288892895Z checker: independent Eriksson root partition 52 elapsed=366.6s heapMiB=330/6144
+2026-11-16T08:31:46.423661843Z checker: independent Eriksson root partition 53 elapsed=366.7s heapMiB=115/6144
+2026-11-16T08:31:46.573173426Z checker: independent Burnside count for endpoint 1 elapsed=366.8s heapMiB=125/6144
+2026-11-16T08:31:46.575603195Z checker: endpoint 1: regenerated=0 residual=0 elapsed=366.8s heapMiB=125/6144
+endpoint 1 checked: generated=0 residuals=0
+2026-11-16T08:31:46.609585391Z checker: independent Burnside count for endpoint 2 elapsed=366.9s heapMiB=127/6144
+2026-11-16T08:31:46.715203392Z checker: endpoint 2: regenerated=0 residual=0 elapsed=367.0s heapMiB=142/6144
+2026-11-16T08:31:49.740191271Z checker: endpoint 2: regenerated=589835 residual=0 elapsed=370.0s heapMiB=1043/6144
+2026-11-16T08:31:59.741455335Z checker: endpoint 2: regenerated=4980747 residual=0 elapsed=380.0s heapMiB=1679/6144
+2026-11-16T08:32:09.739915666Z checker: endpoint 2: regenerated=10715147 residual=0 elapsed=390.0s heapMiB=3580/6144
+2026-11-16T08:32:19.739933676Z checker: endpoint 2: regenerated=15433739 residual=0 elapsed=400.0s heapMiB=2797/6144
+endpoint 2 checked: generated=17111244 residuals=0
+2026-11-16T08:32:23.453157970Z checker: independent Burnside count for endpoint 3 elapsed=403.7s heapMiB=3925/6144
+2026-11-16T08:32:23.456709215Z checker: endpoint 3: regenerated=0 residual=0 elapsed=403.7s heapMiB=3925/6144
+endpoint 3 checked: generated=0 residuals=0
+2026-11-16T08:32:23.462191642Z checker: independent Burnside count for endpoint 5 elapsed=403.7s heapMiB=3925/6144
+2026-11-16T08:32:23.467983034Z checker: endpoint 5: regenerated=0 residual=0 elapsed=403.7s heapMiB=3925/6144
+2026-11-16T08:32:29.739893759Z checker: endpoint 5: regenerated=3538955 residual=0 elapsed=410.0s heapMiB=2180/6144
+endpoint 5 checked: generated=4755508 residuals=0
+2026-11-16T08:32:32.573076763Z checker: independent Burnside count for endpoint 7 elapsed=412.8s heapMiB=2994/6144
+2026-11-16T08:32:32.573726832Z checker: endpoint 7: regenerated=0 residual=0 elapsed=412.8s heapMiB=2994/6144
+endpoint 7 checked: generated=0 residuals=0
+2026-11-16T08:32:32.574209460Z checker: independent Burnside count for endpoint 8 elapsed=412.8s heapMiB=2995/6144
+2026-11-16T08:32:32.574355481Z checker: endpoint 8: regenerated=0 residual=0 elapsed=412.8s heapMiB=2995/6144
+endpoint 8 checked: generated=0 residuals=0
+2026-11-16T08:32:32.575468161Z checker: independent Burnside count for endpoint 9 elapsed=412.8s heapMiB=2995/6144
+2026-11-16T08:32:32.577292685Z checker: endpoint 9: regenerated=0 residual=0 elapsed=412.8s heapMiB=2995/6144
+endpoint 9 checked: generated=778740 residuals=0
+2026-11-16T08:32:34.219289931Z checker: independent Burnside count for endpoint 10 elapsed=414.5s heapMiB=2758/6144
+2026-11-16T08:32:34.222510656Z checker: endpoint 10: regenerated=0 residual=0 elapsed=414.5s heapMiB=2759/6144
+2026-11-16T08:32:39.740102231Z checker: endpoint 10: regenerated=3932171 residual=0 elapsed=420.0s heapMiB=2985/6144
+2026-11-16T08:32:49.739950004Z checker: endpoint 10: regenerated=9523970 residual=0 elapsed=430.0s heapMiB=1903/6144
+endpoint 10 checked: generated=9593000 residuals=0
+2026-11-16T08:32:50.062523026Z checker: independent Burnside count for endpoint 11 elapsed=430.3s heapMiB=2829/6144
+2026-11-16T08:32:50.063150323Z checker: endpoint 11: regenerated=0 residual=0 elapsed=430.3s heapMiB=2829/6144
+endpoint 11 checked: generated=0 residuals=0
+2026-11-16T08:32:50.064017816Z checker: independent Burnside count for endpoint 12 elapsed=430.3s heapMiB=2830/6144
+2026-11-16T08:32:50.064424282Z checker: endpoint 12: regenerated=0 residual=0 elapsed=430.3s heapMiB=2830/6144
+endpoint 12 checked: generated=0 residuals=0
+2026-11-16T08:32:50.065542787Z checker: independent Burnside count for endpoint 13 elapsed=430.3s heapMiB=2831/6144
+2026-11-16T08:32:50.066790207Z checker: endpoint 13: regenerated=0 residual=0 elapsed=430.3s heapMiB=2831/6144
+endpoint 13 checked: generated=73104 residuals=0
+2026-11-16T08:32:50.247403853Z checker: independent Burnside count for endpoint 14 elapsed=430.5s heapMiB=3277/6144
+2026-11-16T08:32:50.248791554Z checker: endpoint 14: regenerated=0 residual=0 elapsed=430.5s heapMiB=3278/6144
+2026-11-16T08:32:59.742321452Z checker: endpoint 14: regenerated=6553611 residual=0 elapsed=440.0s heapMiB=2981/6144
+endpoint 14 checked: generated=9164272 residuals=9
+2026-11-16T08:33:04.861260658Z checker: independent Burnside count for endpoint 15 elapsed=445.1s heapMiB=2303/6144
+2026-11-16T08:33:04.861532073Z checker: endpoint 15: regenerated=0 residual=0 elapsed=445.1s heapMiB=2303/6144
+endpoint 15 checked: generated=0 residuals=0
+2026-11-16T08:33:04.862796735Z checker: independent Burnside count for endpoint 16 elapsed=445.1s heapMiB=2304/6144
+2026-11-16T08:33:04.862923190Z checker: endpoint 16: regenerated=0 residual=0 elapsed=445.1s heapMiB=2304/6144
+endpoint 16 checked: generated=0 residuals=0
+2026-11-16T08:33:04.866536520Z checker: independent Burnside count for endpoint 17 elapsed=445.1s heapMiB=2315/6144
+2026-11-16T08:33:04.867197981Z checker: endpoint 17: regenerated=0 residual=0 elapsed=445.1s heapMiB=2316/6144
+endpoint 17 checked: generated=3456 residuals=0
+2026-11-16T08:33:04.882469244Z checker: independent Burnside count for endpoint 18 elapsed=445.1s heapMiB=2333/6144
+2026-11-16T08:33:04.883570662Z checker: endpoint 18: regenerated=0 residual=0 elapsed=445.1s heapMiB=2333/6144
+2026-11-16T08:33:09.789722087Z checker: endpoint 18: regenerated=3650330 residual=0 elapsed=450.1s heapMiB=1633/6144
+endpoint 18 checked: generated=8646072 residuals=0
+2026-11-16T08:33:17.425007144Z checker: independent Burnside count for endpoint 19 elapsed=457.7s heapMiB=2543/6144
+2026-11-16T08:33:17.425328812Z checker: endpoint 19: regenerated=0 residual=0 elapsed=457.7s heapMiB=2543/6144
+endpoint 19 checked: generated=0 residuals=0
+2026-11-16T08:33:17.427535387Z checker: independent Burnside count for endpoint 20 elapsed=457.7s heapMiB=2544/6144
+2026-11-16T08:33:17.437339512Z checker: endpoint 20: regenerated=0 residual=0 elapsed=457.7s heapMiB=2553/6144
+endpoint 20 checked: generated=1049424 residuals=0
+2026-11-16T08:33:19.677410065Z checker: independent Burnside count for endpoint 21 elapsed=459.9s heapMiB=2149/6144
+2026-11-16T08:33:19.678159759Z checker: endpoint 21: regenerated=0 residual=0 elapsed=459.9s heapMiB=2150/6144
+endpoint 21 checked: generated=1 residuals=0
+2026-11-16T08:33:19.681112912Z checker: independent Burnside count for endpoint 22 elapsed=459.9s heapMiB=2151/6144
+2026-11-16T08:33:19.682198761Z checker: endpoint 22: regenerated=0 residual=0 elapsed=459.9s heapMiB=2154/6144
+endpoint 22 checked: generated=77 residuals=0
+2026-11-16T08:33:19.687686839Z checker: independent Burnside count for endpoint 23 elapsed=459.9s heapMiB=2161/6144
+2026-11-16T08:33:19.688759429Z checker: endpoint 23: regenerated=0 residual=0 elapsed=460.0s heapMiB=2161/6144
+2026-11-16T08:33:19.739890293Z checker: endpoint 23: regenerated=54649 residual=0 elapsed=460.0s heapMiB=2239/6144
+endpoint 23 checked: generated=4245196 residuals=10
+2026-11-16T08:33:26.247642981Z checker: independent Burnside count for endpoint 24 elapsed=466.5s heapMiB=3498/6144
+2026-11-16T08:33:26.248280948Z checker: endpoint 24: regenerated=0 residual=0 elapsed=466.5s heapMiB=3499/6144
+endpoint 24 checked: generated=0 residuals=0
+2026-11-16T08:33:26.251453168Z checker: independent Burnside count for endpoint 26 elapsed=466.5s heapMiB=3502/6144
+2026-11-16T08:33:26.328382489Z checker: endpoint 26: regenerated=0 residual=0 elapsed=466.6s heapMiB=3505/6144
+endpoint 26 checked: generated=932182 residuals=0
+2026-11-16T08:33:28.430321551Z checker: independent Burnside count for endpoint 28 elapsed=468.7s heapMiB=2766/6144
+2026-11-16T08:33:28.431401790Z checker: endpoint 28: regenerated=0 residual=0 elapsed=468.7s heapMiB=2766/6144
+endpoint 28 checked: generated=142 residuals=0
+2026-11-16T08:33:28.437736432Z checker: independent Burnside count for endpoint 29 elapsed=468.7s heapMiB=2770/6144
+2026-11-16T08:33:28.439538914Z checker: endpoint 29: regenerated=0 residual=0 elapsed=468.7s heapMiB=2770/6144
+endpoint 29 checked: generated=674 residuals=0
+2026-11-16T08:33:28.449059312Z checker: independent Burnside count for endpoint 30 elapsed=468.7s heapMiB=2778/6144
+2026-11-16T08:33:28.452392060Z checker: endpoint 30: regenerated=0 residual=0 elapsed=468.7s heapMiB=2784/6144
+endpoint 30 checked: generated=167103 residuals=0
+2026-11-16T08:33:28.910974474Z checker: independent Burnside count for endpoint 31 elapsed=469.2s heapMiB=1442/6144
+2026-11-16T08:33:28.915432456Z checker: endpoint 31: regenerated=0 residual=0 elapsed=469.2s heapMiB=1453/6144
+2026-11-16T08:33:29.745497794Z checker: endpoint 31: regenerated=524299 residual=0 elapsed=470.0s heapMiB=1756/6144
+endpoint 31 checked: generated=1948433 residuals=0
+2026-11-16T08:33:32.341910484Z checker: independent Burnside count for endpoint 32 elapsed=472.6s heapMiB=2012/6144
+2026-11-16T08:33:32.343017202Z checker: endpoint 32: regenerated=0 residual=0 elapsed=472.6s heapMiB=2020/6144
+endpoint 32 checked: generated=205 residuals=0
+2026-11-16T08:33:32.348738784Z checker: independent Burnside count for endpoint 35 elapsed=472.6s heapMiB=2024/6144
+2026-11-16T08:33:32.353051586Z checker: endpoint 35: regenerated=0 residual=0 elapsed=472.6s heapMiB=2030/6144
+endpoint 35 checked: generated=291793 residuals=0
+2026-11-16T08:33:32.942595969Z checker: independent Burnside count for endpoint 38 elapsed=473.2s heapMiB=4006/6144
+2026-11-16T08:33:32.943738785Z checker: endpoint 38: regenerated=0 residual=0 elapsed=473.2s heapMiB=4007/6144
+endpoint 38 checked: generated=161 residuals=0
+2026-11-16T08:33:32.952688911Z checker: independent Burnside count for endpoint 39 elapsed=473.2s heapMiB=1472/6144
+2026-11-16T08:33:32.954487727Z checker: endpoint 39: regenerated=0 residual=0 elapsed=473.2s heapMiB=1473/6144
+endpoint 39 checked: generated=17153 residuals=0
+2026-11-16T08:33:33.001612684Z checker: independent Burnside count for endpoint 40 elapsed=473.3s heapMiB=1580/6144
+2026-11-16T08:33:33.004434142Z checker: endpoint 40: regenerated=0 residual=0 elapsed=473.3s heapMiB=1583/6144
+endpoint 40 checked: generated=1001744 residuals=0
+2026-11-16T08:33:34.817116695Z checker: independent Burnside count for endpoint 41 elapsed=475.1s heapMiB=2898/6144
+2026-11-16T08:33:34.819106927Z checker: endpoint 41: regenerated=0 residual=0 elapsed=475.1s heapMiB=2898/6144
+endpoint 41 checked: generated=1560 residuals=0
+2026-11-16T08:33:34.833807945Z checker: independent Burnside count for endpoint 43 elapsed=475.1s heapMiB=2916/6144
+2026-11-16T08:33:34.837661813Z checker: endpoint 43: regenerated=0 residual=0 elapsed=475.1s heapMiB=2919/6144
+endpoint 43 checked: generated=11388 residuals=0
+2026-11-16T08:33:34.883521489Z checker: independent Burnside count for endpoint 45 elapsed=475.1s heapMiB=2994/6144
+2026-11-16T08:33:34.890506996Z checker: endpoint 45: regenerated=0 residual=0 elapsed=475.2s heapMiB=3004/6144
+endpoint 45 checked: generated=110604 residuals=0
+2026-11-16T08:33:35.134002008Z checker: independent Burnside count for endpoint 47 elapsed=475.4s heapMiB=3752/6144
+2026-11-16T08:33:35.144264947Z checker: endpoint 47: regenerated=0 residual=0 elapsed=475.4s heapMiB=3764/6144
+endpoint 47 checked: generated=1183104 residuals=0
+2026-11-16T08:33:37.569537715Z checker: independent Burnside count for endpoint 49 elapsed=477.8s heapMiB=1752/6144
+2026-11-16T08:33:37.572320070Z checker: endpoint 49: regenerated=0 residual=0 elapsed=477.8s heapMiB=1762/6144
+endpoint 49 checked: generated=434 residuals=0
+2026-11-16T08:33:37.579198027Z checker: independent Burnside count for endpoint 53 elapsed=477.8s heapMiB=1768/6144
+2026-11-16T08:33:37.583943889Z checker: endpoint 53: regenerated=0 residual=0 elapsed=477.8s heapMiB=1768/6144
+endpoint 53 checked: generated=32348 residuals=0
+2026-11-16T08:33:37.672543364Z checker: independent Burnside count for endpoint 57 elapsed=477.9s heapMiB=1984/6144
+2026-11-16T08:33:37.674198323Z checker: endpoint 57: regenerated=0 residual=0 elapsed=477.9s heapMiB=1984/6144
+endpoint 57 checked: generated=473 residuals=0
+2026-11-16T08:33:37.681723268Z checker: independent Burnside count for endpoint 58 elapsed=477.9s heapMiB=2004/6144
+2026-11-16T08:33:37.684922659Z checker: endpoint 58: regenerated=0 residual=0 elapsed=477.9s heapMiB=2007/6144
+endpoint 58 checked: generated=10479 residuals=0
+2026-11-16T08:33:37.718157552Z checker: independent Burnside count for endpoint 59 elapsed=478.0s heapMiB=2074/6144
+2026-11-16T08:33:37.722444687Z checker: endpoint 59: regenerated=0 residual=0 elapsed=478.0s heapMiB=2076/6144
+endpoint 59 checked: generated=101934 residuals=0
+2026-11-16T08:33:37.889567099Z checker: independent Burnside count for endpoint 60 elapsed=478.2s heapMiB=2726/6144
+2026-11-16T08:33:37.895426687Z checker: endpoint 60: regenerated=0 residual=0 elapsed=478.2s heapMiB=2729/6144
+endpoint 60 checked: generated=421234 residuals=0
+2026-11-16T08:33:38.720137059Z checker: independent Burnside count for endpoint 61 elapsed=479.0s heapMiB=2972/6144
+2026-11-16T08:33:38.725215805Z checker: endpoint 61: regenerated=0 residual=0 elapsed=479.0s heapMiB=2972/6144
+endpoint 61 checked: generated=1187 residuals=0
+2026-11-16T08:33:38.734327652Z checker: independent Burnside count for endpoint 64 elapsed=479.0s heapMiB=2988/6144
+2026-11-16T08:33:38.744236171Z checker: endpoint 64: regenerated=0 residual=0 elapsed=479.0s heapMiB=2993/6144
+endpoint 64 checked: generated=18257 residuals=0
+2026-11-16T08:33:38.798538639Z checker: independent Burnside count for endpoint 67 elapsed=479.1s heapMiB=3112/6144
+2026-11-16T08:33:38.810206961Z checker: endpoint 67: regenerated=0 residual=0 elapsed=479.1s heapMiB=3116/6144
+endpoint 67 checked: generated=90608 residuals=0
+2026-11-16T08:33:39.066623773Z checker: independent Burnside count for endpoint 70 elapsed=479.3s heapMiB=3692/6144
+2026-11-16T08:33:39.080810429Z checker: endpoint 70: regenerated=0 residual=0 elapsed=479.3s heapMiB=3692/6144
+endpoint 70 checked: generated=2186 residuals=0
+2026-11-16T08:33:39.092011523Z checker: independent Burnside count for endpoint 71 elapsed=479.4s heapMiB=3724/6144
+2026-11-16T08:33:39.110424880Z checker: endpoint 71: regenerated=0 residual=0 elapsed=479.4s heapMiB=3728/6144
+endpoint 71 checked: generated=23687 residuals=0
+2026-11-16T08:33:39.174734839Z checker: independent Burnside count for endpoint 72 elapsed=479.4s heapMiB=3890/6144
+2026-11-16T08:33:39.208657733Z checker: endpoint 72: regenerated=0 residual=0 elapsed=479.5s heapMiB=3890/6144
+endpoint 72 checked: generated=9295 residuals=0
+2026-11-16T08:33:39.282Z INFO State persistence endpoint-residuals drain (writers): processed=0/4 (0.00%), remaining=4, throughput=0.000/s, encodedKeysConsumed=19/19, encodedKeysRemaining=0, ingestedTables=0, ingestedKeys=0, uniqueTotal=unknown until counting
+2026-11-16T08:33:39.372Z INFO State persistence endpoint-residuals drain (writers): processed=4/4 (100.00%), remaining=0, throughput=34.286/s, encodedKeysConsumed=19/19, encodedKeysRemaining=0, ingestedTables=4, ingestedKeys=19, uniqueTotal=unknown until counting
+2026-11-16T08:33:39.379Z INFO State inventory endpoint-residuals unique-class counting: processed=0, total=unknown (exhaustive count in progress), throughput=0.000/s
+2026-11-16T08:33:39.390Z INFO State inventory endpoint-residuals unique-class counting: processed=19, total=unknown (exhaustive count in progress), throughput=1600.050/s
+2026-11-16T08:33:39.567741918Z checker: regenerating third-move inverse supports elapsed=479.8s heapMiB=4039/6144
+2026-11-16T08:33:39.570Z INFO State inventory endpoint-residuals scan: processed=0/19 (0.00%), remaining=19, throughput=0.000/s
+2026-11-16T08:33:39.743951502Z checker: regenerating third-move inverse supports elapsed=480.0s heapMiB=1860/6144
+2026-11-16T08:33:39.763Z INFO State inventory endpoint-residuals scan: processed=19/19 (100.00%), remaining=0, throughput=98.489/s
+2026-11-16T08:33:39.782Z INFO State persistence after-two drain (writers): processed=0/4 (0.00%), remaining=4, throughput=0.000/s, encodedKeysConsumed=16278/55860, encodedKeysRemaining=39582, ingestedTables=0, ingestedKeys=0, uniqueTotal=unknown until counting
+2026-11-16T08:33:39.869Z INFO State persistence after-two drain (writers): processed=4/4 (100.00%), remaining=0, throughput=46.556/s, encodedKeysConsumed=55860/55860, encodedKeysRemaining=0, ingestedTables=4, ingestedKeys=25544, uniqueTotal=unknown until counting
+2026-11-16T08:33:39.869Z INFO State inventory after-two unique-class counting: processed=0, total=unknown (exhaustive count in progress), throughput=0.000/s
+2026-11-16T08:33:39.906Z INFO State inventory after-two unique-class counting: processed=25544, total=unknown (exhaustive count in progress), throughput=706126.078/s
+2026-11-16T08:33:39.906251656Z checker: checking after-two states and both second-move inverse branches elapsed=480.2s heapMiB=2024/6144
+2026-11-16T08:33:39.910Z INFO State inventory after-two scan: processed=0/25544 (0.00%), remaining=25544, throughput=0.000/s
+2026-11-16T08:33:49.740069262Z checker: checking after-two states and both second-move inverse branches elapsed=490.0s heapMiB=1719/6144
+2026-11-16T08:33:49.911Z INFO State inventory after-two scan: processed=16000/25544 (62.64%), remaining=9544, throughput=1599.899/s
+2026-11-16T08:33:54.319Z INFO State inventory after-two scan: processed=25544/25544 (100.00%), remaining=0, throughput=2164.687/s
+2026-11-16T08:33:54.323Z INFO State persistence after-one drain (writers): processed=0/4 (0.00%), remaining=4, throughput=0.000/s, encodedKeysConsumed=10106430/10130912, encodedKeysRemaining=24482, ingestedTables=24, ingestedKeys=6291456, uniqueTotal=unknown until counting
+2026-11-16T08:33:54.520Z INFO State persistence after-one drain (writers): processed=4/4 (100.00%), remaining=0, throughput=20.272/s, encodedKeysConsumed=10130912/10130912, encodedKeysRemaining=0, ingestedTables=28, ingestedKeys=7008863, uniqueTotal=unknown until counting
+2026-11-16T08:33:54.520Z INFO State inventory after-one unique-class counting: processed=0, total=unknown (exhaustive count in progress), throughput=0.000/s
+2026-11-16T08:33:57.001Z INFO State inventory after-one unique-class counting: processed=6451327, total=unknown (exhaustive count in progress), throughput=2600952.620/s
+2026-11-16T08:33:57.001868729Z checker: checking after-one states and reversing gains zero and one elapsed=497.3s heapMiB=2885/6144
+2026-11-16T08:33:57.004Z INFO State inventory after-one scan: processed=0/6451327 (0.00%), remaining=6451327, throughput=0.000/s
+2026-11-16T08:33:59.739974772Z checker: checking after-one states and reversing gains zero and one elapsed=500.0s heapMiB=2921/6144
+2026-11-16T08:34:07.008Z INFO State inventory after-one scan: processed=0/6451327 (0.00%), remaining=6451327, throughput=0.000/s
+2026-11-16T08:34:09.740017964Z checker: checking after-one states and reversing gains zero and one elapsed=510.0s heapMiB=2663/6144
+2026-11-16T08:34:17.009Z INFO State inventory after-one scan: processed=28672/6451327 (0.44%), remaining=6422655, throughput=2866.864/s
+2026-11-16T08:34:19.739957966Z checker: checking after-one states and reversing gains zero and one elapsed=520.0s heapMiB=2369/6144
+2026-11-16T08:34:27.010Z INFO State inventory after-one scan: processed=65536/6451327 (1.02%), remaining=6385791, throughput=3685.922/s
+2026-11-16T08:34:29.739933782Z checker: checking after-one states and reversing gains zero and one elapsed=530.0s heapMiB=5142/6144
+2026-11-16T08:34:37.016Z INFO State inventory after-one scan: processed=102400/6451327 (1.59%), remaining=6348927, throughput=3684.432/s
+2026-11-16T08:34:39.739912707Z checker: checking after-one states and reversing gains zero and one elapsed=540.0s heapMiB=2712/6144
+2026-11-16T08:34:47.022Z INFO State inventory after-one scan: processed=114688/6451327 (1.78%), remaining=6336639, throughput=1228.699/s
+2026-11-16T08:34:49.739923303Z checker: checking after-one states and reversing gains zero and one elapsed=550.0s heapMiB=5188/6144
+2026-11-16T08:34:57.023Z INFO State inventory after-one scan: processed=147456/6451327 (2.29%), remaining=6303871, throughput=3274.624/s
+2026-11-16T08:34:59.739963996Z checker: checking after-one states and reversing gains zero and one elapsed=560.0s heapMiB=3169/6144
+2026-11-16T08:35:07.028Z INFO State inventory after-one scan: processed=204800/6451327 (3.17%), remaining=6246527, throughput=5731.828/s
+2026-11-16T08:35:09.741994177Z checker: checking after-one states and reversing gains zero and one elapsed=570.0s heapMiB=4551/6144
+2026-11-16T08:35:17.028Z INFO State inventory after-one scan: processed=225280/6451327 (3.49%), remaining=6226047, throughput=2047.851/s
+2026-11-16T08:35:19.739933213Z checker: checking after-one states and reversing gains zero and one elapsed=580.0s heapMiB=4474/6144
+2026-11-16T08:35:27.048Z INFO State inventory after-one scan: processed=274432/6451327 (4.25%), remaining=6176895, throughput=4914.858/s
+2026-11-16T08:35:29.739915804Z checker: checking after-one states and reversing gains zero and one elapsed=590.0s heapMiB=5617/6144
+2026-11-16T08:35:37.048Z INFO State inventory after-one scan: processed=323584/6451327 (5.02%), remaining=6127743, throughput=4905.725/s
+2026-11-16T08:35:39.875374655Z checker: checking after-one states and reversing gains zero and one elapsed=600.1s heapMiB=661/6144
+2026-11-16T08:35:47.052Z INFO State inventory after-one scan: processed=352256/6451327 (5.46%), remaining=6099071, throughput=2866.972/s
+2026-11-16T08:35:49.800150416Z checker: checking after-one states and reversing gains zero and one elapsed=610.1s heapMiB=792/6144
+2026-11-16T08:35:57.057Z INFO State inventory after-one scan: processed=397312/6451327 (6.16%), remaining=6054015, throughput=4502.393/s
+2026-11-16T08:35:59.741425156Z checker: checking after-one states and reversing gains zero and one elapsed=620.0s heapMiB=1899/6144
+2026-11-16T08:36:07.137Z INFO State inventory after-one scan: processed=446464/6451327 (6.92%), remaining=6004863, throughput=4875.757/s
+2026-11-16T08:36:09.739974131Z checker: checking after-one states and reversing gains zero and one elapsed=630.0s heapMiB=2029/6144
+2026-11-16T08:36:17.139Z INFO State inventory after-one scan: processed=495616/6451327 (7.68%), remaining=5955711, throughput=4914.549/s
+2026-11-16T08:36:19.739926245Z checker: checking after-one states and reversing gains zero and one elapsed=640.0s heapMiB=4269/6144
+2026-11-16T08:36:27.141Z INFO State inventory after-one scan: processed=548864/6451327 (8.51%), remaining=5902463, throughput=5323.534/s
+2026-11-16T08:36:29.739943842Z checker: checking after-one states and reversing gains zero and one elapsed=650.0s heapMiB=2456/6144
+2026-11-16T08:36:37.142Z INFO State inventory after-one scan: processed=602112/6451327 (9.33%), remaining=5849215, throughput=5324.219/s
+2026-11-16T08:36:39.744170646Z checker: checking after-one states and reversing gains zero and one elapsed=660.0s heapMiB=1700/6144
+2026-11-16T08:36:47.146Z INFO State inventory after-one scan: processed=647168/6451327 (10.03%), remaining=5804159, throughput=4504.059/s
+2026-11-16T08:36:49.739970490Z checker: checking after-one states and reversing gains zero and one elapsed=670.0s heapMiB=3642/6144
+2026-11-16T08:36:57.148Z INFO State inventory after-one scan: processed=708608/6451327 (10.98%), remaining=5742719, throughput=6142.562/s
+2026-11-16T08:36:59.739991698Z checker: checking after-one states and reversing gains zero and one elapsed=680.0s heapMiB=5095/6144
+2026-11-16T08:37:07.149Z INFO State inventory after-one scan: processed=753664/6451327 (11.68%), remaining=5697663, throughput=4505.194/s
+2026-11-16T08:37:09.740005660Z checker: checking after-one states and reversing gains zero and one elapsed=690.0s heapMiB=2880/6144
+2026-11-16T08:37:17.150Z INFO State inventory after-one scan: processed=815104/6451327 (12.63%), remaining=5636223, throughput=6142.972/s
+2026-11-16T08:37:19.747985400Z checker: checking after-one states and reversing gains zero and one elapsed=700.0s heapMiB=4768/6144
+2026-11-16T08:37:27.153Z INFO State inventory after-one scan: processed=876544/6451327 (13.59%), remaining=5574783, throughput=6142.684/s
+2026-11-16T08:37:29.739920619Z checker: checking after-one states and reversing gains zero and one elapsed=710.0s heapMiB=2973/6144
+2026-11-16T08:37:37.160Z INFO State inventory after-one scan: processed=917504/6451327 (14.22%), remaining=5533823, throughput=4093.053/s
+2026-11-16T08:37:39.739915108Z checker: checking after-one states and reversing gains zero and one elapsed=720.0s heapMiB=2402/6144
+2026-11-16T08:37:47.161Z INFO State inventory after-one scan: processed=974848/6451327 (15.11%), remaining=5476479, throughput=5733.963/s
+2026-11-16T08:37:49.739930846Z checker: checking after-one states and reversing gains zero and one elapsed=730.0s heapMiB=5817/6144
+2026-11-16T08:37:57.162Z INFO State inventory after-one scan: processed=1011712/6451327 (15.68%), remaining=5439615, throughput=3685.922/s
+2026-11-16T08:37:59.740085616Z checker: checking after-one states and reversing gains zero and one elapsed=740.0s heapMiB=2805/6144
+2026-11-16T08:38:07.163Z INFO State inventory after-one scan: processed=1073152/6451327 (16.63%), remaining=5378175, throughput=6143.254/s
+2026-11-16T08:38:09.739984754Z checker: checking after-one states and reversing gains zero and one elapsed=750.0s heapMiB=4498/6144
+2026-11-16T08:38:17.168Z INFO State inventory after-one scan: processed=1134592/6451327 (17.59%), remaining=5316735, throughput=6141.096/s
+2026-11-16T08:38:19.740015156Z checker: checking after-one states and reversing gains zero and one elapsed=760.0s heapMiB=5352/6144
+2026-11-16T08:38:27.196Z INFO State inventory after-one scan: processed=1171456/6451327 (18.16%), remaining=5279871, throughput=3684.302/s
+2026-11-16T08:38:29.760006019Z checker: checking after-one states and reversing gains zero and one elapsed=770.0s heapMiB=778/6144
+2026-11-16T08:38:37.200Z INFO State inventory after-one scan: processed=1216512/6451327 (18.86%), remaining=5234815, throughput=4493.771/s
+2026-11-16T08:38:39.784019681Z checker: checking after-one states and reversing gains zero and one elapsed=780.0s heapMiB=970/6144
+2026-11-16T08:38:47.216Z INFO State inventory after-one scan: processed=1261568/6451327 (19.56%), remaining=5189759, throughput=4503.814/s
+2026-11-16T08:38:49.739923884Z checker: checking after-one states and reversing gains zero and one elapsed=790.0s heapMiB=2875/6144
+2026-11-16T08:38:57.241Z INFO State inventory after-one scan: processed=1310720/6451327 (20.32%), remaining=5140607, throughput=4896.964/s
+2026-11-16T08:38:59.740007517Z checker: checking after-one states and reversing gains zero and one elapsed=800.0s heapMiB=1690/6144
+2026-11-16T08:39:07.242Z INFO State inventory after-one scan: processed=1339392/6451327 (20.76%), remaining=5111935, throughput=2866.983/s
+2026-11-16T08:39:09.739934213Z checker: checking after-one states and reversing gains zero and one elapsed=810.0s heapMiB=1298/6144
+2026-11-16T08:39:17.252Z INFO State inventory after-one scan: processed=1376256/6451327 (21.33%), remaining=5075071, throughput=3682.712/s
+2026-11-16T08:39:19.739975202Z checker: checking after-one states and reversing gains zero and one elapsed=820.0s heapMiB=3412/6144
+2026-11-16T08:39:27.256Z INFO State inventory after-one scan: processed=1400832/6451327 (21.71%), remaining=5050495, throughput=2456.621/s
+2026-11-16T08:39:29.744734501Z checker: checking after-one states and reversing gains zero and one elapsed=830.0s heapMiB=4355/6144
+2026-11-16T08:39:37.278Z INFO State inventory after-one scan: processed=1437696/6451327 (22.29%), remaining=5013631, throughput=3678.096/s
+2026-11-16T08:39:39.740022160Z checker: checking after-one states and reversing gains zero and one elapsed=840.0s heapMiB=4707/6144
+2026-11-16T08:39:47.316Z INFO State inventory after-one scan: processed=1462272/6451327 (22.67%), remaining=4989055, throughput=2448.605/s
+2026-11-16T08:39:49.752065002Z checker: checking after-one states and reversing gains zero and one elapsed=850.0s heapMiB=2740/6144
+2026-11-16T08:39:57.320Z INFO State inventory after-one scan: processed=1499136/6451327 (23.24%), remaining=4952191, throughput=3684.629/s
+2026-11-16T08:39:59.739977619Z checker: checking after-one states and reversing gains zero and one elapsed=860.0s heapMiB=2142/6144
+2026-11-16T08:40:07.321Z INFO State inventory after-one scan: processed=1523712/6451327 (23.62%), remaining=4927615, throughput=2457.267/s
+2026-11-16T08:40:09.817187699Z checker: checking after-one states and reversing gains zero and one elapsed=870.1s heapMiB=1037/6144
+2026-11-16T08:40:17.322Z INFO State inventory after-one scan: processed=1552384/6451327 (24.06%), remaining=4898943, throughput=2866.999/s
+2026-11-16T08:40:19.739968236Z checker: checking after-one states and reversing gains zero and one elapsed=880.0s heapMiB=2703/6144
+2026-11-16T08:40:27.323Z INFO State inventory after-one scan: processed=1568768/6451327 (24.32%), remaining=4882559, throughput=1638.190/s
+2026-11-16T08:40:29.744008545Z checker: checking after-one states and reversing gains zero and one elapsed=890.0s heapMiB=2153/6144
+2026-11-16T08:40:37.329Z INFO State inventory after-one scan: processed=1585152/6451327 (24.57%), remaining=4866175, throughput=1637.422/s
+2026-11-16T08:40:39.739909Z checker: checking after-one states and reversing gains zero and one elapsed=900.0s heapMiB=4260/6144
+2026-11-16T08:40:47.330Z INFO State inventory after-one scan: processed=1609728/6451327 (24.95%), remaining=4841599, throughput=2457.415/s
+2026-11-16T08:40:49.773825505Z checker: checking after-one states and reversing gains zero and one elapsed=910.0s heapMiB=1197/6144
+2026-11-16T08:40:57.336Z INFO State inventory after-one scan: processed=1638400/6451327 (25.40%), remaining=4812927, throughput=2865.527/s
+2026-11-16T08:40:59.739942929Z checker: checking after-one states and reversing gains zero and one elapsed=920.0s heapMiB=1188/6144
+2026-11-16T08:41:07.339Z INFO State inventory after-one scan: processed=1667072/6451327 (25.84%), remaining=4784255, throughput=2866.234/s
+2026-11-16T08:41:09.740245632Z checker: checking after-one states and reversing gains zero and one elapsed=930.0s heapMiB=1901/6144
+2026-11-16T08:41:17.375Z INFO State inventory after-one scan: processed=1708032/6451327 (26.48%), remaining=4743295, throughput=4084.289/s
+2026-11-16T08:41:19.743993404Z checker: checking after-one states and reversing gains zero and one elapsed=940.0s heapMiB=2080/6144
+2026-11-16T08:41:27.380Z INFO State inventory after-one scan: processed=1740800/6451327 (26.98%), remaining=4710527, throughput=3272.757/s
+2026-11-16T08:41:29.739954760Z checker: checking after-one states and reversing gains zero and one elapsed=950.0s heapMiB=3274/6144
+2026-11-16T08:41:37.381Z INFO State inventory after-one scan: processed=1777664/6451327 (27.56%), remaining=4673663, throughput=3685.915/s
+2026-11-16T08:41:39.799918218Z checker: checking after-one states and reversing gains zero and one elapsed=960.1s heapMiB=1644/6144
+2026-11-16T08:41:47.420Z INFO State inventory after-one scan: processed=1830912/6451327 (28.38%), remaining=4620415, throughput=5316.559/s
+2026-11-16T08:41:49.739922234Z checker: checking after-one states and reversing gains zero and one elapsed=970.0s heapMiB=4804/6144
+2026-11-16T08:41:57.424Z INFO State inventory after-one scan: processed=1921024/6451327 (29.78%), remaining=4530303, throughput=8987.130/s
+2026-11-16T08:41:59.740023759Z checker: checking after-one states and reversing gains zero and one elapsed=980.0s heapMiB=1993/6144
+2026-11-16T08:42:07.424Z INFO State inventory after-one scan: processed=2056192/6451327 (31.87%), remaining=4395135, throughput=13515.925/s
+2026-11-16T08:42:09.743261651Z checker: checking after-one states and reversing gains zero and one elapsed=990.0s heapMiB=1080/6144
+2026-11-16T08:42:17.425Z INFO State inventory after-one scan: processed=2191360/6451327 (33.97%), remaining=4259967, throughput=13515.571/s
+2026-11-16T08:42:19.739938193Z checker: checking after-one states and reversing gains zero and one elapsed=1000.0s heapMiB=3563/6144
+2026-11-16T08:42:27.436Z INFO State inventory after-one scan: processed=2306048/6451327 (35.75%), remaining=4145279, throughput=11467.944/s
+2026-11-16T08:42:29.775927437Z checker: checking after-one states and reversing gains zero and one elapsed=1010.0s heapMiB=1742/6144
+2026-11-16T08:42:37.437Z INFO State inventory after-one scan: processed=2363392/6451327 (36.63%), remaining=4087935, throughput=5728.380/s
+2026-11-16T08:42:39.739952969Z checker: checking after-one states and reversing gains zero and one elapsed=1020.0s heapMiB=2819/6144
+2026-11-16T08:42:47.439Z INFO State inventory after-one scan: processed=2449408/6451327 (37.97%), remaining=4001919, throughput=8599.880/s
+2026-11-16T08:42:49.745710560Z checker: checking after-one states and reversing gains zero and one elapsed=1030.0s heapMiB=2270/6144
+2026-11-16T08:42:57.440Z INFO State inventory after-one scan: processed=2519040/6451327 (39.05%), remaining=3932287, throughput=6962.102/s
+2026-11-16T08:42:59.740583845Z checker: checking after-one states and reversing gains zero and one elapsed=1040.0s heapMiB=2144/6144
+2026-11-16T08:43:07.444Z INFO State inventory after-one scan: processed=2600960/6451327 (40.32%), remaining=3850367, throughput=8188.988/s
+2026-11-16T08:43:09.744052029Z checker: checking after-one states and reversing gains zero and one elapsed=1050.0s heapMiB=4333/6144
+2026-11-16T08:43:17.448Z INFO State inventory after-one scan: processed=2686976/6451327 (41.65%), remaining=3764351, throughput=8598.223/s
+2026-11-16T08:43:19.739877833Z checker: checking after-one states and reversing gains zero and one elapsed=1060.0s heapMiB=1690/6144
+2026-11-16T08:43:27.448Z INFO State inventory after-one scan: processed=2768896/6451327 (42.92%), remaining=3682431, throughput=8191.481/s
+2026-11-16T08:43:29.765478767Z checker: checking after-one states and reversing gains zero and one elapsed=1070.0s heapMiB=1749/6144
+2026-11-16T08:43:37.449Z INFO State inventory after-one scan: processed=2846720/6451327 (44.13%), remaining=3604607, throughput=7781.634/s
+2026-11-16T08:43:39.739988090Z checker: checking after-one states and reversing gains zero and one elapsed=1080.0s heapMiB=4591/6144
+2026-11-16T08:43:47.464Z INFO State inventory after-one scan: processed=2945024/6451327 (45.65%), remaining=3506303, throughput=9816.360/s
+2026-11-16T08:43:49.740017648Z checker: checking after-one states and reversing gains zero and one elapsed=1090.0s heapMiB=2149/6144
+2026-11-16T08:43:57.492Z INFO State inventory after-one scan: processed=3055616/6451327 (47.36%), remaining=3395711, throughput=11052.977/s
+2026-11-16T08:43:59.740395891Z checker: checking after-one states and reversing gains zero and one elapsed=1100.0s heapMiB=3913/6144
+2026-11-16T08:44:07.493Z INFO State inventory after-one scan: processed=3153920/6451327 (48.89%), remaining=3297407, throughput=9807.274/s
+2026-11-16T08:44:09.740017291Z checker: checking after-one states and reversing gains zero and one elapsed=1110.0s heapMiB=3547/6144
+2026-11-16T08:44:17.494Z INFO State inventory after-one scan: processed=3289088/6451327 (50.98%), remaining=3162239, throughput=13515.371/s
+2026-11-16T08:44:19.739977680Z checker: checking after-one states and reversing gains zero and one elapsed=1120.0s heapMiB=4161/6144
+2026-11-16T08:44:27.496Z INFO State inventory after-one scan: processed=3420160/6451327 (53.01%), remaining=3031167, throughput=13104.805/s
+2026-11-16T08:44:29.739909105Z checker: checking after-one states and reversing gains zero and one elapsed=1130.0s heapMiB=4360/6144
+2026-11-16T08:44:37.498Z INFO State inventory after-one scan: processed=3579904/6451327 (55.49%), remaining=2871423, throughput=15971.367/s
+2026-11-16T08:44:39.740039303Z checker: checking after-one states and reversing gains zero and one elapsed=1140.0s heapMiB=2112/6144
+2026-11-16T08:44:47.532Z INFO State inventory after-one scan: processed=3710976/6451327 (57.52%), remaining=2740351, throughput=13062.055/s
+2026-11-16T08:44:49.787901510Z checker: checking after-one states and reversing gains zero and one elapsed=1150.1s heapMiB=1458/6144
+2026-11-16T08:44:57.533Z INFO State inventory after-one scan: processed=3837952/6451327 (59.49%), remaining=2613375, throughput=12696.297/s
+2026-11-16T08:44:59.775918100Z checker: checking after-one states and reversing gains zero and one elapsed=1160.0s heapMiB=1761/6144
+2026-11-16T08:45:07.580Z INFO State inventory after-one scan: processed=3952640/6451327 (61.27%), remaining=2498687, throughput=11415.614/s
+2026-11-16T08:45:09.739941737Z checker: checking after-one states and reversing gains zero and one elapsed=1170.0s heapMiB=1913/6144
+2026-11-16T08:45:17.584Z INFO State inventory after-one scan: processed=4030464/6451327 (62.47%), remaining=2420863, throughput=7779.311/s
+2026-11-16T08:45:19.739965053Z checker: checking after-one states and reversing gains zero and one elapsed=1180.0s heapMiB=2604/6144
+2026-11-16T08:45:27.586Z INFO State inventory after-one scan: processed=4096000/6451327 (63.49%), remaining=2355327, throughput=6552.626/s
+2026-11-16T08:45:29.741047564Z checker: checking after-one states and reversing gains zero and one elapsed=1190.0s heapMiB=3435/6144
+2026-11-16T08:45:37.587Z INFO State inventory after-one scan: processed=4153344/6451327 (64.38%), remaining=2297983, throughput=5733.222/s
+2026-11-16T08:45:39.781706674Z checker: checking after-one states and reversing gains zero and one elapsed=1200.0s heapMiB=1054/6144
+2026-11-16T08:45:47.609Z INFO State inventory after-one scan: processed=4165632/6451327 (64.57%), remaining=2285695, throughput=1226.098/s
+2026-11-16T08:45:49.743976316Z checker: checking after-one states and reversing gains zero and one elapsed=1210.0s heapMiB=2118/6144
+2026-11-16T08:45:57.612Z INFO State inventory after-one scan: processed=4182016/6451327 (64.82%), remaining=2269311, throughput=1638.013/s
+2026-11-16T08:45:59.739944684Z checker: checking after-one states and reversing gains zero and one elapsed=1220.0s heapMiB=4040/6144
+2026-11-16T08:46:07.614Z INFO State inventory after-one scan: processed=4186112/6451327 (64.89%), remaining=2265215, throughput=409.494/s
+2026-11-16T08:46:09.742575092Z checker: checking after-one states and reversing gains zero and one elapsed=1230.0s heapMiB=2213/6144
+2026-11-16T08:46:17.616Z INFO State inventory after-one scan: processed=4190208/6451327 (64.95%), remaining=2261119, throughput=409.559/s
+2026-11-16T08:46:19.740019007Z checker: checking after-one states and reversing gains zero and one elapsed=1240.0s heapMiB=3610/6144
+2026-11-16T08:46:27.616Z INFO State inventory after-one scan: processed=4202496/6451327 (65.14%), remaining=2248831, throughput=1228.691/s
+2026-11-16T08:46:29.742523695Z checker: checking after-one states and reversing gains zero and one elapsed=1250.0s heapMiB=1707/6144
+2026-11-16T08:46:37.621Z INFO State inventory after-one scan: processed=4210688/6451327 (65.27%), remaining=2240639, throughput=818.826/s
+2026-11-16T08:46:39.744366867Z checker: checking after-one states and reversing gains zero and one elapsed=1260.0s heapMiB=1976/6144
+2026-11-16T08:46:47.644Z INFO State inventory after-one scan: processed=4222976/6451327 (65.46%), remaining=2228351, throughput=1228.695/s
+2026-11-16T08:46:49.739939611Z checker: checking after-one states and reversing gains zero and one elapsed=1270.0s heapMiB=1641/6144
+2026-11-16T08:46:57.660Z INFO State inventory after-one scan: processed=4235264/6451327 (65.65%), remaining=2216063, throughput=1226.010/s
+2026-11-16T08:46:59.739913495Z checker: checking after-one states and reversing gains zero and one elapsed=1280.0s heapMiB=1989/6144
+2026-11-16T08:47:07.661Z INFO State inventory after-one scan: processed=4247552/6451327 (65.84%), remaining=2203775, throughput=1226.712/s
+2026-11-16T08:47:09.747978607Z checker: checking after-one states and reversing gains zero and one elapsed=1290.0s heapMiB=3450/6144
+2026-11-16T08:47:17.662Z INFO State inventory after-one scan: processed=4255744/6451327 (65.97%), remaining=2195583, throughput=819.125/s
+2026-11-16T08:47:19.740218920Z checker: checking after-one states and reversing gains zero and one elapsed=1300.0s heapMiB=1476/6144
+2026-11-16T08:47:27.663Z INFO State inventory after-one scan: processed=4268032/6451327 (66.16%), remaining=2183295, throughput=1228.730/s
+2026-11-16T08:47:29.739934483Z checker: checking after-one states and reversing gains zero and one elapsed=1310.0s heapMiB=4201/6144
+2026-11-16T08:47:37.664Z INFO State inventory after-one scan: processed=4276224/6451327 (66.28%), remaining=2175103, throughput=819.134/s
+2026-11-16T08:47:39.752145470Z checker: checking after-one states and reversing gains zero and one elapsed=1320.0s heapMiB=1582/6144
+2026-11-16T08:47:47.666Z INFO State inventory after-one scan: processed=4296704/6451327 (66.60%), remaining=2154623, throughput=2047.609/s
+2026-11-16T08:47:49.739889383Z checker: checking after-one states and reversing gains zero and one elapsed=1330.0s heapMiB=3031/6144
+2026-11-16T08:47:57.669Z INFO State inventory after-one scan: processed=4308992/6451327 (66.79%), remaining=2142335, throughput=1228.533/s
+2026-11-16T08:47:59.739951523Z checker: checking after-one states and reversing gains zero and one elapsed=1340.0s heapMiB=583/6144
+2026-11-16T08:48:07.682Z INFO State inventory after-one scan: processed=4321280/6451327 (66.98%), remaining=2130047, throughput=1227.073/s
+2026-11-16T08:48:09.739926940Z checker: checking after-one states and reversing gains zero and one elapsed=1350.0s heapMiB=3137/6144
+2026-11-16T08:48:17.689Z INFO State inventory after-one scan: processed=4333568/6451327 (67.17%), remaining=2117759, throughput=1227.918/s
+2026-11-16T08:48:19.740182949Z checker: checking after-one states and reversing gains zero and one elapsed=1360.0s heapMiB=3384/6144
+2026-11-16T08:48:27.708Z INFO State inventory after-one scan: processed=4345856/6451327 (67.36%), remaining=2105471, throughput=1226.508/s
+2026-11-16T08:48:29.755923439Z checker: checking after-one states and reversing gains zero and one elapsed=1370.0s heapMiB=848/6144
+2026-11-16T08:48:37.708Z INFO State inventory after-one scan: processed=4354048/6451327 (67.49%), remaining=2097279, throughput=819.145/s
+2026-11-16T08:48:39.739908844Z checker: checking after-one states and reversing gains zero and one elapsed=1380.0s heapMiB=3646/6144
+2026-11-16T08:48:47.715Z INFO State inventory after-one scan: processed=4370432/6451327 (67.74%), remaining=2080895, throughput=1637.264/s
+2026-11-16T08:48:49.739939780Z checker: checking after-one states and reversing gains zero and one elapsed=1390.0s heapMiB=3920/6144
+2026-11-16T08:48:57.717Z INFO State inventory after-one scan: processed=4382720/6451327 (67.94%), remaining=2068607, throughput=1228.703/s
+2026-11-16T08:48:59.763903940Z checker: checking after-one states and reversing gains zero and one elapsed=1400.0s heapMiB=1101/6144
+2026-11-16T08:49:07.717Z INFO State inventory after-one scan: processed=4399104/6451327 (68.19%), remaining=2052223, throughput=1638.170/s
+2026-11-16T08:49:09.739925099Z checker: checking after-one states and reversing gains zero and one elapsed=1410.0s heapMiB=3819/6144
+2026-11-16T08:49:17.718Z INFO State inventory after-one scan: processed=4407296/6451327 (68.32%), remaining=2044031, throughput=819.141/s
+2026-11-16T08:49:19.739909698Z checker: checking after-one states and reversing gains zero and one elapsed=1420.0s heapMiB=1941/6144
+2026-11-16T08:49:27.719Z INFO State inventory after-one scan: processed=4415488/6451327 (68.44%), remaining=2035839, throughput=819.120/s
+2026-11-16T08:49:29.740784502Z checker: checking after-one states and reversing gains zero and one elapsed=1430.0s heapMiB=3362/6144
+2026-11-16T08:49:37.722Z INFO State inventory after-one scan: processed=4440064/6451327 (68.82%), remaining=2011263, throughput=2457.407/s
+2026-11-16T08:49:39.739914924Z checker: checking after-one states and reversing gains zero and one elapsed=1440.0s heapMiB=1367/6144
+2026-11-16T08:49:47.754Z INFO State inventory after-one scan: processed=4440064/6451327 (68.82%), remaining=2011263, throughput=0.000/s
+2026-11-16T08:49:49.739914478Z checker: checking after-one states and reversing gains zero and one elapsed=1450.0s heapMiB=2396/6144
+2026-11-16T08:49:57.755Z INFO State inventory after-one scan: processed=4452352/6451327 (69.01%), remaining=1998975, throughput=1224.927/s
+2026-11-16T08:49:59.739899824Z checker: checking after-one states and reversing gains zero and one elapsed=1460.0s heapMiB=3420/6144
+2026-11-16T08:50:07.755Z INFO State inventory after-one scan: processed=4460544/6451327 (69.14%), remaining=1990783, throughput=819.150/s
+2026-11-16T08:50:09.739935856Z checker: checking after-one states and reversing gains zero and one elapsed=1470.0s heapMiB=1878/6144
+2026-11-16T08:50:17.760Z INFO State inventory after-one scan: processed=4468736/6451327 (69.27%), remaining=1982591, throughput=818.841/s
+2026-11-16T08:50:19.739976453Z checker: checking after-one states and reversing gains zero and one elapsed=1480.0s heapMiB=2144/6144
+2026-11-16T08:50:27.763Z INFO State inventory after-one scan: processed=4476928/6451327 (69.40%), remaining=1974399, throughput=818.934/s
+2026-11-16T08:50:29.748580069Z checker: checking after-one states and reversing gains zero and one elapsed=1490.0s heapMiB=1695/6144
+2026-11-16T08:50:37.764Z INFO State inventory after-one scan: processed=4489216/6451327 (69.59%), remaining=1962111, throughput=1228.731/s
+2026-11-16T08:50:39.739911137Z checker: checking after-one states and reversing gains zero and one elapsed=1500.0s heapMiB=1364/6144
+2026-11-16T08:50:47.768Z INFO State inventory after-one scan: processed=4505600/6451327 (69.84%), remaining=1945727, throughput=1637.711/s
+2026-11-16T08:50:49.747974560Z checker: checking after-one states and reversing gains zero and one elapsed=1510.0s heapMiB=1871/6144
+2026-11-16T08:50:57.768Z INFO State inventory after-one scan: processed=4509696/6451327 (69.90%), remaining=1941631, throughput=409.576/s
+2026-11-16T08:50:59.739919905Z checker: checking after-one states and reversing gains zero and one elapsed=1520.0s heapMiB=4753/6144
+2026-11-16T08:51:07.769Z INFO State inventory after-one scan: processed=4517888/6451327 (70.03%), remaining=1933439, throughput=819.129/s
+2026-11-16T08:51:09.740026090Z checker: checking after-one states and reversing gains zero and one elapsed=1530.0s heapMiB=4423/6144
+2026-11-16T08:51:17.770Z INFO State inventory after-one scan: processed=4534272/6451327 (70.28%), remaining=1917055, throughput=1638.293/s
+2026-11-16T08:51:19.739911957Z checker: checking after-one states and reversing gains zero and one elapsed=1540.0s heapMiB=4956/6144
+2026-11-16T08:51:27.772Z INFO State inventory after-one scan: processed=4558848/6451327 (70.67%), remaining=1892479, throughput=2457.138/s
+2026-11-16T08:51:29.739848493Z checker: checking after-one states and reversing gains zero and one elapsed=1550.0s heapMiB=1983/6144
+2026-11-16T08:51:37.772Z INFO State inventory after-one scan: processed=4567040/6451327 (70.79%), remaining=1884287, throughput=819.146/s
+2026-11-16T08:51:39.747970799Z checker: checking after-one states and reversing gains zero and one elapsed=1560.0s heapMiB=4094/6144
+2026-11-16T08:51:47.773Z INFO State inventory after-one scan: processed=4571136/6451327 (70.86%), remaining=1880191, throughput=409.573/s
+2026-11-16T08:51:49.781905327Z checker: checking after-one states and reversing gains zero and one elapsed=1570.0s heapMiB=1932/6144
+2026-11-16T08:51:57.774Z INFO State inventory after-one scan: processed=4579328/6451327 (70.98%), remaining=1871999, throughput=819.141/s
+2026-11-16T08:51:59.740067099Z checker: checking after-one states and reversing gains zero and one elapsed=1580.0s heapMiB=1002/6144
+2026-11-16T08:52:07.780Z INFO State inventory after-one scan: processed=4579328/6451327 (70.98%), remaining=1871999, throughput=0.000/s
+2026-11-16T08:52:09.739951114Z checker: checking after-one states and reversing gains zero and one elapsed=1590.0s heapMiB=3168/6144
+2026-11-16T08:52:17.801Z INFO State inventory after-one scan: processed=4608000/6451327 (71.43%), remaining=1843327, throughput=2861.210/s
+2026-11-16T08:52:19.743961937Z checker: checking after-one states and reversing gains zero and one elapsed=1600.0s heapMiB=1378/6144
+2026-11-16T08:52:27.802Z INFO State inventory after-one scan: processed=4612096/6451327 (71.49%), remaining=1839231, throughput=409.570/s
+2026-11-16T08:52:29.739855857Z checker: checking after-one states and reversing gains zero and one elapsed=1610.0s heapMiB=833/6144
+2026-11-16T08:52:37.802Z INFO State inventory after-one scan: processed=4620288/6451327 (71.62%), remaining=1831039, throughput=819.146/s
+2026-11-16T08:52:39.739889935Z checker: checking after-one states and reversing gains zero and one elapsed=1620.0s heapMiB=3563/6144
+2026-11-16T08:52:47.803Z INFO State inventory after-one scan: processed=4644864/6451327 (72.00%), remaining=1806463, throughput=2457.438/s
+2026-11-16T08:52:49.739925288Z checker: checking after-one states and reversing gains zero and one elapsed=1630.0s heapMiB=1977/6144
+2026-11-16T08:52:57.804Z INFO State inventory after-one scan: processed=4657152/6451327 (72.19%), remaining=1794175, throughput=1228.715/s
+2026-11-16T08:52:59.743959417Z checker: checking after-one states and reversing gains zero and one elapsed=1640.0s heapMiB=1667/6144
+2026-11-16T08:53:07.807Z INFO State inventory after-one scan: processed=4673536/6451327 (72.44%), remaining=1777791, throughput=1637.859/s
+2026-11-16T08:53:09.739968502Z checker: checking after-one states and reversing gains zero and one elapsed=1650.0s heapMiB=2144/6144
+2026-11-16T08:53:17.812Z INFO State inventory after-one scan: processed=4677632/6451327 (72.51%), remaining=1773695, throughput=409.557/s
+2026-11-16T08:53:19.740163626Z checker: checking after-one states and reversing gains zero and one elapsed=1660.0s heapMiB=1763/6144
+2026-11-16T08:53:27.824Z INFO State inventory after-one scan: processed=4677632/6451327 (72.51%), remaining=1773695, throughput=0.000/s
+2026-11-16T08:53:29.740908763Z checker: checking after-one states and reversing gains zero and one elapsed=1670.0s heapMiB=3907/6144
+2026-11-16T08:53:37.826Z INFO State inventory after-one scan: processed=4689920/6451327 (72.70%), remaining=1761407, throughput=1227.232/s
+2026-11-16T08:53:39.739896371Z checker: checking after-one states and reversing gains zero and one elapsed=1680.0s heapMiB=1210/6144
+2026-11-16T08:53:47.840Z INFO State inventory after-one scan: processed=4706304/6451327 (72.95%), remaining=1745023, throughput=1636.096/s
+2026-11-16T08:53:49.739915116Z checker: checking after-one states and reversing gains zero and one elapsed=1690.0s heapMiB=1466/6144
+2026-11-16T08:53:57.840Z INFO State inventory after-one scan: processed=4722688/6451327 (73.20%), remaining=1728639, throughput=1638.305/s
+2026-11-16T08:53:59.743994418Z checker: checking after-one states and reversing gains zero and one elapsed=1700.0s heapMiB=4613/6144
+2026-11-16T08:54:07.841Z INFO State inventory after-one scan: processed=4726784/6451327 (73.27%), remaining=1724543, throughput=409.579/s
+2026-11-16T08:54:09.739944958Z checker: checking after-one states and reversing gains zero and one elapsed=1710.0s heapMiB=3994/6144
+2026-11-16T08:54:17.844Z INFO State inventory after-one scan: processed=4726784/6451327 (73.27%), remaining=1724543, throughput=0.000/s
+2026-11-16T08:54:19.739906309Z checker: checking after-one states and reversing gains zero and one elapsed=1720.0s heapMiB=3307/6144
+2026-11-16T08:54:27.846Z INFO State inventory after-one scan: processed=4734976/6451327 (73.40%), remaining=1716351, throughput=819.013/s
+2026-11-16T08:54:29.743979664Z checker: checking after-one states and reversing gains zero and one elapsed=1730.0s heapMiB=2409/6144
+2026-11-16T08:54:37.848Z INFO State inventory after-one scan: processed=4739072/6451327 (73.46%), remaining=1712255, throughput=409.529/s
+2026-11-16T08:54:39.739884449Z checker: checking after-one states and reversing gains zero and one elapsed=1740.0s heapMiB=4688/6144
+2026-11-16T08:54:47.871Z INFO State inventory after-one scan: processed=4743168/6451327 (73.52%), remaining=1708159, throughput=409.572/s
+2026-11-16T08:54:49.743967880Z checker: checking after-one states and reversing gains zero and one elapsed=1750.0s heapMiB=2851/6144
+2026-11-16T08:54:57.872Z INFO State inventory after-one scan: processed=4755456/6451327 (73.71%), remaining=1695871, throughput=1225.898/s
+2026-11-16T08:54:59.739894316Z checker: checking after-one states and reversing gains zero and one elapsed=1760.0s heapMiB=2886/6144
+2026-11-16T08:55:07.878Z INFO State inventory after-one scan: processed=4767744/6451327 (73.90%), remaining=1683583, throughput=1228.014/s
+2026-11-16T08:55:09.739905815Z checker: checking after-one states and reversing gains zero and one elapsed=1770.0s heapMiB=2211/6144
+2026-11-16T08:55:17.880Z INFO State inventory after-one scan: processed=4788224/6451327 (74.22%), remaining=1663103, throughput=2047.747/s
+2026-11-16T08:55:19.763910637Z checker: checking after-one states and reversing gains zero and one elapsed=1780.0s heapMiB=1698/6144
+2026-11-16T08:55:27.883Z INFO State inventory after-one scan: processed=4796416/6451327 (74.35%), remaining=1654911, throughput=818.923/s
+2026-11-16T08:55:29.739888303Z checker: checking after-one states and reversing gains zero and one elapsed=1790.0s heapMiB=3740/6144
+2026-11-16T08:55:37.884Z INFO State inventory after-one scan: processed=4800512/6451327 (74.41%), remaining=1650815, throughput=409.564/s
+2026-11-16T08:55:39.739899385Z checker: checking after-one states and reversing gains zero and one elapsed=1800.0s heapMiB=2892/6144
+2026-11-16T08:55:47.888Z INFO State inventory after-one scan: processed=4812800/6451327 (74.60%), remaining=1638527, throughput=1228.341/s
+2026-11-16T08:55:49.739854448Z checker: checking after-one states and reversing gains zero and one elapsed=1810.0s heapMiB=2686/6144
+2026-11-16T08:55:57.936Z INFO State inventory after-one scan: processed=4825088/6451327 (74.79%), remaining=1626239, throughput=1226.738/s
+2026-11-16T08:55:59.740828818Z checker: checking after-one states and reversing gains zero and one elapsed=1820.0s heapMiB=3172/6144
+2026-11-16T08:56:07.942Z INFO State inventory after-one scan: processed=4829184/6451327 (74.86%), remaining=1622143, throughput=408.109/s
+2026-11-16T08:56:09.744275203Z checker: checking after-one states and reversing gains zero and one elapsed=1830.0s heapMiB=2020/6144
+2026-11-16T08:56:17.944Z INFO State inventory after-one scan: processed=4845568/6451327 (75.11%), remaining=1605759, throughput=1637.914/s
+2026-11-16T08:56:19.740085902Z checker: checking after-one states and reversing gains zero and one elapsed=1840.0s heapMiB=1126/6144
+2026-11-16T08:56:27.948Z INFO State inventory after-one scan: processed=4857856/6451327 (75.30%), remaining=1593471, throughput=1228.351/s
+2026-11-16T08:56:29.739888353Z checker: checking after-one states and reversing gains zero and one elapsed=1850.0s heapMiB=2019/6144
+2026-11-16T08:56:37.948Z INFO State inventory after-one scan: processed=4870144/6451327 (75.49%), remaining=1581183, throughput=1228.734/s
+2026-11-16T08:56:39.739896223Z checker: checking after-one states and reversing gains zero and one elapsed=1860.0s heapMiB=2797/6144
+2026-11-16T08:56:48.012Z INFO State inventory after-one scan: processed=4874240/6451327 (75.55%), remaining=1577087, throughput=407.647/s
+2026-11-16T08:56:49.740479197Z checker: checking after-one states and reversing gains zero and one elapsed=1870.0s heapMiB=1720/6144
+2026-11-16T08:56:58.013Z INFO State inventory after-one scan: processed=4886528/6451327 (75.74%), remaining=1564799, throughput=1226.710/s
+2026-11-16T08:56:59.742774562Z checker: checking after-one states and reversing gains zero and one elapsed=1880.0s heapMiB=2106/6144
+2026-11-16T08:57:08.017Z INFO State inventory after-one scan: processed=4890624/6451327 (75.81%), remaining=1560703, throughput=409.459/s
+2026-11-16T08:57:09.740405460Z checker: checking after-one states and reversing gains zero and one elapsed=1890.0s heapMiB=3842/6144
+2026-11-16T08:57:18.044Z INFO State inventory after-one scan: processed=4907008/6451327 (76.06%), remaining=1544319, throughput=1635.217/s
+2026-11-16T08:57:19.739931617Z checker: checking after-one states and reversing gains zero and one elapsed=1900.0s heapMiB=2727/6144
+2026-11-16T08:57:28.046Z INFO State inventory after-one scan: processed=4931584/6451327 (76.44%), remaining=1519743, throughput=2455.195/s
+2026-11-16T08:57:29.743965159Z checker: checking after-one states and reversing gains zero and one elapsed=1910.0s heapMiB=3345/6144
+2026-11-16T08:57:38.052Z INFO State inventory after-one scan: processed=4943872/6451327 (76.63%), remaining=1507455, throughput=1228.086/s
+2026-11-16T08:57:39.739942427Z checker: checking after-one states and reversing gains zero and one elapsed=1920.0s heapMiB=3295/6144
+2026-11-16T08:57:48.053Z INFO State inventory after-one scan: processed=4947968/6451327 (76.70%), remaining=1503359, throughput=409.574/s
+2026-11-16T08:57:49.743914886Z checker: checking after-one states and reversing gains zero and one elapsed=1930.0s heapMiB=1933/6144
+2026-11-16T08:57:58.053Z INFO State inventory after-one scan: processed=4952064/6451327 (76.76%), remaining=1499263, throughput=409.563/s
+2026-11-16T08:57:59.739932974Z checker: checking after-one states and reversing gains zero and one elapsed=1940.0s heapMiB=1535/6144
+2026-11-16T08:58:08.054Z INFO State inventory after-one scan: processed=4956160/6451327 (76.82%), remaining=1495167, throughput=409.576/s
+2026-11-16T08:58:09.739912576Z checker: checking after-one states and reversing gains zero and one elapsed=1950.0s heapMiB=1471/6144
+2026-11-16T08:58:18.104Z INFO State inventory after-one scan: processed=4976640/6451327 (77.14%), remaining=1474687, throughput=2043.812/s
+2026-11-16T08:58:19.739910075Z checker: checking after-one states and reversing gains zero and one elapsed=1960.0s heapMiB=2154/6144
+2026-11-16T08:58:28.105Z INFO State inventory after-one scan: processed=4988928/6451327 (77.33%), remaining=1462399, throughput=1225.023/s
+2026-11-16T08:58:29.740810186Z checker: checking after-one states and reversing gains zero and one elapsed=1970.0s heapMiB=2727/6144
+2026-11-16T08:58:38.108Z INFO State inventory after-one scan: processed=4993024/6451327 (77.40%), remaining=1458303, throughput=409.494/s
+2026-11-16T08:58:39.739887074Z checker: checking after-one states and reversing gains zero and one elapsed=1980.0s heapMiB=1451/6144
+2026-11-16T08:58:48.206Z INFO State inventory after-one scan: processed=5017600/6451327 (77.78%), remaining=1433727, throughput=2433.721/s
+2026-11-16T08:58:49.739937695Z checker: checking after-one states and reversing gains zero and one elapsed=1990.0s heapMiB=4826/6144
+2026-11-16T08:58:58.206Z INFO State inventory after-one scan: processed=5025792/6451327 (77.90%), remaining=1425535, throughput=819.148/s
+2026-11-16T08:58:59.743831667Z checker: checking after-one states and reversing gains zero and one elapsed=2000.0s heapMiB=4186/6144
+2026-11-16T08:59:08.207Z INFO State inventory after-one scan: processed=5029888/6451327 (77.97%), remaining=1421439, throughput=409.570/s
+2026-11-16T08:59:09.739917406Z checker: checking after-one states and reversing gains zero and one elapsed=2010.0s heapMiB=3783/6144
+2026-11-16T08:59:18.232Z INFO State inventory after-one scan: processed=5029888/6451327 (77.97%), remaining=1421439, throughput=0.000/s
+2026-11-16T08:59:19.739875996Z checker: checking after-one states and reversing gains zero and one elapsed=2020.0s heapMiB=4980/6144
+2026-11-16T08:59:28.233Z INFO State inventory after-one scan: processed=5042176/6451327 (78.16%), remaining=1409151, throughput=1226.383/s
+2026-11-16T08:59:29.739852356Z checker: checking after-one states and reversing gains zero and one elapsed=2030.0s heapMiB=3025/6144
+2026-11-16T08:59:38.272Z INFO State inventory after-one scan: processed=5062656/6451327 (78.47%), remaining=1388671, throughput=2045.049/s
+2026-11-16T08:59:39.739894742Z checker: checking after-one states and reversing gains zero and one elapsed=2040.0s heapMiB=4075/6144
+2026-11-16T08:59:48.272Z INFO State inventory after-one scan: processed=5083136/6451327 (78.79%), remaining=1368191, throughput=2042.873/s
+2026-11-16T08:59:49.739897728Z checker: checking after-one states and reversing gains zero and one elapsed=2050.0s heapMiB=2510/6144
+2026-11-16T08:59:58.278Z INFO State inventory after-one scan: processed=5095424/6451327 (78.98%), remaining=1355903, throughput=1228.080/s
+2026-11-16T08:59:59.740631497Z checker: checking after-one states and reversing gains zero and one elapsed=2060.0s heapMiB=2197/6144
+2026-11-16T09:00:08.331Z INFO State inventory after-one scan: processed=5099520/6451327 (79.05%), remaining=1351807, throughput=408.394/s
+2026-11-16T09:00:09.739983213Z checker: checking after-one states and reversing gains zero and one elapsed=2070.0s heapMiB=2232/6144
+2026-11-16T09:00:18.347Z INFO State inventory after-one scan: processed=5099520/6451327 (79.05%), remaining=1351807, throughput=0.000/s
+2026-11-16T09:00:19.744965675Z checker: checking after-one states and reversing gains zero and one elapsed=2080.0s heapMiB=2480/6144
+2026-11-16T09:00:28.361Z INFO State inventory after-one scan: processed=5120000/6451327 (79.36%), remaining=1331327, throughput=2042.783/s
+2026-11-16T09:00:29.739898135Z checker: checking after-one states and reversing gains zero and one elapsed=2090.0s heapMiB=2551/6144
+2026-11-16T09:00:38.362Z INFO State inventory after-one scan: processed=5128192/6451327 (79.49%), remaining=1323135, throughput=819.154/s
+2026-11-16T09:00:39.739937082Z checker: checking after-one states and reversing gains zero and one elapsed=2100.0s heapMiB=1665/6144
+2026-11-16T09:00:48.364Z INFO State inventory after-one scan: processed=5148672/6451327 (79.81%), remaining=1302655, throughput=2047.785/s
+2026-11-16T09:00:49.739944854Z checker: checking after-one states and reversing gains zero and one elapsed=2110.0s heapMiB=2539/6144
+2026-11-16T09:00:58.369Z INFO State inventory after-one scan: processed=5165056/6451327 (80.06%), remaining=1286271, throughput=1637.490/s
+2026-11-16T09:00:59.744290014Z checker: checking after-one states and reversing gains zero and one elapsed=2120.0s heapMiB=2166/6144
+2026-11-16T09:01:08.376Z INFO State inventory after-one scan: processed=5169152/6451327 (80.13%), remaining=1282175, throughput=409.300/s
+2026-11-16T09:01:09.739899466Z checker: checking after-one states and reversing gains zero and one elapsed=2130.0s heapMiB=4071/6144
+2026-11-16T09:01:18.376Z INFO State inventory after-one scan: processed=5189632/6451327 (80.44%), remaining=1261695, throughput=2047.882/s
+2026-11-16T09:01:19.739899062Z checker: checking after-one states and reversing gains zero and one elapsed=2140.0s heapMiB=3179/6144
+2026-11-16T09:01:28.382Z INFO State inventory after-one scan: processed=5193728/6451327 (80.51%), remaining=1257599, throughput=409.345/s
+2026-11-16T09:01:29.743976449Z checker: checking after-one states and reversing gains zero and one elapsed=2150.0s heapMiB=1253/6144
+2026-11-16T09:01:38.385Z INFO State inventory after-one scan: processed=5206016/6451327 (80.70%), remaining=1245311, throughput=1228.451/s
+2026-11-16T09:01:39.743949661Z checker: checking after-one states and reversing gains zero and one elapsed=2160.0s heapMiB=2464/6144
+2026-11-16T09:01:48.389Z INFO State inventory after-one scan: processed=5210112/6451327 (80.76%), remaining=1241215, throughput=409.455/s
+2026-11-16T09:01:49.740066019Z checker: checking after-one states and reversing gains zero and one elapsed=2170.0s heapMiB=2595/6144
+2026-11-16T09:01:58.416Z INFO State inventory after-one scan: processed=5214208/6451327 (80.82%), remaining=1237119, throughput=409.283/s
+2026-11-16T09:01:59.743950588Z checker: checking after-one states and reversing gains zero and one elapsed=2180.0s heapMiB=3717/6144
+2026-11-16T09:02:08.417Z INFO State inventory after-one scan: processed=5214208/6451327 (80.82%), remaining=1237119, throughput=0.000/s
+2026-11-16T09:02:09.739857818Z checker: checking after-one states and reversing gains zero and one elapsed=2190.0s heapMiB=3925/6144
+2026-11-16T09:02:18.417Z INFO State inventory after-one scan: processed=5214208/6451327 (80.82%), remaining=1237119, throughput=0.000/s
+2026-11-16T09:02:19.739853785Z checker: checking after-one states and reversing gains zero and one elapsed=2200.0s heapMiB=2044/6144
+2026-11-16T09:02:28.420Z INFO State inventory after-one scan: processed=5226496/6451327 (81.01%), remaining=1224831, throughput=1228.530/s
+2026-11-16T09:02:29.744007737Z checker: checking after-one states and reversing gains zero and one elapsed=2210.0s heapMiB=1663/6144
+2026-11-16T09:02:38.420Z INFO State inventory after-one scan: processed=5234688/6451327 (81.14%), remaining=1216639, throughput=819.147/s
+2026-11-16T09:02:39.739944272Z checker: checking after-one states and reversing gains zero and one elapsed=2220.0s heapMiB=2129/6144
+2026-11-16T09:02:48.421Z INFO State inventory after-one scan: processed=5242880/6451327 (81.27%), remaining=1208447, throughput=819.152/s
+2026-11-16T09:02:49.739941145Z checker: checking after-one states and reversing gains zero and one elapsed=2230.0s heapMiB=3670/6144
+2026-11-16T09:02:58.452Z INFO State inventory after-one scan: processed=5251072/6451327 (81.40%), remaining=1200255, throughput=818.166/s
+2026-11-16T09:02:59.783913432Z checker: checking after-one states and reversing gains zero and one elapsed=2240.0s heapMiB=1412/6144
+2026-11-16T09:03:08.452Z INFO State inventory after-one scan: processed=5259264/6451327 (81.52%), remaining=1192063, throughput=817.660/s
+2026-11-16T09:03:09.739855597Z checker: checking after-one states and reversing gains zero and one elapsed=2250.0s heapMiB=2598/6144
+2026-11-16T09:03:18.453Z INFO State inventory after-one scan: processed=5279744/6451327 (81.84%), remaining=1171583, throughput=2047.858/s
+2026-11-16T09:03:19.739923301Z checker: checking after-one states and reversing gains zero and one elapsed=2260.0s heapMiB=3577/6144
+2026-11-16T09:03:28.454Z INFO State inventory after-one scan: processed=5296128/6451327 (82.09%), remaining=1155199, throughput=1638.317/s
+2026-11-16T09:03:29.739884568Z checker: checking after-one states and reversing gains zero and one elapsed=2270.0s heapMiB=3370/6144
+2026-11-16T09:03:38.460Z INFO State inventory after-one scan: processed=5300224/6451327 (82.16%), remaining=1151103, throughput=409.350/s
+2026-11-16T09:03:39.739852076Z checker: checking after-one states and reversing gains zero and one elapsed=2280.0s heapMiB=2509/6144
+2026-11-16T09:03:48.460Z INFO State inventory after-one scan: processed=5312512/6451327 (82.35%), remaining=1138815, throughput=1228.729/s
+2026-11-16T09:03:49.739959362Z checker: checking after-one states and reversing gains zero and one elapsed=2290.0s heapMiB=1581/6144
+2026-11-16T09:03:58.461Z INFO State inventory after-one scan: processed=5312512/6451327 (82.35%), remaining=1138815, throughput=0.000/s
+2026-11-16T09:03:59.799962120Z checker: checking after-one states and reversing gains zero and one elapsed=2300.1s heapMiB=1763/6144
+2026-11-16T09:04:08.464Z INFO State inventory after-one scan: processed=5320704/6451327 (82.47%), remaining=1130623, throughput=818.957/s
+2026-11-16T09:04:09.739856786Z checker: checking after-one states and reversing gains zero and one elapsed=2310.0s heapMiB=4680/6144
+2026-11-16T09:04:18.467Z INFO State inventory after-one scan: processed=5328896/6451327 (82.60%), remaining=1122431, throughput=818.919/s
+2026-11-16T09:04:19.739962654Z checker: checking after-one states and reversing gains zero and one elapsed=2320.0s heapMiB=1947/6144
+2026-11-16T09:04:28.468Z INFO State inventory after-one scan: processed=5337215/6451327 (82.73%), remaining=1114112, throughput=831.840/s
+2026-11-16T09:04:29.779907478Z checker: checking after-one states and reversing gains zero and one elapsed=2330.0s heapMiB=1776/6144
+2026-11-16T09:04:38.472Z INFO State inventory after-one scan: processed=5357695/6451327 (83.05%), remaining=1093632, throughput=2047.249/s
+2026-11-16T09:04:39.739846872Z checker: checking after-one states and reversing gains zero and one elapsed=2340.0s heapMiB=3940/6144
+2026-11-16T09:04:48.476Z INFO State inventory after-one scan: processed=5361791/6451327 (83.11%), remaining=1089536, throughput=409.430/s
+2026-11-16T09:04:49.739966342Z checker: checking after-one states and reversing gains zero and one elapsed=2350.0s heapMiB=1352/6144
+2026-11-16T09:04:58.477Z INFO State inventory after-one scan: processed=5374079/6451327 (83.30%), remaining=1077248, throughput=1228.638/s
+2026-11-16T09:04:59.740077645Z checker: checking after-one states and reversing gains zero and one elapsed=2360.0s heapMiB=1559/6144
+2026-11-16T09:05:08.482Z INFO State inventory after-one scan: processed=5382271/6451327 (83.43%), remaining=1069056, throughput=818.896/s
+2026-11-16T09:05:09.740080693Z checker: checking after-one states and reversing gains zero and one elapsed=2370.0s heapMiB=1317/6144
+2026-11-16T09:05:18.488Z INFO State inventory after-one scan: processed=5398655/6451327 (83.68%), remaining=1052672, throughput=1637.940/s
+2026-11-16T09:05:19.740376051Z checker: checking after-one states and reversing gains zero and one elapsed=2380.0s heapMiB=1098/6144
+2026-11-16T09:05:28.489Z INFO State inventory after-one scan: processed=5402751/6451327 (83.75%), remaining=1048576, throughput=409.396/s
+2026-11-16T09:05:29.739906063Z checker: checking after-one states and reversing gains zero and one elapsed=2390.0s heapMiB=1904/6144
+2026-11-16T09:05:38.490Z INFO State inventory after-one scan: processed=5419135/6451327 (84.00%), remaining=1032192, throughput=1638.221/s
+2026-11-16T09:05:39.740077846Z checker: checking after-one states and reversing gains zero and one elapsed=2400.0s heapMiB=2804/6144
+2026-11-16T09:05:48.491Z INFO State inventory after-one scan: processed=5427327/6451327 (84.13%), remaining=1024000, throughput=819.080/s
+2026-11-16T09:05:49.739916370Z checker: checking after-one states and reversing gains zero and one elapsed=2410.0s heapMiB=1804/6144
+2026-11-16T09:05:58.536Z INFO State inventory after-one scan: processed=5435519/6451327 (84.25%), remaining=1015808, throughput=817.806/s
+2026-11-16T09:05:59.739984247Z checker: checking after-one states and reversing gains zero and one elapsed=2420.0s heapMiB=3477/6144
+2026-11-16T09:06:08.543Z INFO State inventory after-one scan: processed=5451903/6451327 (84.51%), remaining=999424, throughput=1633.212/s
+2026-11-16T09:06:09.740022985Z checker: checking after-one states and reversing gains zero and one elapsed=2430.0s heapMiB=2091/6144
+2026-11-16T09:06:18.552Z INFO State inventory after-one scan: processed=5451903/6451327 (84.51%), remaining=999424, throughput=0.000/s
+2026-11-16T09:06:19.740205386Z checker: checking after-one states and reversing gains zero and one elapsed=2440.0s heapMiB=2713/6144
+2026-11-16T09:06:28.560Z INFO State inventory after-one scan: processed=5460095/6451327 (84.64%), remaining=991232, throughput=818.512/s
+2026-11-16T09:06:29.739892482Z checker: checking after-one states and reversing gains zero and one elapsed=2450.0s heapMiB=2510/6144
+2026-11-16T09:06:38.561Z INFO State inventory after-one scan: processed=5472383/6451327 (84.83%), remaining=978944, throughput=1228.493/s
+2026-11-16T09:06:39.744320421Z checker: checking after-one states and reversing gains zero and one elapsed=2460.0s heapMiB=764/6144
+2026-11-16T09:06:48.562Z INFO State inventory after-one scan: processed=5480575/6451327 (84.95%), remaining=970752, throughput=819.096/s
+2026-11-16T09:06:49.739986188Z checker: checking after-one states and reversing gains zero and one elapsed=2470.0s heapMiB=1206/6144
+2026-11-16T09:06:58.570Z INFO State inventory after-one scan: processed=5501055/6451327 (85.27%), remaining=950272, throughput=2046.628/s
+2026-11-16T09:06:59.744249326Z checker: checking after-one states and reversing gains zero and one elapsed=2480.0s heapMiB=2247/6144
+2026-11-16T09:07:08.576Z INFO State inventory after-one scan: processed=5501055/6451327 (85.27%), remaining=950272, throughput=0.000/s
+2026-11-16T09:07:09.739855555Z checker: checking after-one states and reversing gains zero and one elapsed=2490.0s heapMiB=1822/6144
+2026-11-16T09:07:18.580Z INFO State inventory after-one scan: processed=5501055/6451327 (85.27%), remaining=950272, throughput=0.000/s
+2026-11-16T09:07:19.800007710Z checker: checking after-one states and reversing gains zero and one elapsed=2500.1s heapMiB=992/6144
+2026-11-16T09:07:28.644Z INFO State inventory after-one scan: processed=5521535/6451327 (85.59%), remaining=929792, throughput=2034.458/s
+2026-11-16T09:07:29.739913086Z checker: checking after-one states and reversing gains zero and one elapsed=2510.0s heapMiB=810/6144
+2026-11-16T09:07:38.644Z INFO State inventory after-one scan: processed=5537919/6451327 (85.84%), remaining=913408, throughput=1638.303/s
+2026-11-16T09:07:39.739919767Z checker: checking after-one states and reversing gains zero and one elapsed=2520.0s heapMiB=2689/6144
+2026-11-16T09:07:48.645Z INFO State inventory after-one scan: processed=5546111/6451327 (85.97%), remaining=905216, throughput=819.157/s
+2026-11-16T09:07:49.739879640Z checker: checking after-one states and reversing gains zero and one elapsed=2530.0s heapMiB=2050/6144
+2026-11-16T09:07:58.648Z INFO State inventory after-one scan: processed=5558399/6451327 (86.16%), remaining=892928, throughput=1228.451/s
+2026-11-16T09:07:59.741253057Z checker: checking after-one states and reversing gains zero and one elapsed=2540.0s heapMiB=3592/6144
+2026-11-16T09:08:08.650Z INFO State inventory after-one scan: processed=5578879/6451327 (86.48%), remaining=872448, throughput=2047.770/s
+2026-11-16T09:08:09.740144624Z checker: checking after-one states and reversing gains zero and one elapsed=2550.0s heapMiB=1368/6144
+2026-11-16T09:08:18.650Z INFO State inventory after-one scan: processed=5582975/6451327 (86.54%), remaining=868352, throughput=409.539/s
+2026-11-16T09:08:19.743922290Z checker: checking after-one states and reversing gains zero and one elapsed=2560.0s heapMiB=1697/6144
+2026-11-16T09:08:28.656Z INFO State inventory after-one scan: processed=5595263/6451327 (86.73%), remaining=856064, throughput=1228.140/s
+2026-11-16T09:08:29.740624469Z checker: checking after-one states and reversing gains zero and one elapsed=2570.0s heapMiB=3215/6144
+2026-11-16T09:08:38.656Z INFO State inventory after-one scan: processed=5611647/6451327 (86.98%), remaining=839680, throughput=1638.305/s
+2026-11-16T09:08:39.775899609Z checker: checking after-one states and reversing gains zero and one elapsed=2580.0s heapMiB=1277/6144
+2026-11-16T09:08:48.657Z INFO State inventory after-one scan: processed=5619839/6451327 (87.11%), remaining=831488, throughput=819.148/s
+2026-11-16T09:08:49.739853174Z checker: checking after-one states and reversing gains zero and one elapsed=2590.0s heapMiB=2963/6144
+2026-11-16T09:08:58.680Z INFO State inventory after-one scan: processed=5632127/6451327 (87.30%), remaining=819200, throughput=1228.221/s
+2026-11-16T09:08:59.739908601Z checker: checking after-one states and reversing gains zero and one elapsed=2600.0s heapMiB=3442/6144
+2026-11-16T09:09:08.680Z INFO State inventory after-one scan: processed=5652607/6451327 (87.62%), remaining=798720, throughput=2044.193/s
+2026-11-16T09:09:09.739959550Z checker: checking after-one states and reversing gains zero and one elapsed=2610.0s heapMiB=4696/6144
+2026-11-16T09:09:18.681Z INFO State inventory after-one scan: processed=5664895/6451327 (87.81%), remaining=786432, throughput=1228.726/s
+2026-11-16T09:09:19.743962851Z checker: checking after-one states and reversing gains zero and one elapsed=2620.0s heapMiB=3679/6144
+2026-11-16T09:09:28.683Z INFO State inventory after-one scan: processed=5693567/6451327 (88.25%), remaining=757760, throughput=2866.563/s
+2026-11-16T09:09:29.739894628Z checker: checking after-one states and reversing gains zero and one elapsed=2630.0s heapMiB=2095/6144
+2026-11-16T09:09:38.692Z INFO State inventory after-one scan: processed=5693567/6451327 (88.25%), remaining=757760, throughput=0.000/s
+2026-11-16T09:09:39.739907233Z checker: checking after-one states and reversing gains zero and one elapsed=2640.0s heapMiB=2335/6144
+2026-11-16T09:09:48.692Z INFO State inventory after-one scan: processed=5701759/6451327 (88.38%), remaining=749568, throughput=819.150/s
+2026-11-16T09:09:49.739953809Z checker: checking after-one states and reversing gains zero and one elapsed=2650.0s heapMiB=4406/6144
+2026-11-16T09:09:58.693Z INFO State inventory after-one scan: processed=5714047/6451327 (88.57%), remaining=737280, throughput=1228.725/s
+2026-11-16T09:09:59.739853464Z checker: checking after-one states and reversing gains zero and one elapsed=2660.0s heapMiB=2758/6144
+2026-11-16T09:10:08.693Z INFO State inventory after-one scan: processed=5730431/6451327 (88.83%), remaining=720896, throughput=1638.291/s
+2026-11-16T09:10:09.742246163Z checker: checking after-one states and reversing gains zero and one elapsed=2670.0s heapMiB=3500/6144
+2026-11-16T09:10:18.694Z INFO State inventory after-one scan: processed=5742719/6451327 (89.02%), remaining=708608, throughput=1228.738/s
+2026-11-16T09:10:19.739856806Z checker: checking after-one states and reversing gains zero and one elapsed=2680.0s heapMiB=2126/6144
+2026-11-16T09:10:28.697Z INFO State inventory after-one scan: processed=5746815/6451327 (89.08%), remaining=704512, throughput=409.574/s
+2026-11-16T09:10:29.739933286Z checker: checking after-one states and reversing gains zero and one elapsed=2690.0s heapMiB=897/6144
+2026-11-16T09:10:38.698Z INFO State inventory after-one scan: processed=5763199/6451327 (89.33%), remaining=688128, throughput=1637.913/s
+2026-11-16T09:10:39.795962771Z checker: checking after-one states and reversing gains zero and one elapsed=2700.1s heapMiB=747/6144
+2026-11-16T09:10:48.699Z INFO State inventory after-one scan: processed=5767295/6451327 (89.40%), remaining=684032, throughput=409.560/s
+2026-11-16T09:10:49.739969636Z checker: checking after-one states and reversing gains zero and one elapsed=2710.0s heapMiB=710/6144
+2026-11-16T09:10:58.707Z INFO State inventory after-one scan: processed=5779583/6451327 (89.59%), remaining=671744, throughput=1227.790/s
+2026-11-16T09:10:59.739957718Z checker: checking after-one states and reversing gains zero and one elapsed=2720.0s heapMiB=3264/6144
+2026-11-16T09:11:08.708Z INFO State inventory after-one scan: processed=5791871/6451327 (89.78%), remaining=659456, throughput=1228.672/s
+2026-11-16T09:11:09.739921762Z checker: checking after-one states and reversing gains zero and one elapsed=2730.0s heapMiB=759/6144
+2026-11-16T09:11:18.709Z INFO State inventory after-one scan: processed=5808255/6451327 (90.03%), remaining=643072, throughput=1638.263/s
+2026-11-16T09:11:19.771948632Z checker: checking after-one states and reversing gains zero and one elapsed=2740.0s heapMiB=851/6144
+2026-11-16T09:11:28.709Z INFO State inventory after-one scan: processed=5812351/6451327 (90.10%), remaining=638976, throughput=409.569/s
+2026-11-16T09:11:29.739897195Z checker: checking after-one states and reversing gains zero and one elapsed=2750.0s heapMiB=3931/6144
+2026-11-16T09:11:38.713Z INFO State inventory after-one scan: processed=5824639/6451327 (90.29%), remaining=626688, throughput=1228.419/s
+2026-11-16T09:11:39.739932432Z checker: checking after-one states and reversing gains zero and one elapsed=2760.0s heapMiB=1615/6144
+2026-11-16T09:11:48.716Z INFO State inventory after-one scan: processed=5841023/6451327 (90.54%), remaining=610304, throughput=1637.899/s
+2026-11-16T09:11:49.739913049Z checker: checking after-one states and reversing gains zero and one elapsed=2770.0s heapMiB=3510/6144
+2026-11-16T09:11:58.718Z INFO State inventory after-one scan: processed=5857407/6451327 (90.79%), remaining=593920, throughput=1638.220/s
+2026-11-16T09:11:59.739881332Z checker: checking after-one states and reversing gains zero and one elapsed=2780.0s heapMiB=3888/6144
+2026-11-16T09:12:08.719Z INFO State inventory after-one scan: processed=5861503/6451327 (90.86%), remaining=589824, throughput=409.523/s
+2026-11-16T09:12:09.739855721Z checker: checking after-one states and reversing gains zero and one elapsed=2790.0s heapMiB=1414/6144
+2026-11-16T09:12:18.719Z INFO State inventory after-one scan: processed=5890175/6451327 (91.30%), remaining=561152, throughput=2867.028/s
+2026-11-16T09:12:19.739932223Z checker: checking after-one states and reversing gains zero and one elapsed=2800.0s heapMiB=2332/6144
+2026-11-16T09:12:28.724Z INFO State inventory after-one scan: processed=5894271/6451327 (91.37%), remaining=557056, throughput=409.418/s
+2026-11-16T09:12:29.743943541Z checker: checking after-one states and reversing gains zero and one elapsed=2810.0s heapMiB=4201/6144
+2026-11-16T09:12:38.732Z INFO State inventory after-one scan: processed=5906559/6451327 (91.56%), remaining=544768, throughput=1228.721/s
+2026-11-16T09:12:39.739851327Z checker: checking after-one states and reversing gains zero and one elapsed=2820.0s heapMiB=3101/6144
+2026-11-16T09:12:48.733Z INFO State inventory after-one scan: processed=5906559/6451327 (91.56%), remaining=544768, throughput=0.000/s
+2026-11-16T09:12:49.739886081Z checker: checking after-one states and reversing gains zero and one elapsed=2830.0s heapMiB=3537/6144
+2026-11-16T09:12:58.736Z INFO State inventory after-one scan: processed=5927039/6451327 (91.87%), remaining=524288, throughput=2047.297/s
+2026-11-16T09:12:59.739907886Z checker: checking after-one states and reversing gains zero and one elapsed=2840.0s heapMiB=3049/6144
+2026-11-16T09:13:08.736Z INFO State inventory after-one scan: processed=5947519/6451327 (92.19%), remaining=503808, throughput=2047.870/s
+2026-11-16T09:13:09.742067365Z checker: checking after-one states and reversing gains zero and one elapsed=2850.0s heapMiB=2495/6144
+2026-11-16T09:13:18.739Z INFO State inventory after-one scan: processed=5959807/6451327 (92.38%), remaining=491520, throughput=1228.468/s
+2026-11-16T09:13:19.739887077Z checker: checking after-one states and reversing gains zero and one elapsed=2860.0s heapMiB=4045/6144
+2026-11-16T09:13:28.755Z INFO State inventory after-one scan: processed=5972095/6451327 (92.57%), remaining=479232, throughput=1226.845/s
+2026-11-16T09:13:29.739963007Z checker: checking after-one states and reversing gains zero and one elapsed=2870.0s heapMiB=4293/6144
+2026-11-16T09:13:38.756Z INFO State inventory after-one scan: processed=5976191/6451327 (92.64%), remaining=475136, throughput=409.559/s
+2026-11-16T09:13:39.739847258Z checker: checking after-one states and reversing gains zero and one elapsed=2880.0s heapMiB=1713/6144
+2026-11-16T09:13:48.757Z INFO State inventory after-one scan: processed=5980287/6451327 (92.70%), remaining=471040, throughput=409.555/s
+2026-11-16T09:13:49.740009342Z checker: checking after-one states and reversing gains zero and one elapsed=2890.0s heapMiB=3793/6144
+2026-11-16T09:13:58.792Z INFO State inventory after-one scan: processed=5980287/6451327 (92.70%), remaining=471040, throughput=0.000/s
+2026-11-16T09:13:59.740004656Z checker: checking after-one states and reversing gains zero and one elapsed=2900.0s heapMiB=2284/6144
+2026-11-16T09:14:08.836Z INFO State inventory after-one scan: processed=5984383/6451327 (92.76%), remaining=466944, throughput=408.270/s
+2026-11-16T09:14:09.739985592Z checker: checking after-one states and reversing gains zero and one elapsed=2910.0s heapMiB=2141/6144
+2026-11-16T09:14:18.836Z INFO State inventory after-one scan: processed=5988479/6451327 (92.83%), remaining=462848, throughput=409.108/s
+2026-11-16T09:14:19.739854576Z checker: checking after-one states and reversing gains zero and one elapsed=2920.0s heapMiB=2645/6144
+2026-11-16T09:14:28.837Z INFO State inventory after-one scan: processed=5992575/6451327 (92.89%), remaining=458752, throughput=409.577/s
+2026-11-16T09:14:29.739952556Z checker: checking after-one states and reversing gains zero and one elapsed=2930.0s heapMiB=1986/6144
+2026-11-16T09:14:38.879Z INFO State inventory after-one scan: processed=6008959/6451327 (93.14%), remaining=442368, throughput=1634.233/s
+2026-11-16T09:14:39.743408198Z checker: checking after-one states and reversing gains zero and one elapsed=2940.0s heapMiB=3124/6144
+2026-11-16T09:14:48.881Z INFO State inventory after-one scan: processed=6025343/6451327 (93.40%), remaining=425984, throughput=1635.470/s
+2026-11-16T09:14:49.739917234Z checker: checking after-one states and reversing gains zero and one elapsed=2950.0s heapMiB=4880/6144
+2026-11-16T09:14:58.882Z INFO State inventory after-one scan: processed=6049919/6451327 (93.78%), remaining=401408, throughput=2457.171/s
+2026-11-16T09:14:59.740008576Z checker: checking after-one states and reversing gains zero and one elapsed=2960.0s heapMiB=1699/6144
+2026-11-16T09:15:08.884Z INFO State inventory after-one scan: processed=6062207/6451327 (93.97%), remaining=389120, throughput=1228.607/s
+2026-11-16T09:15:09.740568829Z checker: checking after-one states and reversing gains zero and one elapsed=2970.0s heapMiB=3875/6144
+2026-11-16T09:15:18.888Z INFO State inventory after-one scan: processed=6066303/6451327 (94.03%), remaining=385024, throughput=409.434/s
+2026-11-16T09:15:19.739979211Z checker: checking after-one states and reversing gains zero and one elapsed=2980.0s heapMiB=2319/6144
+2026-11-16T09:15:28.889Z INFO State inventory after-one scan: processed=6082687/6451327 (94.29%), remaining=368640, throughput=1638.255/s
+2026-11-16T09:15:29.739958779Z checker: checking after-one states and reversing gains zero and one elapsed=2990.0s heapMiB=3448/6144
+2026-11-16T09:15:38.890Z INFO State inventory after-one scan: processed=6099071/6451327 (94.54%), remaining=352256, throughput=1638.220/s
+2026-11-16T09:15:39.739904690Z checker: checking after-one states and reversing gains zero and one elapsed=3000.0s heapMiB=1888/6144
+2026-11-16T09:15:48.896Z INFO State inventory after-one scan: processed=6115455/6451327 (94.79%), remaining=335872, throughput=1637.415/s
+2026-11-16T09:15:49.739920545Z checker: checking after-one states and reversing gains zero and one elapsed=3010.0s heapMiB=3528/6144
+2026-11-16T09:15:58.897Z INFO State inventory after-one scan: processed=6115455/6451327 (94.79%), remaining=335872, throughput=0.000/s
+2026-11-16T09:15:59.743972243Z checker: checking after-one states and reversing gains zero and one elapsed=3020.0s heapMiB=2104/6144
+2026-11-16T09:16:08.904Z INFO State inventory after-one scan: processed=6123647/6451327 (94.92%), remaining=327680, throughput=819.125/s
+2026-11-16T09:16:09.739851766Z checker: checking after-one states and reversing gains zero and one elapsed=3030.0s heapMiB=2492/6144
+2026-11-16T09:16:18.913Z INFO State inventory after-one scan: processed=6131839/6451327 (95.05%), remaining=319488, throughput=818.330/s
+2026-11-16T09:16:19.770869496Z checker: checking after-one states and reversing gains zero and one elapsed=3040.0s heapMiB=1086/6144
+2026-11-16T09:16:28.915Z INFO State inventory after-one scan: processed=6156415/6451327 (95.43%), remaining=294912, throughput=2456.195/s
+2026-11-16T09:16:29.739880277Z checker: checking after-one states and reversing gains zero and one elapsed=3050.0s heapMiB=1190/6144
+2026-11-16T09:16:38.980Z INFO State inventory after-one scan: processed=6172799/6451327 (95.68%), remaining=278528, throughput=1631.204/s
+2026-11-16T09:16:39.739883956Z checker: checking after-one states and reversing gains zero and one elapsed=3060.0s heapMiB=4525/6144
+2026-11-16T09:16:49.008Z INFO State inventory after-one scan: processed=6193279/6451327 (96.00%), remaining=258048, throughput=2037.818/s
+2026-11-16T09:16:49.739885138Z checker: checking after-one states and reversing gains zero and one elapsed=3070.0s heapMiB=2037/6144
+2026-11-16T09:16:59.014Z INFO State inventory after-one scan: processed=6221951/6451327 (96.44%), remaining=229376, throughput=2865.469/s
+2026-11-16T09:16:59.739918416Z checker: checking after-one states and reversing gains zero and one elapsed=3080.0s heapMiB=3555/6144
+2026-11-16T09:17:09.014Z INFO State inventory after-one scan: processed=6238335/6451327 (96.70%), remaining=212992, throughput=1638.302/s
+2026-11-16T09:17:09.739904922Z checker: checking after-one states and reversing gains zero and one elapsed=3090.0s heapMiB=2119/6144
+2026-11-16T09:17:19.026Z INFO State inventory after-one scan: processed=6262911/6451327 (97.08%), remaining=188416, throughput=2457.451/s
+2026-11-16T09:17:19.767904464Z checker: checking after-one states and reversing gains zero and one elapsed=3100.0s heapMiB=1702/6144
+2026-11-16T09:17:29.028Z INFO State inventory after-one scan: processed=6271103/6451327 (97.21%), remaining=180224, throughput=818.158/s
+2026-11-16T09:17:29.739851158Z checker: checking after-one states and reversing gains zero and one elapsed=3110.0s heapMiB=4970/6144
+2026-11-16T09:17:39.132Z INFO State inventory after-one scan: processed=6275199/6451327 (97.27%), remaining=176128, throughput=406.255/s
+2026-11-16T09:17:39.739917942Z checker: checking after-one states and reversing gains zero and one elapsed=3120.0s heapMiB=4550/6144
+2026-11-16T09:17:49.133Z INFO State inventory after-one scan: processed=6295679/6451327 (97.59%), remaining=155648, throughput=2043.275/s
+2026-11-16T09:17:49.739941546Z checker: checking after-one states and reversing gains zero and one elapsed=3130.0s heapMiB=2347/6144
+2026-11-16T09:17:59.136Z INFO State inventory after-one scan: processed=6307967/6451327 (97.78%), remaining=143360, throughput=1228.457/s
+2026-11-16T09:17:59.739915538Z checker: checking after-one states and reversing gains zero and one elapsed=3140.0s heapMiB=2636/6144
+2026-11-16T09:18:09.137Z INFO State inventory after-one scan: processed=6320255/6451327 (97.97%), remaining=131072, throughput=1228.640/s
+2026-11-16T09:18:09.739891610Z checker: checking after-one states and reversing gains zero and one elapsed=3150.0s heapMiB=3174/6144
+2026-11-16T09:18:19.144Z INFO State inventory after-one scan: processed=6332543/6451327 (98.16%), remaining=118784, throughput=1228.023/s
+2026-11-16T09:18:19.740569918Z checker: checking after-one states and reversing gains zero and one elapsed=3160.0s heapMiB=2342/6144
+2026-11-16T09:18:29.145Z INFO State inventory after-one scan: processed=6344831/6451327 (98.35%), remaining=106496, throughput=1228.633/s
+2026-11-16T09:18:29.739915693Z checker: checking after-one states and reversing gains zero and one elapsed=3170.0s heapMiB=846/6144
+2026-11-16T09:18:39.149Z INFO State inventory after-one scan: processed=6348927/6451327 (98.41%), remaining=102400, throughput=409.426/s
+2026-11-16T09:18:39.743956961Z checker: checking after-one states and reversing gains zero and one elapsed=3180.0s heapMiB=3066/6144
+2026-11-16T09:18:49.152Z INFO State inventory after-one scan: processed=6361215/6451327 (98.60%), remaining=90112, throughput=1228.489/s
+2026-11-16T09:18:49.741090336Z checker: checking after-one states and reversing gains zero and one elapsed=3190.0s heapMiB=1245/6144
+2026-11-16T09:18:59.152Z INFO State inventory after-one scan: processed=6361215/6451327 (98.60%), remaining=90112, throughput=0.000/s
+2026-11-16T09:18:59.739923872Z checker: checking after-one states and reversing gains zero and one elapsed=3200.0s heapMiB=2182/6144
+2026-11-16T09:19:09.153Z INFO State inventory after-one scan: processed=6365311/6451327 (98.67%), remaining=86016, throughput=409.577/s
+2026-11-16T09:19:09.787915967Z checker: checking after-one states and reversing gains zero and one elapsed=3210.1s heapMiB=883/6144
+2026-11-16T09:19:19.160Z INFO State inventory after-one scan: processed=6377599/6451327 (98.86%), remaining=73728, throughput=1227.955/s
+2026-11-16T09:19:19.779572728Z checker: checking after-one states and reversing gains zero and one elapsed=3220.0s heapMiB=788/6144
+2026-11-16T09:19:29.161Z INFO State inventory after-one scan: processed=6381695/6451327 (98.92%), remaining=69632, throughput=409.561/s
+2026-11-16T09:19:29.739856278Z checker: checking after-one states and reversing gains zero and one elapsed=3230.0s heapMiB=3790/6144
+2026-11-16T09:19:39.161Z INFO State inventory after-one scan: processed=6414463/6451327 (99.43%), remaining=36864, throughput=3276.607/s
+2026-11-16T09:19:39.739852694Z checker: checking after-one states and reversing gains zero and one elapsed=3240.0s heapMiB=2734/6144
+2026-11-16T09:19:49.162Z INFO State inventory after-one scan: processed=6422655/6451327 (99.56%), remaining=28672, throughput=819.162/s
+2026-11-16T09:19:49.739916069Z checker: checking after-one states and reversing gains zero and one elapsed=3250.0s heapMiB=4313/6144
+2026-11-16T09:19:59.162Z INFO State inventory after-one scan: processed=6434943/6451327 (99.75%), remaining=16384, throughput=1228.729/s
+2026-11-16T09:19:59.739933678Z checker: checking after-one states and reversing gains zero and one elapsed=3260.0s heapMiB=3711/6144
+2026-11-16T09:20:09.163Z INFO State inventory after-one scan: processed=6443135/6451327 (99.87%), remaining=8192, throughput=819.161/s
+2026-11-16T09:20:09.739913034Z checker: checking after-one states and reversing gains zero and one elapsed=3270.0s heapMiB=1152/6144
+2026-11-16T09:20:13.206Z INFO State inventory after-one scan: processed=6451327/6451327 (100.00%), remaining=0, throughput=2026.657/s
+2026-11-16T09:20:13.254Z INFO State persistence roots drain (writers): processed=0/4 (0.00%), remaining=4, throughput=0.000/s, encodedKeysConsumed=2155453828/2155453828, encodedKeysRemaining=0, ingestedTables=7444, ingestedKeys=1951399936, uniqueTotal=unknown until counting
+2026-11-16T09:20:13.455Z INFO State persistence roots drain (writers): processed=4/4 (100.00%), remaining=0, throughput=19.538/s, encodedKeysConsumed=2155453828/2155453828, encodedKeysRemaining=0, ingestedTables=7448, ingestedKeys=1951640802, uniqueTotal=unknown until counting
+2026-11-16T09:20:13.464Z INFO State inventory roots unique-class counting: processed=0, total=unknown (exhaustive count in progress), throughput=0.000/s
+2026-11-16T09:20:19.739941890Z checker: checking after-one states and reversing gains zero and one elapsed=3280.0s heapMiB=3381/6144
+2026-11-16T09:20:23.465Z INFO State inventory roots unique-class counting: processed=12062720, total=unknown (exhaustive count in progress), throughput=1205758.312/s
+2026-11-16T09:20:29.739899658Z checker: checking after-one states and reversing gains zero and one elapsed=3290.0s heapMiB=1259/6144
+2026-11-16T09:20:33.470Z INFO State inventory roots unique-class counting: processed=27156480, total=unknown (exhaustive count in progress), throughput=1508630.595/s
+2026-11-16T09:20:39.739945753Z checker: checking after-one states and reversing gains zero and one elapsed=3300.0s heapMiB=1253/6144
+2026-11-16T09:20:43.470Z INFO State inventory roots unique-class counting: processed=41185280, total=unknown (exhaustive count in progress), throughput=1402810.835/s
+2026-11-16T09:20:49.739902713Z checker: checking after-one states and reversing gains zero and one elapsed=3310.0s heapMiB=1477/6144
+2026-11-16T09:20:53.476Z INFO State inventory roots unique-class counting: processed=50622464, total=unknown (exhaustive count in progress), throughput=943538.581/s
+2026-11-16T09:20:59.740524724Z checker: checking after-one states and reversing gains zero and one elapsed=3320.0s heapMiB=4203/6144
+2026-11-16T09:21:03.481Z INFO State inventory roots unique-class counting: processed=60698624, total=unknown (exhaustive count in progress), throughput=1006668.366/s
+2026-11-16T09:21:09.739911638Z checker: checking after-one states and reversing gains zero and one elapsed=3330.0s heapMiB=2893/6144
+2026-11-16T09:21:13.482Z INFO State inventory roots unique-class counting: processed=72908800, total=unknown (exhaustive count in progress), throughput=1220943.254/s
+2026-11-16T09:21:19.739912100Z checker: checking after-one states and reversing gains zero and one elapsed=3340.0s heapMiB=3891/6144
+2026-11-16T09:21:23.483Z INFO State inventory roots unique-class counting: processed=86765568, total=unknown (exhaustive count in progress), throughput=1385574.856/s
+2026-11-16T09:21:29.739841981Z checker: checking after-one states and reversing gains zero and one elapsed=3350.0s heapMiB=3049/6144
+2026-11-16T09:21:33.483Z INFO State inventory roots unique-class counting: processed=101961728, total=unknown (exhaustive count in progress), throughput=1519523.327/s
+2026-11-16T09:21:39.739903561Z checker: checking after-one states and reversing gains zero and one elapsed=3360.0s heapMiB=2725/6144
+2026-11-16T09:21:43.484Z INFO State inventory roots unique-class counting: processed=117178368, total=unknown (exhaustive count in progress), throughput=1521504.740/s
+2026-11-16T09:21:49.739880414Z checker: checking after-one states and reversing gains zero and one elapsed=3370.0s heapMiB=2707/6144
+2026-11-16T09:21:53.485Z INFO State inventory roots unique-class counting: processed=129753088, total=unknown (exhaustive count in progress), throughput=1257421.426/s
+2026-11-16T09:21:59.739921429Z checker: checking after-one states and reversing gains zero and one elapsed=3380.0s heapMiB=2634/6144
+2026-11-16T09:22:03.485Z INFO State inventory roots unique-class counting: processed=143081472, total=unknown (exhaustive count in progress), throughput=1332789.863/s
+2026-11-16T09:22:09.739906202Z checker: checking after-one states and reversing gains zero and one elapsed=3390.0s heapMiB=3667/6144
+2026-11-16T09:22:13.490Z INFO State inventory roots unique-class counting: processed=157495296, total=unknown (exhaustive count in progress), throughput=1441286.145/s
+2026-11-16T09:22:19.739890946Z checker: checking after-one states and reversing gains zero and one elapsed=3400.0s heapMiB=2881/6144
+2026-11-16T09:22:23.497Z INFO State inventory roots unique-class counting: processed=169123840, total=unknown (exhaustive count in progress), throughput=1162307.147/s
+2026-11-16T09:22:29.739918444Z checker: checking after-one states and reversing gains zero and one elapsed=3410.0s heapMiB=4201/6144
+2026-11-16T09:22:33.498Z INFO State inventory roots unique-class counting: processed=182636544, total=unknown (exhaustive count in progress), throughput=1350337.313/s
+2026-11-16T09:22:39.739928433Z checker: checking after-one states and reversing gains zero and one elapsed=3420.0s heapMiB=3199/6144
+2026-11-16T09:22:43.498Z INFO State inventory roots unique-class counting: processed=195739648, total=unknown (exhaustive count in progress), throughput=1310234.152/s
+2026-11-16T09:22:49.739917666Z checker: checking after-one states and reversing gains zero and one elapsed=3430.0s heapMiB=1003/6144
+2026-11-16T09:22:53.499Z INFO State inventory roots unique-class counting: processed=207769600, total=unknown (exhaustive count in progress), throughput=1202875.111/s
+2026-11-16T09:22:59.739906660Z checker: checking after-one states and reversing gains zero and one elapsed=3440.0s heapMiB=4093/6144
+2026-11-16T09:23:03.500Z INFO State inventory roots unique-class counting: processed=220573696, total=unknown (exhaustive count in progress), throughput=1280353.804/s
+2026-11-16T09:23:09.739980425Z checker: checking after-one states and reversing gains zero and one elapsed=3450.0s heapMiB=2159/6144
+2026-11-16T09:23:13.500Z INFO State inventory roots unique-class counting: processed=232448000, total=unknown (exhaustive count in progress), throughput=1187348.612/s
+2026-11-16T09:23:19.739905636Z checker: checking after-one states and reversing gains zero and one elapsed=3460.0s heapMiB=1965/6144
+2026-11-16T09:23:23.501Z INFO State inventory roots unique-class counting: processed=246222848, total=unknown (exhaustive count in progress), throughput=1377431.719/s
+2026-11-16T09:23:29.739852770Z checker: checking after-one states and reversing gains zero and one elapsed=3470.0s heapMiB=965/6144
+2026-11-16T09:23:33.501Z INFO State inventory roots unique-class counting: processed=259506176, total=unknown (exhaustive count in progress), throughput=1328262.263/s
+2026-11-16T09:23:39.739928814Z checker: checking after-one states and reversing gains zero and one elapsed=3480.0s heapMiB=2577/6144
+2026-11-16T09:23:43.501Z INFO State inventory roots unique-class counting: processed=272556032, total=unknown (exhaustive count in progress), throughput=1304935.667/s
+2026-11-16T09:23:49.740013217Z checker: checking after-one states and reversing gains zero and one elapsed=3490.0s heapMiB=2821/6144
+2026-11-16T09:23:53.502Z INFO State inventory roots unique-class counting: processed=285536256, total=unknown (exhaustive count in progress), throughput=1297892.418/s
+2026-11-16T09:23:59.739890627Z checker: checking after-one states and reversing gains zero and one elapsed=3500.0s heapMiB=1637/6144
+2026-11-16T09:24:03.503Z INFO State inventory roots unique-class counting: processed=298807296, total=unknown (exhaustive count in progress), throughput=1327036.956/s
+2026-11-16T09:24:09.739923833Z checker: checking after-one states and reversing gains zero and one elapsed=3510.0s heapMiB=4259/6144
+2026-11-16T09:24:13.504Z INFO State inventory roots unique-class counting: processed=312479744, total=unknown (exhaustive count in progress), throughput=1367164.325/s
+2026-11-16T09:24:19.740898999Z checker: checking after-one states and reversing gains zero and one elapsed=3520.0s heapMiB=760/6144
+2026-11-16T09:24:23.504Z INFO State inventory roots unique-class counting: processed=324931584, total=unknown (exhaustive count in progress), throughput=1245103.231/s
+2026-11-16T09:24:29.739923893Z checker: checking after-one states and reversing gains zero and one elapsed=3530.0s heapMiB=2385/6144
+2026-11-16T09:24:33.505Z INFO State inventory roots unique-class counting: processed=334852096, total=unknown (exhaustive count in progress), throughput=992010.542/s
+2026-11-16T09:24:39.739918441Z checker: checking after-one states and reversing gains zero and one elapsed=3540.0s heapMiB=2655/6144
+2026-11-16T09:24:43.505Z INFO State inventory roots unique-class counting: processed=346980352, total=unknown (exhaustive count in progress), throughput=1212772.075/s
+2026-11-16T09:24:49.739856727Z checker: checking after-one states and reversing gains zero and one elapsed=3550.0s heapMiB=3631/6144
+2026-11-16T09:24:53.505Z INFO State inventory roots unique-class counting: processed=359432192, total=unknown (exhaustive count in progress), throughput=1245131.973/s
+2026-11-16T09:24:59.739907783Z checker: checking after-one states and reversing gains zero and one elapsed=3560.0s heapMiB=4031/6144
+2026-11-16T09:25:03.506Z INFO State inventory roots unique-class counting: processed=373469184, total=unknown (exhaustive count in progress), throughput=1403644.484/s
+2026-11-16T09:25:09.739951458Z checker: checking after-one states and reversing gains zero and one elapsed=3570.0s heapMiB=1263/6144
+2026-11-16T09:25:13.506Z INFO State inventory roots unique-class counting: processed=389115904, total=unknown (exhaustive count in progress), throughput=1564606.773/s
+2026-11-16T09:25:19.739852604Z checker: checking after-one states and reversing gains zero and one elapsed=3580.0s heapMiB=1691/6144
+2026-11-16T09:25:23.507Z INFO State inventory roots unique-class counting: processed=403865600, total=unknown (exhaustive count in progress), throughput=1474905.690/s
+2026-11-16T09:25:29.739846989Z checker: checking after-one states and reversing gains zero and one elapsed=3590.0s heapMiB=2839/6144
+2026-11-16T09:25:33.508Z INFO State inventory roots unique-class counting: processed=419704832, total=unknown (exhaustive count in progress), throughput=1583758.402/s
+2026-11-16T09:25:39.739992469Z checker: checking after-one states and reversing gains zero and one elapsed=3600.0s heapMiB=3631/6144
+2026-11-16T09:25:43.508Z INFO State inventory roots unique-class counting: processed=436191232, total=unknown (exhaustive count in progress), throughput=1648574.049/s
+2026-11-16T09:25:49.739893463Z checker: checking after-one states and reversing gains zero and one elapsed=3610.0s heapMiB=4225/6144
+2026-11-16T09:25:53.509Z INFO State inventory roots unique-class counting: processed=446545920, total=unknown (exhaustive count in progress), throughput=1035424.523/s
+2026-11-16T09:25:59.739889240Z checker: checking after-one states and reversing gains zero and one elapsed=3620.0s heapMiB=4067/6144
+2026-11-16T09:26:03.509Z INFO State inventory roots unique-class counting: processed=459726848, total=unknown (exhaustive count in progress), throughput=1318037.127/s
+2026-11-16T09:26:09.739900016Z checker: checking after-one states and reversing gains zero and one elapsed=3630.0s heapMiB=2755/6144
+2026-11-16T09:26:13.510Z INFO State inventory roots unique-class counting: processed=472625152, total=unknown (exhaustive count in progress), throughput=1289710.675/s
+2026-11-16T09:26:19.739858875Z checker: checking after-one states and reversing gains zero and one elapsed=3640.0s heapMiB=2731/6144
+2026-11-16T09:26:23.510Z INFO State inventory roots unique-class counting: processed=485998592, total=unknown (exhaustive count in progress), throughput=1337290.211/s
+2026-11-16T09:26:29.739895989Z checker: checking after-one states and reversing gains zero and one elapsed=3650.0s heapMiB=3733/6144
+2026-11-16T09:26:33.511Z INFO State inventory roots unique-class counting: processed=499527680, total=unknown (exhaustive count in progress), throughput=1352851.365/s
+2026-11-16T09:26:39.739895009Z checker: checking after-one states and reversing gains zero and one elapsed=3660.0s heapMiB=1287/6144
+2026-11-16T09:26:43.511Z INFO State inventory roots unique-class counting: processed=512712704, total=unknown (exhaustive count in progress), throughput=1318423.987/s
+2026-11-16T09:26:49.739900072Z checker: checking after-one states and reversing gains zero and one elapsed=3670.0s heapMiB=4006/6144
+2026-11-16T09:26:53.513Z INFO State inventory roots unique-class counting: processed=527912960, total=unknown (exhaustive count in progress), throughput=1519730.287/s
+2026-11-16T09:26:59.739895509Z checker: checking after-one states and reversing gains zero and one elapsed=3680.0s heapMiB=763/6144
+2026-11-16T09:27:03.517Z INFO State inventory roots unique-class counting: processed=542203904, total=unknown (exhaustive count in progress), throughput=1429034.875/s
+2026-11-16T09:27:09.740009625Z checker: checking after-one states and reversing gains zero and one elapsed=3690.0s heapMiB=889/6144
+2026-11-16T09:27:13.518Z INFO State inventory roots unique-class counting: processed=555786240, total=unknown (exhaustive count in progress), throughput=1357664.956/s
+2026-11-16T09:27:19.739911700Z checker: checking after-one states and reversing gains zero and one elapsed=3700.0s heapMiB=1296/6144
+2026-11-16T09:27:23.519Z INFO State inventory roots unique-class counting: processed=567820288, total=unknown (exhaustive count in progress), throughput=1203335.521/s
+2026-11-16T09:27:29.739923382Z checker: checking after-one states and reversing gains zero and one elapsed=3710.0s heapMiB=3541/6144
+2026-11-16T09:27:33.519Z INFO State inventory roots unique-class counting: processed=577916928, total=unknown (exhaustive count in progress), throughput=1009580.353/s
+2026-11-16T09:27:39.739899862Z checker: checking after-one states and reversing gains zero and one elapsed=3720.0s heapMiB=1143/6144
+2026-11-16T09:27:43.521Z INFO State inventory roots unique-class counting: processed=589320192, total=unknown (exhaustive count in progress), throughput=1140174.568/s
+2026-11-16T09:27:49.739890437Z checker: checking after-one states and reversing gains zero and one elapsed=3730.0s heapMiB=2519/6144
+2026-11-16T09:27:53.521Z INFO State inventory roots unique-class counting: processed=601145344, total=unknown (exhaustive count in progress), throughput=1182468.072/s
+2026-11-16T09:27:59.739901831Z checker: checking after-one states and reversing gains zero and one elapsed=3740.0s heapMiB=2387/6144
+2026-11-16T09:28:03.521Z INFO State inventory roots unique-class counting: processed=612429824, total=unknown (exhaustive count in progress), throughput=1128403.101/s
+2026-11-16T09:28:09.739994596Z checker: checking after-one states and reversing gains zero and one elapsed=3750.0s heapMiB=3441/6144
+2026-11-16T09:28:13.522Z INFO State inventory roots unique-class counting: processed=623710208, total=unknown (exhaustive count in progress), throughput=1127996.144/s
+2026-11-16T09:28:19.739913250Z checker: checking after-one states and reversing gains zero and one elapsed=3760.0s heapMiB=795/6144
+2026-11-16T09:28:23.524Z INFO State inventory roots unique-class counting: processed=634773504, total=unknown (exhaustive count in progress), throughput=1106285.768/s
+2026-11-16T09:28:29.739882993Z checker: checking after-one states and reversing gains zero and one elapsed=3770.0s heapMiB=2073/6144
+2026-11-16T09:28:33.524Z INFO State inventory roots unique-class counting: processed=645820416, total=unknown (exhaustive count in progress), throughput=1104464.561/s
+2026-11-16T09:28:39.739911102Z checker: checking after-one states and reversing gains zero and one elapsed=3780.0s heapMiB=3157/6144
+2026-11-16T09:28:43.525Z INFO State inventory roots unique-class counting: processed=657227776, total=unknown (exhaustive count in progress), throughput=1140662.718/s
+2026-11-16T09:28:49.739882521Z checker: checking after-one states and reversing gains zero and one elapsed=3790.0s heapMiB=2763/6144
+2026-11-16T09:28:53.525Z INFO State inventory roots unique-class counting: processed=667693056, total=unknown (exhaustive count in progress), throughput=1046481.901/s
+2026-11-16T09:28:59.739973912Z checker: checking after-one states and reversing gains zero and one elapsed=3800.0s heapMiB=2115/6144
+2026-11-16T09:29:03.526Z INFO State inventory roots unique-class counting: processed=680738816, total=unknown (exhaustive count in progress), throughput=1304526.216/s
+2026-11-16T09:29:09.739903868Z checker: checking after-one states and reversing gains zero and one elapsed=3810.0s heapMiB=3763/6144
+2026-11-16T09:29:13.526Z INFO State inventory roots unique-class counting: processed=699883520, total=unknown (exhaustive count in progress), throughput=1914407.660/s
+2026-11-16T09:29:19.739924630Z checker: checking after-one states and reversing gains zero and one elapsed=3820.0s heapMiB=3693/6144
+2026-11-16T09:29:23.527Z INFO State inventory roots unique-class counting: processed=718483456, total=unknown (exhaustive count in progress), throughput=1859815.106/s
+2026-11-16T09:29:29.739943975Z checker: checking after-one states and reversing gains zero and one elapsed=3830.0s heapMiB=1753/6144
+2026-11-16T09:29:33.527Z INFO State inventory roots unique-class counting: processed=739794944, total=unknown (exhaustive count in progress), throughput=2131063.567/s
+2026-11-16T09:29:39.739941787Z checker: checking after-one states and reversing gains zero and one elapsed=3840.0s heapMiB=3457/6144
+2026-11-16T09:29:43.529Z INFO State inventory roots unique-class counting: processed=760946688, total=unknown (exhaustive count in progress), throughput=2115082.955/s
+2026-11-16T09:29:49.739902756Z checker: checking after-one states and reversing gains zero and one elapsed=3850.0s heapMiB=3005/6144
+2026-11-16T09:29:53.529Z INFO State inventory roots unique-class counting: processed=780324864, total=unknown (exhaustive count in progress), throughput=1937558.872/s
+2026-11-16T09:29:59.739945466Z checker: checking after-one states and reversing gains zero and one elapsed=3860.0s heapMiB=3821/6144
+2026-11-16T09:30:03.530Z INFO State inventory roots unique-class counting: processed=800493568, total=unknown (exhaustive count in progress), throughput=2016792.461/s
+2026-11-16T09:30:09.739907581Z checker: checking after-one states and reversing gains zero and one elapsed=3870.0s heapMiB=3563/6144
+2026-11-16T09:30:13.530Z INFO State inventory roots unique-class counting: processed=819576832, total=unknown (exhaustive count in progress), throughput=1908237.433/s
+2026-11-16T09:30:19.739883461Z checker: checking after-one states and reversing gains zero and one elapsed=3880.0s heapMiB=3235/6144
+2026-11-16T09:30:23.530Z INFO State inventory roots unique-class counting: processed=839475200, total=unknown (exhaustive count in progress), throughput=1989756.645/s
+2026-11-16T09:30:29.739929708Z checker: checking after-one states and reversing gains zero and one elapsed=3890.0s heapMiB=4273/6144
+2026-11-16T09:30:33.531Z INFO State inventory roots unique-class counting: processed=859602944, total=unknown (exhaustive count in progress), throughput=2012694.010/s
+2026-11-16T09:30:39.739969917Z checker: checking after-one states and reversing gains zero and one elapsed=3900.0s heapMiB=1719/6144
+2026-11-16T09:30:43.531Z INFO State inventory roots unique-class counting: processed=873263104, total=unknown (exhaustive count in progress), throughput=1365964.311/s
+2026-11-16T09:30:49.739851768Z checker: checking after-one states and reversing gains zero and one elapsed=3910.0s heapMiB=1713/6144
+2026-11-16T09:30:53.532Z INFO State inventory roots unique-class counting: processed=890716160, total=unknown (exhaustive count in progress), throughput=1745238.641/s
+2026-11-16T09:30:59.739872256Z checker: checking after-one states and reversing gains zero and one elapsed=3920.0s heapMiB=2307/6144
+2026-11-16T09:31:03.532Z INFO State inventory roots unique-class counting: processed=906338304, total=unknown (exhaustive count in progress), throughput=1562142.339/s
+2026-11-16T09:31:09.739897729Z checker: checking after-one states and reversing gains zero and one elapsed=3930.0s heapMiB=4381/6144
+2026-11-16T09:31:13.532Z INFO State inventory roots unique-class counting: processed=914051072, total=unknown (exhaustive count in progress), throughput=771246.288/s
+2026-11-16T09:31:19.739885655Z checker: checking after-one states and reversing gains zero and one elapsed=3940.0s heapMiB=3937/6144
+2026-11-16T09:31:23.533Z INFO State inventory roots unique-class counting: processed=932323328, total=unknown (exhaustive count in progress), throughput=1827160.558/s
+2026-11-16T09:31:29.739919636Z checker: checking after-one states and reversing gains zero and one elapsed=3950.0s heapMiB=2609/6144
+2026-11-16T09:31:33.533Z INFO State inventory roots unique-class counting: processed=941772800, total=unknown (exhaustive count in progress), throughput=944912.890/s
+2026-11-16T09:31:39.739956881Z checker: checking after-one states and reversing gains zero and one elapsed=3960.0s heapMiB=795/6144
+2026-11-16T09:31:43.534Z INFO State inventory roots unique-class counting: processed=943468544, total=unknown (exhaustive count in progress), throughput=169567.600/s
+2026-11-16T09:31:49.739886001Z checker: checking after-one states and reversing gains zero and one elapsed=3970.0s heapMiB=3945/6144
+2026-11-16T09:31:53.534Z INFO State inventory roots unique-class counting: processed=959049728, total=unknown (exhaustive count in progress), throughput=1558040.547/s
+2026-11-16T09:31:59.739994133Z checker: checking after-one states and reversing gains zero and one elapsed=3980.0s heapMiB=845/6144
+2026-11-16T09:32:03.534Z INFO State inventory roots unique-class counting: processed=976535552, total=unknown (exhaustive count in progress), throughput=1748504.668/s
+2026-11-16T09:32:09.739919645Z checker: checking after-one states and reversing gains zero and one elapsed=3990.0s heapMiB=3267/6144
+2026-11-16T09:32:13.535Z INFO State inventory roots unique-class counting: processed=985919488, total=unknown (exhaustive count in progress), throughput=938336.262/s
+2026-11-16T09:32:19.739917280Z checker: checking after-one states and reversing gains zero and one elapsed=4000.0s heapMiB=4384/6144
+2026-11-16T09:32:23.535Z INFO State inventory roots unique-class counting: processed=1004433408, total=unknown (exhaustive count in progress), throughput=1851329.623/s
+2026-11-16T09:32:29.739846165Z checker: checking after-one states and reversing gains zero and one elapsed=4010.0s heapMiB=2275/6144
+2026-11-16T09:32:33.536Z INFO State inventory roots unique-class counting: processed=1019998208, total=unknown (exhaustive count in progress), throughput=1556315.840/s
+2026-11-16T09:32:39.739961436Z checker: checking after-one states and reversing gains zero and one elapsed=4020.0s heapMiB=2273/6144
+2026-11-16T09:32:43.537Z INFO State inventory roots unique-class counting: processed=1038753792, total=unknown (exhaustive count in progress), throughput=1875480.099/s
+2026-11-16T09:32:49.739959983Z checker: checking after-one states and reversing gains zero and one elapsed=4030.0s heapMiB=4203/6144
+2026-11-16T09:32:53.538Z INFO State inventory roots unique-class counting: processed=1053655040, total=unknown (exhaustive count in progress), throughput=1490010.307/s
+2026-11-16T09:32:59.739904947Z checker: checking after-one states and reversing gains zero and one elapsed=4040.0s heapMiB=1855/6144
+2026-11-16T09:33:03.538Z INFO State inventory roots unique-class counting: processed=1064919040, total=unknown (exhaustive count in progress), throughput=1126353.695/s
+2026-11-16T09:33:09.739940548Z checker: checking after-one states and reversing gains zero and one elapsed=4050.0s heapMiB=2339/6144
+2026-11-16T09:33:13.538Z INFO State inventory roots unique-class counting: processed=1083895808, total=unknown (exhaustive count in progress), throughput=1897604.171/s
+2026-11-16T09:33:19.739912003Z checker: checking after-one states and reversing gains zero and one elapsed=4060.0s heapMiB=1171/6144
+2026-11-16T09:33:23.539Z INFO State inventory roots unique-class counting: processed=1093517312, total=unknown (exhaustive count in progress), throughput=962118.681/s
+2026-11-16T09:33:29.739903199Z checker: checking after-one states and reversing gains zero and one elapsed=4070.0s heapMiB=3731/6144
+2026-11-16T09:33:33.549Z INFO State inventory roots unique-class counting: processed=1095376896, total=unknown (exhaustive count in progress), throughput=185759.399/s
+2026-11-16T09:33:39.740020471Z checker: checking after-one states and reversing gains zero and one elapsed=4080.0s heapMiB=1787/6144
+2026-11-16T09:33:43.550Z INFO State inventory roots unique-class counting: processed=1105944576, total=unknown (exhaustive count in progress), throughput=1056724.487/s
+2026-11-16T09:33:49.739906188Z checker: checking after-one states and reversing gains zero and one elapsed=4090.0s heapMiB=2143/6144
+2026-11-16T09:33:53.550Z INFO State inventory roots unique-class counting: processed=1122390016, total=unknown (exhaustive count in progress), throughput=1644482.305/s
+2026-11-16T09:33:59.739898882Z checker: checking after-one states and reversing gains zero and one elapsed=4100.0s heapMiB=775/6144
+2026-11-16T09:34:03.551Z INFO State inventory roots unique-class counting: processed=1139130368, total=unknown (exhaustive count in progress), throughput=1673978.334/s
+2026-11-16T09:34:09.739931670Z checker: checking after-one states and reversing gains zero and one elapsed=4110.0s heapMiB=4264/6144
+2026-11-16T09:34:13.552Z INFO State inventory roots unique-class counting: processed=1141460992, total=unknown (exhaustive count in progress), throughput=233041.655/s
+2026-11-16T09:34:19.739904038Z checker: checking after-one states and reversing gains zero and one elapsed=4120.0s heapMiB=3477/6144
+2026-11-16T09:34:23.564Z INFO State inventory roots unique-class counting: processed=1150062592, total=unknown (exhaustive count in progress), throughput=859165.837/s
+2026-11-16T09:34:29.739944193Z checker: checking after-one states and reversing gains zero and one elapsed=4130.0s heapMiB=823/6144
+2026-11-16T09:34:33.568Z INFO State inventory roots unique-class counting: processed=1160941568, total=unknown (exhaustive count in progress), throughput=1087352.614/s
+2026-11-16T09:34:39.739915656Z checker: checking after-one states and reversing gains zero and one elapsed=4140.0s heapMiB=835/6144
+2026-11-16T09:34:43.569Z INFO State inventory roots unique-class counting: processed=1177804800, total=unknown (exhaustive count in progress), throughput=1686193.209/s
+2026-11-16T09:34:49.739983301Z checker: checking after-one states and reversing gains zero and one elapsed=4150.0s heapMiB=3519/6144
+2026-11-16T09:34:53.569Z INFO State inventory roots unique-class counting: processed=1195159552, total=unknown (exhaustive count in progress), throughput=1735389.272/s
+2026-11-16T09:34:59.739937165Z checker: checking after-one states and reversing gains zero and one elapsed=4160.0s heapMiB=1317/6144
+2026-11-16T09:35:03.570Z INFO State inventory roots unique-class counting: processed=1201491968, total=unknown (exhaustive count in progress), throughput=633218.148/s
+2026-11-16T09:35:09.739910065Z checker: checking after-one states and reversing gains zero and one elapsed=4170.0s heapMiB=2437/6144
+2026-11-16T09:35:13.570Z INFO State inventory roots unique-class counting: processed=1213706240, total=unknown (exhaustive count in progress), throughput=1221381.139/s
+2026-11-16T09:35:19.739889242Z checker: checking after-one states and reversing gains zero and one elapsed=4180.0s heapMiB=3627/6144
+2026-11-16T09:35:23.570Z INFO State inventory roots unique-class counting: processed=1229701120, total=unknown (exhaustive count in progress), throughput=1599432.820/s
+2026-11-16T09:35:29.739891616Z checker: checking after-one states and reversing gains zero and one elapsed=4190.0s heapMiB=2175/6144
+2026-11-16T09:35:33.571Z INFO State inventory roots unique-class counting: processed=1248231424, total=unknown (exhaustive count in progress), throughput=1852943.609/s
+2026-11-16T09:35:39.739910790Z checker: checking after-one states and reversing gains zero and one elapsed=4200.0s heapMiB=957/6144
+2026-11-16T09:35:43.572Z INFO State inventory roots unique-class counting: processed=1266909184, total=unknown (exhaustive count in progress), throughput=1867683.740/s
+2026-11-16T09:35:49.739891543Z checker: checking after-one states and reversing gains zero and one elapsed=4210.0s heapMiB=4064/6144
+2026-11-16T09:35:53.572Z INFO State inventory roots unique-class counting: processed=1283080192, total=unknown (exhaustive count in progress), throughput=1616963.132/s
+2026-11-16T09:35:59.739914510Z checker: checking after-one states and reversing gains zero and one elapsed=4220.0s heapMiB=1333/6144
+2026-11-16T09:36:03.573Z INFO State inventory roots unique-class counting: processed=1298726912, total=unknown (exhaustive count in progress), throughput=1564580.746/s
+2026-11-16T09:36:09.739937837Z checker: checking after-one states and reversing gains zero and one elapsed=4230.0s heapMiB=3509/6144
+2026-11-16T09:36:13.573Z INFO State inventory roots unique-class counting: processed=1315041280, total=unknown (exhaustive count in progress), throughput=1631384.859/s
+2026-11-16T09:36:19.739928920Z checker: checking after-one states and reversing gains zero and one elapsed=4240.0s heapMiB=941/6144
+2026-11-16T09:36:23.573Z INFO State inventory roots unique-class counting: processed=1332199424, total=unknown (exhaustive count in progress), throughput=1715760.502/s
+2026-11-16T09:36:29.739928139Z checker: checking after-one states and reversing gains zero and one elapsed=4250.0s heapMiB=1113/6144
+2026-11-16T09:36:33.574Z INFO State inventory roots unique-class counting: processed=1348214784, total=unknown (exhaustive count in progress), throughput=1601487.682/s
+2026-11-16T09:36:36.139Z INFO State inventory roots unique-class counting: processed=1349910890, total=unknown (exhaustive count in progress), throughput=661211.986/s
+2026-11-16T09:36:36.145578208Z checker: verifying reconstructed roots elapsed=4256.4s heapMiB=3865/6144
+2026-11-16T09:36:36.337Z INFO State inventory roots scan: processed=0/1349910890 (0.00%), remaining=1349910890, throughput=0.000/s
+2026-11-16T09:36:39.740196501Z checker: verifying reconstructed roots elapsed=4260.0s heapMiB=1950/6144
+2026-11-16T09:36:46.358Z INFO State inventory roots scan: processed=786432/1349910890 (0.06%), remaining=1349124458, throughput=78541.921/s
+2026-11-16T09:36:49.803067102Z checker: verifying reconstructed roots elapsed=4270.1s heapMiB=2060/6144
+2026-11-16T09:36:56.518Z INFO State inventory roots scan: processed=1863680/1349910890 (0.14%), remaining=1348047210, throughput=105896.792/s
+2026-11-16T09:36:59.780146415Z checker: verifying reconstructed roots elapsed=4280.0s heapMiB=1272/6144
+2026-11-16T09:37:06.539Z INFO State inventory roots scan: processed=5722112/1349910890 (0.42%), remaining=1344188778, throughput=385032.148/s
+2026-11-16T09:37:09.754688457Z checker: verifying reconstructed roots elapsed=4290.0s heapMiB=974/6144
+2026-11-16T09:37:16.542Z INFO State inventory roots scan: processed=10407936/1349910890 (0.77%), remaining=1339502954, throughput=468368.991/s
+2026-11-16T09:37:19.785009325Z checker: verifying reconstructed roots elapsed=4300.0s heapMiB=940/6144
+2026-11-16T09:37:26.543Z INFO State inventory roots scan: processed=14999552/1349910890 (1.11%), remaining=1334911338, throughput=459120.286/s
+2026-11-16T09:37:29.742262471Z checker: verifying reconstructed roots elapsed=4310.0s heapMiB=2396/6144
+2026-11-16T09:37:36.549Z INFO State inventory roots scan: processed=19755008/1349910890 (1.46%), remaining=1330155882, throughput=475309.529/s
+2026-11-16T09:37:39.770441968Z checker: verifying reconstructed roots elapsed=4320.0s heapMiB=968/6144
+2026-11-16T09:37:46.552Z INFO State inventory roots scan: processed=24059904/1349910890 (1.78%), remaining=1325850986, throughput=430320.832/s
+2026-11-16T09:37:49.740230833Z checker: verifying reconstructed roots elapsed=4330.0s heapMiB=791/6144
+2026-11-16T09:37:56.553Z INFO State inventory roots scan: processed=28708864/1349910890 (2.13%), remaining=1321202026, throughput=464838.798/s
+2026-11-16T09:37:59.744028459Z checker: verifying reconstructed roots elapsed=4340.0s heapMiB=2192/6144
+2026-11-16T09:38:06.554Z INFO State inventory roots scan: processed=35287040/1349910890 (2.61%), remaining=1314623850, throughput=657759.779/s
+2026-11-16T09:38:09.739856952Z checker: verifying reconstructed roots elapsed=4350.0s heapMiB=2316/6144
+2026-11-16T09:38:16.555Z INFO State inventory roots scan: processed=42549248/1349910890 (3.15%), remaining=1307361642, throughput=726146.485/s
+2026-11-16T09:38:19.739986557Z checker: verifying reconstructed roots elapsed=4360.0s heapMiB=3787/6144
+2026-11-16T09:38:26.559Z INFO State inventory roots scan: processed=50118656/1349910890 (3.71%), remaining=1299792234, throughput=756600.017/s
+2026-11-16T09:38:29.739913008Z checker: verifying reconstructed roots elapsed=4370.0s heapMiB=4186/6144
+2026-11-16T09:38:36.594Z INFO State inventory roots scan: processed=57389056/1349910890 (4.25%), remaining=1292521834, throughput=724807.940/s
+2026-11-16T09:38:39.739939030Z checker: verifying reconstructed roots elapsed=4380.0s heapMiB=1906/6144
+2026-11-16T09:38:46.597Z INFO State inventory roots scan: processed=64823296/1349910890 (4.80%), remaining=1285087594, throughput=742868.662/s
+2026-11-16T09:38:49.739880918Z checker: verifying reconstructed roots elapsed=4390.0s heapMiB=3007/6144
+2026-11-16T09:38:56.598Z INFO State inventory roots scan: processed=72011776/1349910890 (5.33%), remaining=1277899114, throughput=718815.426/s
+2026-11-16T09:38:59.740303364Z checker: verifying reconstructed roots elapsed=4400.0s heapMiB=1596/6144
+2026-11-16T09:39:06.598Z INFO State inventory roots scan: processed=79253504/1349910890 (5.87%), remaining=1270657386, throughput=724138.124/s
+2026-11-16T09:39:09.739853931Z checker: verifying reconstructed roots elapsed=4410.0s heapMiB=2570/6144
+2026-11-16T09:39:16.601Z INFO State inventory roots scan: processed=86233088/1349910890 (6.39%), remaining=1263677802, throughput=697788.097/s
+2026-11-16T09:39:19.739935957Z checker: verifying reconstructed roots elapsed=4420.0s heapMiB=1932/6144
+2026-11-16T09:39:26.603Z INFO State inventory roots scan: processed=93196288/1349910890 (6.90%), remaining=1256714602, throughput=696148.893/s
+2026-11-16T09:39:29.739895110Z checker: verifying reconstructed roots elapsed=4430.0s heapMiB=4423/6144
+2026-11-16T09:39:36.604Z INFO State inventory roots scan: processed=100139008/1349910890 (7.42%), remaining=1249771882, throughput=694240.525/s
+2026-11-16T09:39:39.739841378Z checker: verifying reconstructed roots elapsed=4440.0s heapMiB=1900/6144
+2026-11-16T09:39:46.605Z INFO State inventory roots scan: processed=107044864/1349910890 (7.93%), remaining=1242866026, throughput=690527.482/s
+2026-11-16T09:39:49.741311462Z checker: verifying reconstructed roots elapsed=4450.0s heapMiB=4632/6144
+2026-11-16T09:39:56.624Z INFO State inventory roots scan: processed=114065408/1349910890 (8.45%), remaining=1235845482, throughput=700831.530/s
+2026-11-16T09:39:59.743965802Z checker: verifying reconstructed roots elapsed=4460.0s heapMiB=4021/6144
+2026-11-16T09:40:06.626Z INFO State inventory roots scan: processed=121008128/1349910890 (8.96%), remaining=1228902762, throughput=694030.968/s
+2026-11-16T09:40:09.739908740Z checker: verifying reconstructed roots elapsed=4470.0s heapMiB=3004/6144
+2026-11-16T09:40:16.628Z INFO State inventory roots scan: processed=128077824/1349910890 (9.49%), remaining=1221833066, throughput=706811.620/s
+2026-11-16T09:40:19.739970076Z checker: verifying reconstructed roots elapsed=4480.0s heapMiB=3027/6144
+2026-11-16T09:40:26.628Z INFO State inventory roots scan: processed=135180288/1349910890 (10.01%), remaining=1214730602, throughput=710202.614/s
+2026-11-16T09:40:29.743067747Z checker: verifying reconstructed roots elapsed=4490.0s heapMiB=4211/6144
+2026-11-16T09:40:36.636Z INFO State inventory roots scan: processed=142204928/1349910890 (10.53%), remaining=1207705962, throughput=701963.191/s
+2026-11-16T09:40:39.739982961Z checker: verifying reconstructed roots elapsed=4500.0s heapMiB=4157/6144
+2026-11-16T09:40:46.640Z INFO State inventory roots scan: processed=149254144/1349910890 (11.06%), remaining=1200656746, throughput=704640.275/s
+2026-11-16T09:40:49.739896089Z checker: verifying reconstructed roots elapsed=4510.0s heapMiB=4455/6144
+2026-11-16T09:40:56.640Z INFO State inventory roots scan: processed=156332032/1349910890 (11.58%), remaining=1193578858, throughput=707756.439/s
+2026-11-16T09:40:59.740585718Z checker: verifying reconstructed roots elapsed=4520.0s heapMiB=3701/6144
+2026-11-16T09:41:06.670Z INFO State inventory roots scan: processed=163270656/1349910890 (12.09%), remaining=1186640234, throughput=692046.060/s
+2026-11-16T09:41:09.743995464Z checker: verifying reconstructed roots elapsed=4530.0s heapMiB=3464/6144
+2026-11-16T09:41:16.673Z INFO State inventory roots scan: processed=170303488/1349910890 (12.62%), remaining=1179607402, throughput=702829.918/s
+2026-11-16T09:41:19.739874561Z checker: verifying reconstructed roots elapsed=4540.0s heapMiB=2946/6144
+2026-11-16T09:41:26.676Z INFO State inventory roots scan: processed=177168384/1349910890 (13.12%), remaining=1172742506, throughput=686292.178/s
+2026-11-16T09:41:29.739902441Z checker: verifying reconstructed roots elapsed=4550.0s heapMiB=4101/6144
+2026-11-16T09:41:36.676Z INFO State inventory roots scan: processed=183201792/1349910890 (13.57%), remaining=1166709098, throughput=603313.201/s
+2026-11-16T09:41:39.754311247Z checker: verifying reconstructed roots elapsed=4560.0s heapMiB=1669/6144
+2026-11-16T09:41:46.676Z INFO State inventory roots scan: processed=190087168/1349910890 (14.08%), remaining=1159823722, throughput=688509.637/s
+2026-11-16T09:41:49.741848817Z checker: verifying reconstructed roots elapsed=4570.0s heapMiB=4412/6144
+2026-11-16T09:41:56.684Z INFO State inventory roots scan: processed=196935680/1349910890 (14.59%), remaining=1152975210, throughput=684363.720/s
+2026-11-16T09:41:59.774075209Z checker: verifying reconstructed roots elapsed=4580.0s heapMiB=1692/6144
+2026-11-16T09:42:06.684Z INFO State inventory roots scan: processed=203653120/1349910890 (15.09%), remaining=1146257770, throughput=671712.901/s
+2026-11-16T09:42:09.743956468Z checker: verifying reconstructed roots elapsed=4590.0s heapMiB=3531/6144
+2026-11-16T09:42:16.694Z INFO State inventory roots scan: processed=210661376/1349910890 (15.61%), remaining=1139249514, throughput=700449.706/s
+2026-11-16T09:42:19.739897635Z checker: verifying reconstructed roots elapsed=4600.0s heapMiB=4210/6144
+2026-11-16T09:42:26.694Z INFO State inventory roots scan: processed=217796608/1349910890 (16.13%), remaining=1132114282, throughput=713167.674/s
+2026-11-16T09:42:29.739890Z checker: verifying reconstructed roots elapsed=4610.0s heapMiB=1844/6144
+2026-11-16T09:42:36.695Z INFO State inventory roots scan: processed=224907264/1349910890 (16.66%), remaining=1125003626, throughput=711031.052/s
+2026-11-16T09:42:39.740037108Z checker: verifying reconstructed roots elapsed=4620.0s heapMiB=4676/6144
+2026-11-16T09:42:46.698Z INFO State inventory roots scan: processed=232005632/1349910890 (17.19%), remaining=1117905258, throughput=709638.405/s
+2026-11-16T09:42:49.740982525Z checker: verifying reconstructed roots elapsed=4630.0s heapMiB=1935/6144
+2026-11-16T09:42:56.698Z INFO State inventory roots scan: processed=238727168/1349910890 (17.68%), remaining=1111183722, throughput=672122.439/s
+2026-11-16T09:42:59.740003661Z checker: verifying reconstructed roots elapsed=4640.0s heapMiB=3865/6144
+2026-11-16T09:43:06.699Z INFO State inventory roots scan: processed=245526528/1349910890 (18.19%), remaining=1104384362, throughput=679861.616/s
+2026-11-16T09:43:09.739917107Z checker: verifying reconstructed roots elapsed=4650.0s heapMiB=3503/6144
+2026-11-16T09:43:16.700Z INFO State inventory roots scan: processed=252452864/1349910890 (18.70%), remaining=1097458026, throughput=692609.321/s
+2026-11-16T09:43:19.739973484Z checker: verifying reconstructed roots elapsed=4660.0s heapMiB=2187/6144
+2026-11-16T09:43:26.701Z INFO State inventory roots scan: processed=259293184/1349910890 (19.21%), remaining=1090617706, throughput=683962.819/s
+2026-11-16T09:43:29.739838015Z checker: verifying reconstructed roots elapsed=4670.0s heapMiB=3642/6144
+2026-11-16T09:43:36.701Z INFO State inventory roots scan: processed=266190848/1349910890 (19.72%), remaining=1083720042, throughput=689741.063/s
+2026-11-16T09:43:39.739917413Z checker: verifying reconstructed roots elapsed=4680.0s heapMiB=4351/6144
+2026-11-16T09:43:46.701Z INFO State inventory roots scan: processed=273260544/1349910890 (20.24%), remaining=1076650346, throughput=706945.774/s
+2026-11-16T09:43:49.743973333Z checker: verifying reconstructed roots elapsed=4690.0s heapMiB=4841/6144
+2026-11-16T09:43:56.703Z INFO State inventory roots scan: processed=280322048/1349910890 (20.77%), remaining=1069588842, throughput=706060.564/s
+2026-11-16T09:43:59.764068125Z checker: verifying reconstructed roots elapsed=4700.0s heapMiB=1680/6144
+2026-11-16T09:44:06.704Z INFO State inventory roots scan: processed=287191040/1349910890 (21.27%), remaining=1062719850, throughput=686827.290/s
+2026-11-16T09:44:09.739879559Z checker: verifying reconstructed roots elapsed=4710.0s heapMiB=4722/6144
+2026-11-16T09:44:16.708Z INFO State inventory roots scan: processed=294187008/1349910890 (21.79%), remaining=1055723882, throughput=699317.816/s
+2026-11-16T09:44:19.747946567Z checker: verifying reconstructed roots elapsed=4720.0s heapMiB=3956/6144
+2026-11-16T09:44:26.738Z INFO State inventory roots scan: processed=301072384/1349910890 (22.30%), remaining=1048838506, throughput=686675.006/s
+2026-11-16T09:44:29.739837198Z checker: verifying reconstructed roots elapsed=4730.0s heapMiB=3384/6144
+2026-11-16T09:44:36.773Z INFO State inventory roots scan: processed=307994624/1349910890 (22.82%), remaining=1041916266, throughput=689973.333/s
+2026-11-16T09:44:39.739942543Z checker: verifying reconstructed roots elapsed=4740.0s heapMiB=5020/6144
+2026-11-16T09:44:46.774Z INFO State inventory roots scan: processed=314904576/1349910890 (23.33%), remaining=1035006314, throughput=690540.119/s
+2026-11-16T09:44:49.739883356Z checker: verifying reconstructed roots elapsed=4750.0s heapMiB=4356/6144
+2026-11-16T09:44:56.777Z INFO State inventory roots scan: processed=321101824/1349910890 (23.79%), remaining=1028809066, throughput=619554.574/s
+2026-11-16T09:44:59.785293072Z checker: verifying reconstructed roots elapsed=4760.0s heapMiB=992/6144
+2026-11-16T09:45:06.780Z INFO State inventory roots scan: processed=325419008/1349910890 (24.11%), remaining=1024491882, throughput=431590.262/s
+2026-11-16T09:45:09.752780661Z checker: verifying reconstructed roots elapsed=4770.0s heapMiB=1386/6144
+2026-11-16T09:45:16.781Z INFO State inventory roots scan: processed=329691136/1349910890 (24.42%), remaining=1020219754, throughput=427156.671/s
+2026-11-16T09:45:19.765155414Z checker: verifying reconstructed roots elapsed=4780.0s heapMiB=714/6144
+2026-11-16T09:45:26.823Z INFO State inventory roots scan: processed=336166912/1349910890 (24.90%), remaining=1013743978, throughput=644912.756/s
+2026-11-16T09:45:29.743946062Z checker: verifying reconstructed roots elapsed=4790.0s heapMiB=4034/6144
+2026-11-16T09:45:36.828Z INFO State inventory roots scan: processed=343121920/1349910890 (25.42%), remaining=1006788970, throughput=695130.954/s
+2026-11-16T09:45:39.739852784Z checker: verifying reconstructed roots elapsed=4800.0s heapMiB=1342/6144
+2026-11-16T09:45:46.828Z INFO State inventory roots scan: processed=349777920/1349910890 (25.91%), remaining=1000132970, throughput=665568.006/s
+2026-11-16T09:45:49.758767563Z checker: verifying reconstructed roots elapsed=4810.0s heapMiB=1205/6144
+2026-11-16T09:45:56.829Z INFO State inventory roots scan: processed=356614144/1349910890 (26.42%), remaining=993296746, throughput=683588.258/s
+2026-11-16T09:45:59.739995131Z checker: verifying reconstructed roots elapsed=4820.0s heapMiB=4291/6144
+2026-11-16T09:46:06.829Z INFO State inventory roots scan: processed=363261952/1349910890 (26.91%), remaining=986648938, throughput=664749.829/s
+2026-11-16T09:46:09.741048457Z checker: verifying reconstructed roots elapsed=4830.0s heapMiB=3142/6144
+2026-11-16T09:46:16.829Z INFO State inventory roots scan: processed=370266112/1349910890 (27.43%), remaining=979644778, throughput=700387.037/s
+2026-11-16T09:46:19.742859729Z checker: verifying reconstructed roots elapsed=4840.0s heapMiB=3014/6144
+2026-11-16T09:46:26.855Z INFO State inventory roots scan: processed=377106432/1349910890 (27.94%), remaining=972804458, throughput=682393.593/s
+2026-11-16T09:46:29.739839251Z checker: verifying reconstructed roots elapsed=4850.0s heapMiB=1553/6144
+2026-11-16T09:46:36.864Z INFO State inventory roots scan: processed=384114688/1349910890 (28.45%), remaining=965796202, throughput=700515.936/s
+2026-11-16T09:46:39.740994002Z checker: verifying reconstructed roots elapsed=4860.0s heapMiB=1964/6144
+2026-11-16T09:46:46.878Z INFO State inventory roots scan: processed=390975488/1349910890 (28.96%), remaining=958935402, throughput=684864.889/s
+2026-11-16T09:46:49.770774923Z checker: verifying reconstructed roots elapsed=4870.0s heapMiB=1548/6144
+2026-11-16T09:46:56.880Z INFO State inventory roots scan: processed=397807616/1349910890 (29.47%), remaining=952103274, throughput=682945.739/s
+2026-11-16T09:46:59.743555181Z checker: verifying reconstructed roots elapsed=4880.0s heapMiB=4568/6144
+2026-11-16T09:47:06.881Z INFO State inventory roots scan: processed=404664320/1349910890 (29.98%), remaining=945246570, throughput=685548.192/s
+2026-11-16T09:47:09.758088195Z checker: verifying reconstructed roots elapsed=4890.0s heapMiB=1457/6144
+2026-11-16T09:47:16.914Z INFO State inventory roots scan: processed=411611136/1349910890 (30.49%), remaining=938299754, throughput=692424.422/s
+2026-11-16T09:47:19.772012209Z checker: verifying reconstructed roots elapsed=4900.0s heapMiB=1505/6144
+2026-11-16T09:47:26.914Z INFO State inventory roots scan: processed=418652160/1349910890 (31.01%), remaining=931258730, throughput=704075.894/s
+2026-11-16T09:47:29.771389193Z checker: verifying reconstructed roots elapsed=4910.0s heapMiB=1574/6144
+2026-11-16T09:47:36.915Z INFO State inventory roots scan: processed=425598976/1349910890 (31.53%), remaining=924311914, throughput=694642.967/s
+2026-11-16T09:47:39.739889076Z checker: verifying reconstructed roots elapsed=4920.0s heapMiB=4088/6144
+2026-11-16T09:47:46.915Z INFO State inventory roots scan: processed=432586752/1349910890 (32.05%), remaining=917324138, throughput=698747.704/s
+2026-11-16T09:47:49.740119981Z checker: verifying reconstructed roots elapsed=4930.0s heapMiB=3804/6144
+2026-11-16T09:47:56.916Z INFO State inventory roots scan: processed=439631872/1349910890 (32.57%), remaining=910279018, throughput=704476.091/s
+2026-11-16T09:47:59.756801167Z checker: verifying reconstructed roots elapsed=4940.0s heapMiB=1575/6144
+2026-11-16T09:48:06.917Z INFO State inventory roots scan: processed=446726144/1349910890 (33.09%), remaining=903184746, throughput=709365.099/s
+2026-11-16T09:48:09.739926249Z checker: verifying reconstructed roots elapsed=4950.0s heapMiB=2038/6144
+2026-11-16T09:48:16.917Z INFO State inventory roots scan: processed=453857280/1349910890 (33.62%), remaining=896053610, throughput=713079.092/s
+2026-11-16T09:48:19.747962895Z checker: verifying reconstructed roots elapsed=4960.0s heapMiB=2669/6144
+2026-11-16T09:48:26.920Z INFO State inventory roots scan: processed=460926976/1349910890 (34.14%), remaining=888983914, throughput=706799.482/s
+2026-11-16T09:48:29.739964Z checker: verifying reconstructed roots elapsed=4970.0s heapMiB=3781/6144
+2026-11-16T09:48:36.945Z INFO State inventory roots scan: processed=468062208/1349910890 (34.67%), remaining=881848682, throughput=712449.880/s
+2026-11-16T09:48:39.772841545Z checker: verifying reconstructed roots elapsed=4980.0s heapMiB=1639/6144
+2026-11-16T09:48:46.945Z INFO State inventory roots scan: processed=475009024/1349910890 (35.19%), remaining=874901866, throughput=693961.341/s
+2026-11-16T09:48:49.743943989Z checker: verifying reconstructed roots elapsed=4990.0s heapMiB=2083/6144
+2026-11-16T09:48:56.946Z INFO State inventory roots scan: processed=481976320/1349910890 (35.70%), remaining=867934570, throughput=696696.407/s
+2026-11-16T09:48:59.739912595Z checker: verifying reconstructed roots elapsed=5000.0s heapMiB=2378/6144
+2026-11-16T09:49:06.946Z INFO State inventory roots scan: processed=489058304/1349910890 (36.23%), remaining=860852586, throughput=708164.826/s
+2026-11-16T09:49:09.739934527Z checker: verifying reconstructed roots elapsed=5010.0s heapMiB=2809/6144
+2026-11-16T09:49:16.947Z INFO State inventory roots scan: processed=496115712/1349910890 (36.75%), remaining=853795178, throughput=705715.283/s
+2026-11-16T09:49:19.743972365Z checker: verifying reconstructed roots elapsed=5020.0s heapMiB=3573/6144
+2026-11-16T09:49:26.947Z INFO State inventory roots scan: processed=503209984/1349910890 (37.28%), remaining=846700906, throughput=709373.721/s
+2026-11-16T09:49:29.739930941Z checker: verifying reconstructed roots elapsed=5030.0s heapMiB=4851/6144
+2026-11-16T09:49:36.948Z INFO State inventory roots scan: processed=510238720/1349910890 (37.80%), remaining=839672170, throughput=702804.964/s
+2026-11-16T09:49:39.739955088Z checker: verifying reconstructed roots elapsed=5040.0s heapMiB=2132/6144
+2026-11-16T09:49:46.949Z INFO State inventory roots scan: processed=517373952/1349910890 (38.33%), remaining=832536938, throughput=713463.988/s
+2026-11-16T09:49:49.739848949Z checker: verifying reconstructed roots elapsed=5050.0s heapMiB=3264/6144
+2026-11-16T09:49:56.954Z INFO State inventory roots scan: processed=524431360/1349910890 (38.85%), remaining=825479530, throughput=705359.746/s
+2026-11-16T09:49:59.739899219Z checker: verifying reconstructed roots elapsed=5060.0s heapMiB=3985/6144
+2026-11-16T09:50:06.955Z INFO State inventory roots scan: processed=531075072/1349910890 (39.34%), remaining=818835818, throughput=664325.818/s
+2026-11-16T09:50:09.739903811Z checker: verifying reconstructed roots elapsed=5070.0s heapMiB=2966/6144
+2026-11-16T09:50:16.997Z INFO State inventory roots scan: processed=538136576/1349910890 (39.86%), remaining=811774314, throughput=703415.693/s
+2026-11-16T09:50:19.739959289Z checker: verifying reconstructed roots elapsed=5080.0s heapMiB=4692/6144
+2026-11-16T09:50:26.998Z INFO State inventory roots scan: processed=543961088/1349910890 (40.30%), remaining=805949802, throughput=582243.685/s
+2026-11-16T09:50:29.741538880Z checker: verifying reconstructed roots elapsed=5090.0s heapMiB=645/6144
+2026-11-16T09:50:36.999Z INFO State inventory roots scan: processed=550297600/1349910890 (40.77%), remaining=799613290, throughput=633578.771/s
+2026-11-16T09:50:39.746223542Z checker: verifying reconstructed roots elapsed=5100.0s heapMiB=2258/6144
+2026-11-16T09:50:46.999Z INFO State inventory roots scan: processed=557182976/1349910890 (41.28%), remaining=792727914, throughput=688493.647/s
+2026-11-16T09:50:49.746245278Z checker: verifying reconstructed roots elapsed=5110.0s heapMiB=1065/6144
+2026-11-16T09:50:57.000Z INFO State inventory roots scan: processed=564121600/1349910890 (41.79%), remaining=785789290, throughput=693836.407/s
+2026-11-16T09:50:59.740264795Z checker: verifying reconstructed roots elapsed=5120.0s heapMiB=2210/6144
+2026-11-16T09:51:07.001Z INFO State inventory roots scan: processed=570826752/1349910890 (42.29%), remaining=779084138, throughput=670435.523/s
+2026-11-16T09:51:09.739915662Z checker: verifying reconstructed roots elapsed=5130.0s heapMiB=4292/6144
+2026-11-16T09:51:17.002Z INFO State inventory roots scan: processed=577576960/1349910890 (42.79%), remaining=772333930, throughput=674936.934/s
+2026-11-16T09:51:19.743931611Z checker: verifying reconstructed roots elapsed=5140.0s heapMiB=1478/6144
+2026-11-16T09:51:27.002Z INFO State inventory roots scan: processed=584040448/1349910890 (43.27%), remaining=765870442, throughput=646321.203/s
+2026-11-16T09:51:29.739903512Z checker: verifying reconstructed roots elapsed=5150.0s heapMiB=3136/6144
+2026-11-16T09:51:37.003Z INFO State inventory roots scan: processed=590905344/1349910890 (43.77%), remaining=759005546, throughput=686460.758/s
+2026-11-16T09:51:39.739920588Z checker: verifying reconstructed roots elapsed=5160.0s heapMiB=2049/6144
+2026-11-16T09:51:47.007Z INFO State inventory roots scan: processed=597782528/1349910890 (44.28%), remaining=752128362, throughput=687414.486/s
+2026-11-16T09:51:49.739889699Z checker: verifying reconstructed roots elapsed=5170.0s heapMiB=1412/6144
+2026-11-16T09:51:57.009Z INFO State inventory roots scan: processed=604581888/1349910890 (44.79%), remaining=745329002, throughput=679832.925/s
+2026-11-16T09:51:59.739913356Z checker: verifying reconstructed roots elapsed=5180.0s heapMiB=3765/6144
+2026-11-16T09:52:07.028Z INFO State inventory roots scan: processed=611393536/1349910890 (45.29%), remaining=738517354, throughput=680044.074/s
+2026-11-16T09:52:09.739974891Z checker: verifying reconstructed roots elapsed=5190.0s heapMiB=3331/6144
+2026-11-16T09:52:17.029Z INFO State inventory roots scan: processed=618266624/1349910890 (45.80%), remaining=731644266, throughput=687025.069/s
+2026-11-16T09:52:19.739919134Z checker: verifying reconstructed roots elapsed=5200.0s heapMiB=4306/6144
+2026-11-16T09:52:27.030Z INFO State inventory roots scan: processed=624971776/1349910890 (46.30%), remaining=724939114, throughput=670485.528/s
+2026-11-16T09:52:29.739906404Z checker: verifying reconstructed roots elapsed=5210.0s heapMiB=4178/6144
+2026-11-16T09:52:37.031Z INFO State inventory roots scan: processed=631705600/1349910890 (46.80%), remaining=718205290, throughput=673275.646/s
+2026-11-16T09:52:39.739919630Z checker: verifying reconstructed roots elapsed=5220.0s heapMiB=2657/6144
+2026-11-16T09:52:47.034Z INFO State inventory roots scan: processed=638468096/1349910890 (47.30%), remaining=711442794, throughput=676057.228/s
+2026-11-16T09:52:49.739848174Z checker: verifying reconstructed roots elapsed=5230.0s heapMiB=1875/6144
+2026-11-16T09:52:57.035Z INFO State inventory roots scan: processed=645165056/1349910890 (47.79%), remaining=704745834, throughput=669660.139/s
+2026-11-16T09:52:59.741379775Z checker: verifying reconstructed roots elapsed=5240.0s heapMiB=4384/6144
+2026-11-16T09:53:07.040Z INFO State inventory roots scan: processed=650756096/1349910890 (48.21%), remaining=699154794, throughput=558833.674/s
+2026-11-16T09:53:09.742268343Z checker: verifying reconstructed roots elapsed=5250.0s heapMiB=896/6144
+2026-11-16T09:53:17.072Z INFO State inventory roots scan: processed=654712832/1349910890 (48.50%), remaining=695198058, throughput=394390.684/s
+2026-11-16T09:53:19.785897248Z checker: verifying reconstructed roots elapsed=5260.0s heapMiB=1370/6144
+2026-11-16T09:53:27.079Z INFO State inventory roots scan: processed=658567168/1349910890 (48.79%), remaining=691343722, throughput=385250.896/s
+2026-11-16T09:53:29.739953805Z checker: verifying reconstructed roots elapsed=5270.0s heapMiB=1330/6144
+2026-11-16T09:53:37.080Z INFO State inventory roots scan: processed=662601728/1349910890 (49.08%), remaining=687309162, throughput=403347.186/s
+2026-11-16T09:53:39.740057016Z checker: verifying reconstructed roots elapsed=5280.0s heapMiB=3352/6144
+2026-11-16T09:53:47.084Z INFO State inventory roots scan: processed=668925952/1349910890 (49.55%), remaining=680984938, throughput=632167.599/s
+2026-11-16T09:53:49.740301676Z checker: verifying reconstructed roots elapsed=5290.0s heapMiB=1980/6144
+2026-11-16T09:53:57.085Z INFO State inventory roots scan: processed=675549184/1349910890 (50.04%), remaining=674361706, throughput=662239.361/s
+2026-11-16T09:53:59.739835484Z checker: verifying reconstructed roots elapsed=5300.0s heapMiB=2134/6144
+2026-11-16T09:54:07.085Z INFO State inventory roots scan: processed=682532864/1349910890 (50.56%), remaining=667378026, throughput=698341.131/s
+2026-11-16T09:54:09.757646906Z checker: verifying reconstructed roots elapsed=5310.0s heapMiB=1230/6144
+2026-11-16T09:54:17.127Z INFO State inventory roots scan: processed=689573888/1349910890 (51.08%), remaining=660337002, throughput=701475.851/s
+2026-11-16T09:54:19.741034657Z checker: verifying reconstructed roots elapsed=5320.0s heapMiB=2954/6144
+2026-11-16T09:54:27.132Z INFO State inventory roots scan: processed=696717312/1349910890 (51.61%), remaining=653193578, throughput=713710.665/s
+2026-11-16T09:54:29.739936736Z checker: verifying reconstructed roots elapsed=5330.0s heapMiB=1373/6144
+2026-11-16T09:54:37.132Z INFO State inventory roots scan: processed=703713280/1349910890 (52.13%), remaining=646197610, throughput=699568.864/s
+2026-11-16T09:54:39.739943689Z checker: verifying reconstructed roots elapsed=5340.0s heapMiB=4422/6144
+2026-11-16T09:54:47.132Z INFO State inventory roots scan: processed=710590464/1349910890 (52.64%), remaining=639320426, throughput=687686.415/s
+2026-11-16T09:54:49.768059272Z checker: verifying reconstructed roots elapsed=5350.0s heapMiB=1422/6144
+2026-11-16T09:54:57.133Z INFO State inventory roots scan: processed=717348864/1349910890 (53.14%), remaining=632562026, throughput=675801.736/s
+2026-11-16T09:54:59.739962111Z checker: verifying reconstructed roots elapsed=5360.0s heapMiB=3017/6144
+2026-11-16T09:55:07.157Z INFO State inventory roots scan: processed=724000768/1349910890 (53.63%), remaining=625910122, throughput=663994.189/s
+2026-11-16T09:55:09.743983333Z checker: verifying reconstructed roots elapsed=5370.0s heapMiB=1972/6144
+2026-11-16T09:55:17.157Z INFO State inventory roots scan: processed=730701824/1349910890 (54.13%), remaining=619209066, throughput=669675.502/s
+2026-11-16T09:55:19.739851996Z checker: verifying reconstructed roots elapsed=5380.0s heapMiB=2405/6144
+2026-11-16T09:55:27.158Z INFO State inventory roots scan: processed=737419264/1349910890 (54.63%), remaining=612491626, throughput=671719.530/s
+2026-11-16T09:55:29.740550646Z checker: verifying reconstructed roots elapsed=5390.0s heapMiB=3896/6144
+2026-11-16T09:55:37.172Z INFO State inventory roots scan: processed=744337408/1349910890 (55.14%), remaining=605573482, throughput=690838.391/s
+2026-11-16T09:55:39.739843592Z checker: verifying reconstructed roots elapsed=5400.0s heapMiB=2287/6144
+2026-11-16T09:55:47.174Z INFO State inventory roots scan: processed=751255552/1349910890 (55.65%), remaining=598655338, throughput=691704.240/s
+2026-11-16T09:55:49.788534450Z checker: verifying reconstructed roots elapsed=5410.1s heapMiB=1863/6144
+2026-11-16T09:55:57.174Z INFO State inventory roots scan: processed=758218752/1349910890 (56.17%), remaining=591692138, throughput=696290.248/s
+2026-11-16T09:55:59.779281602Z checker: verifying reconstructed roots elapsed=5420.0s heapMiB=413/6144
+2026-11-16T09:56:07.176Z INFO State inventory roots scan: processed=763711488/1349910890 (56.57%), remaining=586199402, throughput=549180.609/s
+2026-11-16T09:56:09.744711652Z checker: verifying reconstructed roots elapsed=5430.0s heapMiB=1183/6144
+2026-11-16T09:56:17.177Z INFO State inventory roots scan: processed=770338816/1349910890 (57.07%), remaining=579572074, throughput=662667.961/s
+2026-11-16T09:56:19.767359291Z checker: verifying reconstructed roots elapsed=5440.0s heapMiB=1356/6144
+2026-11-16T09:56:27.214Z INFO State inventory roots scan: processed=777076736/1349910890 (57.57%), remaining=572834154, throughput=671841.576/s
+2026-11-16T09:56:29.739886705Z checker: verifying reconstructed roots elapsed=5450.0s heapMiB=3119/6144
+2026-11-16T09:56:37.239Z INFO State inventory roots scan: processed=783802368/1349910890 (58.06%), remaining=566108522, throughput=670682.530/s
+2026-11-16T09:56:39.741860981Z checker: verifying reconstructed roots elapsed=5460.0s heapMiB=2661/6144
+2026-11-16T09:56:47.247Z INFO State inventory roots scan: processed=790728704/1349910890 (58.58%), remaining=559182186, throughput=691810.618/s
+2026-11-16T09:56:49.739883515Z checker: verifying reconstructed roots elapsed=5470.0s heapMiB=4902/6144
+2026-11-16T09:56:57.247Z INFO State inventory roots scan: processed=797347840/1349910890 (59.07%), remaining=552563050, throughput=661822.451/s
+2026-11-16T09:56:59.739893701Z checker: verifying reconstructed roots elapsed=5480.0s heapMiB=3005/6144
+2026-11-16T09:57:07.252Z INFO State inventory roots scan: processed=804106240/1349910890 (59.57%), remaining=545804650, throughput=675529.007/s
+2026-11-16T09:57:09.742134235Z checker: verifying reconstructed roots elapsed=5490.0s heapMiB=2035/6144
+2026-11-16T09:57:17.252Z INFO State inventory roots scan: processed=810737664/1349910890 (60.06%), remaining=539173226, throughput=663112.150/s
+2026-11-16T09:57:19.739850329Z checker: verifying reconstructed roots elapsed=5500.0s heapMiB=4858/6144
+2026-11-16T09:57:27.253Z INFO State inventory roots scan: processed=817143808/1349910890 (60.53%), remaining=532767082, throughput=640580.823/s
+2026-11-16T09:57:29.739953154Z checker: verifying reconstructed roots elapsed=5510.0s heapMiB=3137/6144
+2026-11-16T09:57:37.260Z INFO State inventory roots scan: processed=823320576/1349910890 (60.99%), remaining=526590314, throughput=617229.320/s
+2026-11-16T09:57:39.743965890Z checker: verifying reconstructed roots elapsed=5520.0s heapMiB=2074/6144
+2026-11-16T09:57:47.264Z INFO State inventory roots scan: processed=830136320/1349910890 (61.50%), remaining=519774570, throughput=681318.581/s
+2026-11-16T09:57:49.739892144Z checker: verifying reconstructed roots elapsed=5530.0s heapMiB=2795/6144
+2026-11-16T09:57:57.264Z INFO State inventory roots scan: processed=836853760/1349910890 (61.99%), remaining=513057130, throughput=671686.387/s
+2026-11-16T09:57:59.739894115Z checker: verifying reconstructed roots elapsed=5540.0s heapMiB=2937/6144
+2026-11-16T09:58:07.265Z INFO State inventory roots scan: processed=843554816/1349910890 (62.49%), remaining=506356074, throughput=670076.262/s
+2026-11-16T09:58:09.740959855Z checker: verifying reconstructed roots elapsed=5550.0s heapMiB=3117/6144
+2026-11-16T09:58:17.266Z INFO State inventory roots scan: processed=850292736/1349910890 (62.99%), remaining=499618154, throughput=673762.758/s
+2026-11-16T09:58:19.739882514Z checker: verifying reconstructed roots elapsed=5560.0s heapMiB=4430/6144
+2026-11-16T09:58:27.266Z INFO State inventory roots scan: processed=857059328/1349910890 (63.49%), remaining=492851562, throughput=676599.239/s
+2026-11-16T09:58:29.739909026Z checker: verifying reconstructed roots elapsed=5570.0s heapMiB=2729/6144
+2026-11-16T09:58:37.286Z INFO State inventory roots scan: processed=863752192/1349910890 (63.99%), remaining=486158698, throughput=668676.372/s
+2026-11-16T09:58:39.739839912Z checker: verifying reconstructed roots elapsed=5580.0s heapMiB=2021/6144
+2026-11-16T09:58:47.288Z INFO State inventory roots scan: processed=870686720/1349910890 (64.50%), remaining=479224170, throughput=692697.844/s
+2026-11-16T09:58:49.740002377Z checker: verifying reconstructed roots elapsed=5590.0s heapMiB=617/6144
+2026-11-16T09:58:57.289Z INFO State inventory roots scan: processed=876838912/1349910890 (64.96%), remaining=473071978, throughput=615060.582/s
+2026-11-16T09:58:59.776116268Z checker: verifying reconstructed roots elapsed=5600.0s heapMiB=1130/6144
+2026-11-16T09:59:07.292Z INFO State inventory roots scan: processed=883408896/1349910890 (65.44%), remaining=466501994, throughput=656812.868/s
+2026-11-16T09:59:09.740013261Z checker: verifying reconstructed roots elapsed=5610.0s heapMiB=3844/6144
+2026-11-16T09:59:17.292Z INFO State inventory roots scan: processed=890085376/1349910890 (65.94%), remaining=459825514, throughput=667611.658/s
+2026-11-16T09:59:19.747970504Z checker: verifying reconstructed roots elapsed=5620.0s heapMiB=4178/6144
+2026-11-16T09:59:27.293Z INFO State inventory roots scan: processed=896892928/1349910890 (66.44%), remaining=453017962, throughput=680726.522/s
+2026-11-16T09:59:29.739857695Z checker: verifying reconstructed roots elapsed=5630.0s heapMiB=2276/6144
+2026-11-16T09:59:37.294Z INFO State inventory roots scan: processed=903712768/1349910890 (66.95%), remaining=446198122, throughput=681917.927/s
+2026-11-16T09:59:39.739900067Z checker: verifying reconstructed roots elapsed=5640.0s heapMiB=2261/6144
+2026-11-16T09:59:47.294Z INFO State inventory roots scan: processed=910462976/1349910890 (67.45%), remaining=439447914, throughput=674995.820/s
+2026-11-16T09:59:49.739841372Z checker: verifying reconstructed roots elapsed=5650.0s heapMiB=2882/6144
+2026-11-16T09:59:57.294Z INFO State inventory roots scan: processed=917094400/1349910890 (67.94%), remaining=432816490, throughput=663110.961/s
+2026-11-16T09:59:59.739983713Z checker: verifying reconstructed roots elapsed=5660.0s heapMiB=1815/6144
+2026-11-16T10:00:07.301Z INFO State inventory roots scan: processed=923353088/1349910890 (68.40%), remaining=426557802, throughput=625577.930/s
+2026-11-16T10:00:09.778297977Z checker: verifying reconstructed roots elapsed=5670.0s heapMiB=1851/6144
+2026-11-16T10:00:17.304Z INFO State inventory roots scan: processed=928784384/1349910890 (68.80%), remaining=421126506, throughput=542880.095/s
+2026-11-16T10:00:19.743380769Z checker: verifying reconstructed roots elapsed=5680.0s heapMiB=1215/6144
+2026-11-16T10:00:27.305Z INFO State inventory roots scan: processed=933085184/1349910890 (69.12%), remaining=416825706, throughput=430027.455/s
+2026-11-16T10:00:29.795934758Z checker: verifying reconstructed roots elapsed=5690.1s heapMiB=640/6144
+2026-11-16T10:00:37.312Z INFO State inventory roots scan: processed=937103360/1349910890 (69.42%), remaining=412807530, throughput=401526.660/s
+2026-11-16T10:00:39.739961457Z checker: verifying reconstructed roots elapsed=5700.0s heapMiB=1067/6144
+2026-11-16T10:00:47.314Z INFO State inventory roots scan: processed=941334528/1349910890 (69.73%), remaining=408576362, throughput=423026.657/s
+2026-11-16T10:00:49.755706851Z checker: verifying reconstructed roots elapsed=5710.0s heapMiB=565/6144
+2026-11-16T10:00:57.333Z INFO State inventory roots scan: processed=945405952/1349910890 (70.03%), remaining=404504938, throughput=406393.723/s
+2026-11-16T10:00:59.739959339Z checker: verifying reconstructed roots elapsed=5720.0s heapMiB=2779/6144
+2026-11-16T10:01:07.384Z INFO State inventory roots scan: processed=949624832/1349910890 (70.35%), remaining=400286058, throughput=420351.376/s
+2026-11-16T10:01:09.791842553Z checker: verifying reconstructed roots elapsed=5730.1s heapMiB=787/6144
+2026-11-16T10:01:17.385Z INFO State inventory roots scan: processed=955150336/1349910890 (70.76%), remaining=394760554, throughput=551713.292/s
+2026-11-16T10:01:19.739977659Z checker: verifying reconstructed roots elapsed=5740.0s heapMiB=3293/6144
+2026-11-16T10:01:27.385Z INFO State inventory roots scan: processed=961662976/1349910890 (71.24%), remaining=388247914, throughput=651197.170/s
+2026-11-16T10:01:29.739917356Z checker: verifying reconstructed roots elapsed=5750.0s heapMiB=3561/6144
+2026-11-16T10:01:37.386Z INFO State inventory roots scan: processed=968413184/1349910890 (71.74%), remaining=381497706, throughput=674991.159/s
+2026-11-16T10:01:39.747294967Z checker: verifying reconstructed roots elapsed=5760.0s heapMiB=3231/6144
+2026-11-16T10:01:47.386Z INFO State inventory roots scan: processed=975151104/1349910890 (72.24%), remaining=374759786, throughput=673766.454/s
+2026-11-16T10:01:49.739841831Z checker: verifying reconstructed roots elapsed=5770.0s heapMiB=3579/6144
+2026-11-16T10:01:57.391Z INFO State inventory roots scan: processed=981872640/1349910890 (72.74%), remaining=368038250, throughput=671841.684/s
+2026-11-16T10:01:59.739920194Z checker: verifying reconstructed roots elapsed=5780.0s heapMiB=4498/6144
+2026-11-16T10:02:07.391Z INFO State inventory roots scan: processed=988495872/1349910890 (73.23%), remaining=361415018, throughput=662295.234/s
+2026-11-16T10:02:09.741730433Z checker: verifying reconstructed roots elapsed=5790.0s heapMiB=4505/6144
+2026-11-16T10:02:17.392Z INFO State inventory roots scan: processed=994877440/1349910890 (73.70%), remaining=355033450, throughput=638123.540/s
+2026-11-16T10:02:19.748037326Z checker: verifying reconstructed roots elapsed=5800.0s heapMiB=4441/6144
+2026-11-16T10:02:27.408Z INFO State inventory roots scan: processed=1001553920/1349910890 (74.19%), remaining=348356970, throughput=666712.132/s
+2026-11-16T10:02:29.739937419Z checker: verifying reconstructed roots elapsed=5810.0s heapMiB=3535/6144
+2026-11-16T10:02:37.412Z INFO State inventory roots scan: processed=1008275456/1349910890 (74.69%), remaining=341635434, throughput=671766.927/s
+2026-11-16T10:02:39.768134289Z checker: verifying reconstructed roots elapsed=5820.0s heapMiB=1340/6144
+2026-11-16T10:02:47.412Z INFO State inventory roots scan: processed=1014890496/1349910890 (75.18%), remaining=335020394, throughput=661471.632/s
+2026-11-16T10:02:49.743124962Z checker: verifying reconstructed roots elapsed=5830.0s heapMiB=3160/6144
+2026-11-16T10:02:57.413Z INFO State inventory roots scan: processed=1021468672/1349910890 (75.67%), remaining=328442218, throughput=657788.182/s
+2026-11-16T10:02:59.739984637Z checker: verifying reconstructed roots elapsed=5840.0s heapMiB=4687/6144
+2026-11-16T10:03:07.413Z INFO State inventory roots scan: processed=1027956736/1349910890 (76.15%), remaining=321954154, throughput=648774.379/s
+2026-11-16T10:03:09.739979326Z checker: verifying reconstructed roots elapsed=5850.0s heapMiB=4445/6144
+2026-11-16T10:03:17.416Z INFO State inventory roots scan: processed=1034592256/1349910890 (76.64%), remaining=315318634, throughput=663384.749/s
+2026-11-16T10:03:19.739972437Z checker: verifying reconstructed roots elapsed=5860.0s heapMiB=3653/6144
+2026-11-16T10:03:27.416Z INFO State inventory roots scan: processed=1041362944/1349910890 (77.14%), remaining=308547946, throughput=677036.322/s
+2026-11-16T10:03:29.743978392Z checker: verifying reconstructed roots elapsed=5870.0s heapMiB=2723/6144
+2026-11-16T10:03:37.420Z INFO State inventory roots scan: processed=1048055808/1349910890 (77.64%), remaining=301855082, throughput=669051.445/s
+2026-11-16T10:03:39.739908801Z checker: verifying reconstructed roots elapsed=5880.0s heapMiB=4991/6144
+2026-11-16T10:03:47.420Z INFO State inventory roots scan: processed=1054781440/1349910890 (78.14%), remaining=295129450, throughput=672537.232/s
+2026-11-16T10:03:49.740009705Z checker: verifying reconstructed roots elapsed=5890.0s heapMiB=2340/6144
+2026-11-16T10:03:57.421Z INFO State inventory roots scan: processed=1060626432/1349910890 (78.57%), remaining=289284458, throughput=584472.168/s
+2026-11-16T10:03:59.772113328Z checker: verifying reconstructed roots elapsed=5900.0s heapMiB=681/6144
+2026-11-16T10:04:07.421Z INFO State inventory roots scan: processed=1067069440/1349910890 (79.05%), remaining=282841450, throughput=644233.239/s
+2026-11-16T10:04:09.739891517Z checker: verifying reconstructed roots elapsed=5910.0s heapMiB=3977/6144
+2026-11-16T10:04:17.423Z INFO State inventory roots scan: processed=1073750016/1349910890 (79.54%), remaining=276160874, throughput=667942.059/s
+2026-11-16T10:04:19.743945814Z checker: verifying reconstructed roots elapsed=5920.0s heapMiB=3269/6144
+2026-11-16T10:04:27.428Z INFO State inventory roots scan: processed=1080492032/1349910890 (80.04%), remaining=269418858, throughput=673901.445/s
+2026-11-16T10:04:29.739897655Z checker: verifying reconstructed roots elapsed=5930.0s heapMiB=3548/6144
+2026-11-16T10:04:37.431Z INFO State inventory roots scan: processed=1087291392/1349910890 (80.55%), remaining=262619498, throughput=679736.845/s
+2026-11-16T10:04:39.739899354Z checker: verifying reconstructed roots elapsed=5940.0s heapMiB=3177/6144
+2026-11-16T10:04:47.431Z INFO State inventory roots scan: processed=1094025216/1349910890 (81.04%), remaining=255885674, throughput=673351.704/s
+2026-11-16T10:04:49.739961227Z checker: verifying reconstructed roots elapsed=5950.0s heapMiB=3953/6144
+2026-11-16T10:04:57.432Z INFO State inventory roots scan: processed=1100681216/1349910890 (81.54%), remaining=249229674, throughput=665551.103/s
+2026-11-16T10:04:59.740223660Z checker: verifying reconstructed roots elapsed=5960.0s heapMiB=4087/6144
+2026-11-16T10:05:07.432Z INFO State inventory roots scan: processed=1107206144/1349910890 (82.02%), remaining=242704746, throughput=652469.157/s
+2026-11-16T10:05:09.743926682Z checker: verifying reconstructed roots elapsed=5970.0s heapMiB=4476/6144
+2026-11-16T10:05:17.433Z INFO State inventory roots scan: processed=1113911296/1349910890 (82.52%), remaining=235999594, throughput=670485.786/s
+2026-11-16T10:05:19.775693313Z checker: verifying reconstructed roots elapsed=5980.0s heapMiB=1271/6144
+2026-11-16T10:05:27.433Z INFO State inventory roots scan: processed=1120673792/1349910890 (83.02%), remaining=229237098, throughput=676220.195/s
+2026-11-16T10:05:29.740574191Z checker: verifying reconstructed roots elapsed=5990.0s heapMiB=4513/6144
+2026-11-16T10:05:37.433Z INFO State inventory roots scan: processed=1127202816/1349910890 (83.50%), remaining=222708074, throughput=652874.803/s
+2026-11-16T10:05:39.743968931Z checker: verifying reconstructed roots elapsed=6000.0s heapMiB=4366/6144
+2026-11-16T10:05:47.436Z INFO State inventory roots scan: processed=1133903872/1349910890 (84.00%), remaining=216007018, throughput=669959.710/s
+2026-11-16T10:05:49.739921737Z checker: verifying reconstructed roots elapsed=6010.0s heapMiB=3734/6144
+2026-11-16T10:05:57.436Z INFO State inventory roots scan: processed=1140613120/1349910890 (84.50%), remaining=209297770, throughput=670894.447/s
+2026-11-16T10:05:59.739853839Z checker: verifying reconstructed roots elapsed=6020.0s heapMiB=4152/6144
+2026-11-16T10:06:07.436Z INFO State inventory roots scan: processed=1147330560/1349910890 (84.99%), remaining=202580330, throughput=671714.495/s
+2026-11-16T10:06:09.739916727Z checker: verifying reconstructed roots elapsed=6030.0s heapMiB=4127/6144
+2026-11-16T10:06:17.462Z INFO State inventory roots scan: processed=1153716224/1349910890 (85.47%), remaining=196194666, throughput=637000.039/s
+2026-11-16T10:06:19.739854249Z checker: verifying reconstructed roots elapsed=6040.0s heapMiB=3209/6144
+2026-11-16T10:06:27.463Z INFO State inventory roots scan: processed=1160134656/1349910890 (85.94%), remaining=189776234, throughput=641730.134/s
+2026-11-16T10:06:29.740558029Z checker: verifying reconstructed roots elapsed=6050.0s heapMiB=3053/6144
+2026-11-16T10:06:37.505Z INFO State inventory roots scan: processed=1166843904/1349910890 (86.44%), remaining=183066986, throughput=668889.956/s
+2026-11-16T10:06:39.740037223Z checker: verifying reconstructed roots elapsed=6060.0s heapMiB=1928/6144
+2026-11-16T10:06:47.534Z INFO State inventory roots scan: processed=1173475328/1349910890 (86.93%), remaining=176435562, throughput=660560.784/s
+2026-11-16T10:06:49.766811176Z checker: verifying reconstructed roots elapsed=6070.0s heapMiB=1783/6144
+2026-11-16T10:06:57.535Z INFO State inventory roots scan: processed=1180192768/1349910890 (87.43%), remaining=169718122, throughput=671555.280/s
+2026-11-16T10:06:59.739944262Z checker: verifying reconstructed roots elapsed=6080.0s heapMiB=3279/6144
+2026-11-16T10:07:07.536Z INFO State inventory roots scan: processed=1186820096/1349910890 (87.92%), remaining=163090794, throughput=662675.904/s
+2026-11-16T10:07:09.739839602Z checker: verifying reconstructed roots elapsed=6090.0s heapMiB=2539/6144
+2026-11-16T10:07:17.537Z INFO State inventory roots scan: processed=1193549824/1349910890 (88.42%), remaining=156361066, throughput=672899.867/s
+2026-11-16T10:07:19.740000636Z checker: verifying reconstructed roots elapsed=6100.0s heapMiB=2148/6144
+2026-11-16T10:07:27.538Z INFO State inventory roots scan: processed=1197821952/1349910890 (88.73%), remaining=152088938, throughput=427164.684/s
+2026-11-16T10:07:29.753714038Z checker: verifying reconstructed roots elapsed=6110.0s heapMiB=974/6144
+2026-11-16T10:07:37.544Z INFO State inventory roots scan: processed=1203310592/1349910890 (89.14%), remaining=146600298, throughput=548587.168/s
+2026-11-16T10:07:39.740408686Z checker: verifying reconstructed roots elapsed=6120.0s heapMiB=3012/6144
+2026-11-16T10:07:47.548Z INFO State inventory roots scan: processed=1209720832/1349910890 (89.61%), remaining=140190058, throughput=640748.115/s
+2026-11-16T10:07:49.739834524Z checker: verifying reconstructed roots elapsed=6130.0s heapMiB=1302/6144
+2026-11-16T10:07:57.586Z INFO State inventory roots scan: processed=1216102400/1349910890 (90.09%), remaining=133808490, throughput=636541.767/s
+2026-11-16T10:07:59.739914684Z checker: verifying reconstructed roots elapsed=6140.0s heapMiB=2464/6144
+2026-11-16T10:08:07.592Z INFO State inventory roots scan: processed=1222336512/1349910890 (90.55%), remaining=127574378, throughput=622250.913/s
+2026-11-16T10:08:09.739920704Z checker: verifying reconstructed roots elapsed=6150.0s heapMiB=2251/6144
+2026-11-16T10:08:17.593Z INFO State inventory roots scan: processed=1229123584/1349910890 (91.05%), remaining=120787306, throughput=678677.563/s
+2026-11-16T10:08:19.739849506Z checker: verifying reconstructed roots elapsed=6160.0s heapMiB=3893/6144
+2026-11-16T10:08:27.594Z INFO State inventory roots scan: processed=1235681280/1349910890 (91.54%), remaining=114229610, throughput=655689.067/s
+2026-11-16T10:08:29.776006440Z checker: verifying reconstructed roots elapsed=6170.0s heapMiB=1324/6144
+2026-11-16T10:08:37.595Z INFO State inventory roots scan: processed=1242370048/1349910890 (92.03%), remaining=107540842, throughput=668790.905/s
+2026-11-16T10:08:39.802875250Z checker: verifying reconstructed roots elapsed=6180.1s heapMiB=1644/6144
+2026-11-16T10:08:47.598Z INFO State inventory roots scan: processed=1249107968/1349910890 (92.53%), remaining=100802922, throughput=673537.612/s
+2026-11-16T10:08:49.739940748Z checker: verifying reconstructed roots elapsed=6190.0s heapMiB=4219/6144
+2026-11-16T10:08:57.599Z INFO State inventory roots scan: processed=1255874560/1349910890 (93.03%), remaining=94036330, throughput=676623.694/s
+2026-11-16T10:08:59.739841832Z checker: verifying reconstructed roots elapsed=6200.0s heapMiB=3484/6144
+2026-11-16T10:09:07.599Z INFO State inventory roots scan: processed=1262551040/1349910890 (93.53%), remaining=87359850, throughput=667615.045/s
+2026-11-16T10:09:09.767919472Z checker: verifying reconstructed roots elapsed=6210.0s heapMiB=1538/6144
+2026-11-16T10:09:17.600Z INFO State inventory roots scan: processed=1269248000/1349910890 (94.02%), remaining=80662890, throughput=669665.710/s
+2026-11-16T10:09:19.743594501Z checker: verifying reconstructed roots elapsed=6220.0s heapMiB=3096/6144
+2026-11-16T10:09:27.601Z INFO State inventory roots scan: processed=1275703296/1349910890 (94.50%), remaining=74207594, throughput=645443.664/s
+2026-11-16T10:09:29.739894344Z checker: verifying reconstructed roots elapsed=6230.0s heapMiB=2716/6144
+2026-11-16T10:09:37.604Z INFO State inventory roots scan: processed=1282314240/1349910890 (94.99%), remaining=67596650, throughput=661032.395/s
+2026-11-16T10:09:39.743710468Z checker: verifying reconstructed roots elapsed=6240.0s heapMiB=4920/6144
+2026-11-16T10:09:47.605Z INFO State inventory roots scan: processed=1288990720/1349910890 (95.49%), remaining=60920170, throughput=667471.226/s
+2026-11-16T10:09:49.747512571Z checker: verifying reconstructed roots elapsed=6250.0s heapMiB=4123/6144
+2026-11-16T10:09:57.608Z INFO State inventory roots scan: processed=1295863808/1349910890 (96.00%), remaining=54047082, throughput=687110.615/s
+2026-11-16T10:09:59.739842956Z checker: verifying reconstructed roots elapsed=6260.0s heapMiB=2392/6144
+2026-11-16T10:10:07.656Z INFO State inventory roots scan: processed=1302700032/1349910890 (96.50%), remaining=47210858, throughput=681374.483/s
+2026-11-16T10:10:09.739844515Z checker: verifying reconstructed roots elapsed=6270.0s heapMiB=4684/6144
+2026-11-16T10:10:17.656Z INFO State inventory roots scan: processed=1309483008/1349910890 (97.01%), remaining=40427882, throughput=677256.082/s
+2026-11-16T10:10:19.739935925Z checker: verifying reconstructed roots elapsed=6280.0s heapMiB=3794/6144
+2026-11-16T10:10:27.656Z INFO State inventory roots scan: processed=1316241408/1349910890 (97.51%), remaining=33669482, throughput=675817.231/s
+2026-11-16T10:10:29.739898219Z checker: verifying reconstructed roots elapsed=6290.0s heapMiB=2454/6144
+2026-11-16T10:10:37.657Z INFO State inventory roots scan: processed=1322426368/1349910890 (97.96%), remaining=27484522, throughput=618453.971/s
+2026-11-16T10:10:39.739992471Z checker: verifying reconstructed roots elapsed=6300.0s heapMiB=3899/6144
+2026-11-16T10:10:47.658Z INFO State inventory roots scan: processed=1329065984/1349910890 (98.46%), remaining=20844906, throughput=663905.769/s
+2026-11-16T10:10:49.739881776Z checker: verifying reconstructed roots elapsed=6310.0s heapMiB=2829/6144
+2026-11-16T10:10:57.689Z INFO State inventory roots scan: processed=1335853056/1349910890 (98.96%), remaining=14057834, throughput=676944.306/s
+2026-11-16T10:10:59.751847023Z checker: verifying reconstructed roots elapsed=6320.0s heapMiB=1561/6144
+2026-11-16T10:11:07.696Z INFO State inventory roots scan: processed=1342644224/1349910890 (99.46%), remaining=7266666, throughput=678704.273/s
+2026-11-16T10:11:09.739899781Z checker: verifying reconstructed roots elapsed=6330.0s heapMiB=4695/6144
+2026-11-16T10:11:17.696Z INFO State inventory roots scan: processed=1349083136/1349910890 (99.94%), remaining=827754, throughput=643477.433/s
+2026-11-16T10:11:19.115Z INFO State inventory roots scan: processed=1349910890/1349910890 (100.00%), remaining=0, throughput=583806.918/s
+Eriksson inverse coverage verified: endpoints=19 afterTwo=25544 afterOne=6451327 roots=1349910890
+2026-11-16T10:11:19.228Z INFO State persistence roots drain (writers): processed=4/4 (100.00%), remaining=0, throughput=0.000/s, encodedKeysConsumed=2155453828/2155453828, encodedKeysRemaining=0, ingestedTables=7448, ingestedKeys=1951640802, uniqueTotal=unknown until counting
+2026-11-16T10:11:19.239Z INFO State persistence roots drain (writers): processed=4/4 (100.00%), remaining=0, throughput=0.000/s, encodedKeysConsumed=2155453828/2155453828, encodedKeysRemaining=0, ingestedTables=7448, ingestedKeys=1951640802, uniqueTotal=unknown until counting
+2026-11-16T10:11:19.739937548Z checker: verifying reconstructed roots elapsed=6340.0s heapMiB=4515/6144
+2026-11-16T10:11:20.042Z INFO State persistence after-one drain (writers): processed=4/4 (100.00%), remaining=0, throughput=0.000/s, encodedKeysConsumed=10130912/10130912, encodedKeysRemaining=0, ingestedTables=28, ingestedKeys=7008863, uniqueTotal=unknown until counting
+2026-11-16T10:11:20.043Z INFO State persistence after-one drain (writers): processed=4/4 (100.00%), remaining=0, throughput=0.000/s, encodedKeysConsumed=10130912/10130912, encodedKeysRemaining=0, ingestedTables=28, ingestedKeys=7008863, uniqueTotal=unknown until counting
+2026-11-16T10:11:20.062Z INFO State persistence after-two drain (writers): processed=4/4 (100.00%), remaining=0, throughput=0.000/s, encodedKeysConsumed=55860/55860, encodedKeysRemaining=0, ingestedTables=4, ingestedKeys=25544, uniqueTotal=unknown until counting
+2026-11-16T10:11:20.062Z INFO State persistence after-two drain (writers): processed=4/4 (100.00%), remaining=0, throughput=0.000/s, encodedKeysConsumed=55860/55860, encodedKeysRemaining=0, ingestedTables=4, ingestedKeys=25544, uniqueTotal=unknown until counting
+All regenerated obligations in the complete joint-selection scope are verified.
+2026-11-16T10:11:20.074Z INFO State persistence endpoint-residuals drain (writers): processed=4/4 (100.00%), remaining=0, throughput=0.000/s, encodedKeysConsumed=19/19, encodedKeysRemaining=0, ingestedTables=4, ingestedKeys=19, uniqueTotal=unknown until counting
+2026-11-16T10:11:20.074Z INFO State persistence endpoint-residuals drain (writers): processed=4/4 (100.00%), remaining=0, throughput=0.000/s, encodedKeysConsumed=19/19, encodedKeysRemaining=0, ingestedTables=4, ingestedKeys=19, uniqueTotal=unknown until counting
