@@ -1,6 +1,8 @@
-# TD(18) by Eriksson reduction and a third transposition
+# A computer-assisted proof that TD(18) = 10
 
-The active route searches both the current and target cycles: two transpositions
+This repository contains the mathematical argument, certificate emitter, and
+independent checker for a computer-assisted proof that TD(18) = 10.
+The proof searches both the current and target cycles: two transpositions
 produce three fixed symbols, then a third produces at least two more. Gain-zero
 first moves are included. The original target need not be held fixed throughout
 this triangle-inequality argument. The proof specification is
@@ -19,10 +21,14 @@ misses generate three inverse waves, including both `(1,2,2)` and `(0,3,2)`
 branches on both endpoints. Missing obstruction markers cannot suppress work.
 A final reconstructed root always needs budget 10.
 
-The active route does not establish TD(18) = 10 until the artifacts in
-[the research plan](docs/RESEARCH_PLAN.md) are complete. The checker regenerates
-all obligations and replays intrinsic witnesses; emitter checkpoints and sidecar
-manifests are not proof inputs.
+The proof combines exhaustive checked upper-bound coverage with the established
+reverse-permutation lower bound of 10. A full independent checker run has
+already succeeded. The retained [reference simulation](docs/REFERENCE_SIMULATION.md)
+reproduces that result on this local computer; its database will also be verified
+on a separate machine, whose finished logs will be added to the project.
+[The evidence checklist](docs/RESEARCH_PLAN.md) specifies every required artifact.
+The checker regenerates all obligations and replays intrinsic witnesses; emitter
+checkpoints and sidecar manifests are not proof inputs.
 
 JDK 21, Maven, Bash and JShell are the baseline:
 
@@ -38,13 +44,17 @@ tools/td18 emit --phase=all
 tools/td18 verify --phase=all
 ```
 
-The simulation profile is [RTX 5090 / AMD EPYC 7742](docs/RTX5090.md), with
-dedicated emitter and checker launchers. Run data use `/workspace/td18`.
+The reference machine is an **Intel Core Ultra 9 185H / RTX 4070 Laptop GPU**
+under WSL2: 22 CPU workers, a 16 GiB Java heap, and 8 GPU slots with 768 MiB
+of queue memory each. [The reference record](docs/REFERENCE_SIMULATION.md)
+contains the configuration, start/finish times, durations, and log locations.
+The [RTX 5090 / AMD EPYC 7742 profile](docs/RTX5090.md) remains an optional
+configuration for another machine.
 
 Java entry points run through JShell, using all JVM-visible CPUs by default.
 Build CUDA with `tools/td18 build-gpu` before a GPU sorting run. CPU counts,
 checks and successful CPU prefixes do not initialize CUDA. Generated databases,
-logs, checkpoints and count reports remain untracked. The checker has no emitter
-artifact dependency. See [workflow](docs/WORKFLOW.md),
+checkpoints and count reports remain untracked. Completed reference logs and
+settings in `logs/reference/` are committed; other run logs remain untracked. The checker has no emitter artifact dependency. See [workflow](docs/WORKFLOW.md),
 [operations](docs/OPERATIONS.md), [architecture](docs/ARCHITECTURE.md), and
 [mathematical conventions](docs/KNOWLEDGE.md), and [validation](docs/VALIDATION.md).

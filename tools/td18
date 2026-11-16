@@ -37,7 +37,8 @@ Ranges cover only their selected scope. Obstruction counts are not prerequisites
 The checker regenerates obligations and replays the certificate database directly.
 Both direct arguments and -Dexec.args / -Dtd18.args syntax are supported.
 See docs/WORKFLOW.md, docs/OPERATIONS.md, and docs/RESEARCH_PLAN.md.
-Generated databases, reports, logs, and checkpoints remain untracked.
+Generated databases, reports, checkpoints, and ordinary logs remain untracked.
+Completed reference logs and settings are committed under logs/reference/.
 USAGE
 }
 dry_run=false

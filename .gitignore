@@ -4,6 +4,7 @@
 
 # Generated computational artifacts
 certificates/
+certificates.bkp/
 data/
 checkpoints/
 avoidance-work/
@@ -45,3 +46,9 @@ Thumbs.db
 
 # Locally supplied research articles
 docs/refs/*.pdf
+
+# Retained evidence for the designated reference simulation
+!logs/
+logs/*
+!logs/reference/
+!logs/reference/**

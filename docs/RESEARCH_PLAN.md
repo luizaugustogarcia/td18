@@ -1,8 +1,10 @@
-# Active proof completion for TD(18)
+# Evidence checklist for the proof of TD(18) = 10
 
-The objective is a checked upper bound of 10; the reverse-permutation
-lower bound is 10. The [source paper](td18-reduction-count.tex)
-defines the active two-sided Eriksson-plus-third-move route. The smaller established diameters, including the separately certified TD(16) = 9, remain premises.
+The [source paper](td18-reduction-count.tex) presents a computer-assisted proof
+of TD(18) = 10: checked exhaustive coverage supplies the upper bound and the
+reverse permutation supplies the matching lower bound. This checklist records
+the mathematical and computational evidence required by that proof, using the
+two-sided Eriksson-plus-third-move route. The smaller established diameters, including the separately certified TD(16) = 9, remain premises.
 Counts and passing tests alone do not establish the upper bound.
 
 ## 1. Coverage and small domains
@@ -68,16 +70,27 @@ waves. Emitter checkpoints, checksums and sidecar manifests are not proof inputs
 
 Exit artifacts: both full required Maven CPU suites and one successful complete
 checker report, together with the counted inventories and replayed database.
-Only when all five criteria have checked artifacts may TD(18) = 10
-be reported as established by this program. CUDA tests require a configured
+All five criteria require checked artifacts in the proof record. The reference
+emission logs document a reproduction; they do not replace independently
+regenerated inventories or replayed certificates. CUDA tests require a configured
 CUDA environment; a proof needing only CPU certificates does not require GPU use.
 
-## RTX 5090 / AMD EPYC 7742 verification status
+## Reference reproduction and publication status
 
-The source inventory retains all 53 root partitions and all 74 endpoint types,
-including 2 direct root classes and 61,798,462 non-elementary endpoint
-obligations. These inventory values do not certify the current run. Regenerate
-the count reports, persist and replay direct-root witnesses, discharge endpoints
-or reconstruct every residual, and complete the unfiltered independent checker.
-No completed simulation or TD(18) proof is claimed here. See
-[validation](VALIDATION.md) for commands and run storage.
+A full independent checker run has already succeeded. The retained reference
+reproduction is the local Intel Core Ultra 9 185H / RTX 4070 Laptop emission
+of 16 November 2026, completed from 02:57:32 to 07:35:21 Lisbon time in
+**4 h 37 min 49 s**, with exit 0 and no unresolved reconstructed root.
+It covered all 53 root partitions, 74 endpoint annotations, 2 direct root
+classes, 61,798,462 generated non-elementary endpoints, and 1,349,910,890
+final reconstructed root classes. Its configuration, exact timestamps, phase
+durations and completed logs are in [REFERENCE_SIMULATION.md](REFERENCE_SIMULATION.md).
+
+The database will be verified again on a separate machine. Its finished checker
+log, runtime configuration, timings, regenerated counts and exit status will be
+added to `logs/reference/`. That reference verification record is not attached
+yet. The counted census reports and test artifacts specified above remain part
+of the evidence checklist; emission success alone does not label them checked.
+Only this reference reproduction's emission and verification run artifacts are
+retained in the local checkout. See [validation](VALIDATION.md) for the complete
+independent verification procedure.

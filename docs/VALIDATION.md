@@ -1,14 +1,19 @@
-# RTX 5090 / AMD EPYC 7742 validation
+# Validation of the TD(18) proof and reference simulation
 
-The simulation profile and launch commands are in [RTX5090.md](RTX5090.md).
+The reference configuration, measured timings and retained logs are in
+[REFERENCE_SIMULATION.md](REFERENCE_SIMULATION.md). The local reference emitter
+completed successfully on 16 November 2026 at 07:35:21 Lisbon time, after
+4 h 37 min 49 s. The independent reference checker runs on a separate machine.
 The source specification is [td18-reduction-count.tex](td18-reduction-count.tex).
 The source inventory retains 53 root partitions, 74 endpoint annotations,
 2 direct root classes after support clearing, and 61,798,462 non-elementary
 endpoint obligations. These values must be independently regenerated for the
 current run; inventory tables do not supply sorting certificates.
 
-No completed simulation or TD(18) proof is claimed by this document. All exit
-artifacts in [RESEARCH_PLAN.md](RESEARCH_PLAN.md) are required.
+A full independent checker run has already succeeded. This reference reproduction
+has a closed certificate database and complete emission logs; its separate-machine
+verification logs will be added when that run finishes. The proof evidence is
+specified in [RESEARCH_PLAN.md](RESEARCH_PLAN.md).
 
 ## Build, test and regenerate inventories
 
@@ -28,7 +33,9 @@ Java entry points use JShell and all allocated CPU cores. Both required CPU
 suites must pass. Small-domain tests compare complete forward class sets,
 inverse gains zero through three on both endpoints, and Burnside counts with
 direct generation. The checker builds independently of the emitter artifact.
-CUDA-dependent tests require the configured RTX 5090 environment.
+CUDA-dependent tests require a configured CUDA environment. The local SM 89
+build passed the native memory preflight and a three-symbol GPU sorting/replay
+smoke check before emission. CPU-only checker execution does not require CUDA.
 
 Checker key regressions compare direct canonical packing with the independent
 decode-and-pack path on every normalized-current valid pair through seven symbols, arbitrary
@@ -52,12 +59,16 @@ Versioned count reports are generated under `data/eriksson-root-counts-v1/`,
 `data/eriksson-endpoint-counts-checker-v1/`. Reports must cover every inventory
 row and reject missing, malformed, incompatible or pending data.
 
-The dedicated launchers use `/workspace/td18` by default:
+The reference artifacts use repository-relative paths:
 
-- `certificates/`: intrinsic witnesses replayed at each explicit move budget.
-- `work/`: versioned emitter checkpoints and independently regenerated checker sets.
-- `logs/`: per-run logs and settings, including revision, JVM options and exit status.
-- `build/native-5090/` and `tmp/`: native build and temporary JNI files.
+- `certificates/`: the closed reference database, transferred for independent replay.
+- `emitter/target/local-emission-20261116T025732Z-46940/obligations/`: untracked emitter checkpoints and work sets.
+- `logs/reference/`: committed complete emission logs, runtime settings, launcher snapshot and reference summary; finished checker logs will be added here.
+- `checker/target/reference-verification-<timestamp>/`: fresh independent checker work on the verifying machine.
+
+Other simulation logs, databases and work sets have been removed from this local
+checkout. The optional [RTX 5090 profile](RTX5090.md) uses `/workspace/td18`;
+it is separate from the retained reference machine configuration.
 
 Direct roots require budget 10; endpoints require budget 7. Endpoint misses
 generate all three inverse waves for both `(1,2,2)` and `(0,3,2)` paths on
@@ -65,8 +76,37 @@ both endpoints. The after-two and after-one budgets are 8 and 9; final roots
 require 10. No predicted obstruction list or stricter endpoint 3-norm cutoff
 may omit an obligation.
 
-After complete emission, run `bash -ic './tools/run-5090-checker.sh'`. The
-checker regenerates every obligation and replays the database. Missing
+## Separate-machine verification
+
+Transfer the closed `certificates/` directory and use the same Java source
+revision as the recorded emission. The native compatibility patch changes only
+the GPU build configuration and is not a checker dependency. Configure JDK 21
+in `~/.bashrc`. From the repository on the verifying machine:
+
+```bash
+bash -ic 'mvn -q -pl checker -am compile dependency:build-classpath -Dmdep.outputFile=target/jshell-classpath'
+bash -ic '
+  set -o pipefail
+  td18_verify_stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  td18_verify_log="$PWD/logs/reference/checker-$td18_verify_stamp.log"
+  mkdir -p logs/reference
+  ./tools/td18 verify --phase=all --database="$PWD/certificates" \
+    --work="$PWD/checker/target/reference-verification-$td18_verify_stamp" \
+    2>&1 | tee "$td18_verify_log"
+'
+```
+
+The checker uses all JVM-visible CPU cores by default. Set
+`TD18_JSHELL_OPTIONS` for an appropriate heap and bounded persistence on that
+machine; record those actual options, CPU affinity, RAM, OS and JDK version,
+source revision, start/finish timestamps and process exit code alongside the log.
+These commands run the verification; the executing user adds the finished log
+and configuration to `logs/reference/` after completion. The log must contain
+`All regenerated obligations in the complete joint-selection scope are verified.`
+and the process must exit 0. Update the reference record with that run's measured
+duration and regenerated counts; a successful partial phase is insufficient.
+
+The checker regenerates every obligation and replays the database. Missing
 obstruction markers cannot suppress work. Count summaries, emitter checkpoints,
 checksums and sidecar manifests are not proof inputs. Every final root must
 have a checked result, and partial runs certify only their stated scope.

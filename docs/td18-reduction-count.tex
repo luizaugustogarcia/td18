@@ -12,8 +12,8 @@
 
 \newcommand{\erikssonrow}[5]{#1 & $(#2)$ & #3 & #4 & #5 & \number\numexpr#3+#4-#5\relax\\}
 \newcommand{\erikssonpendingrow}[2]{#1 & $(#2)$ & \pending & \pending & \pending & \pending\\}
-\title{Eriksson reduction and a third transposition toward $\TD(18)=10$\\
-\large Complete root generation, two-sided inverse coverage, and conditional verification}
+\title{A computer-assisted proof that $\TD(18)=10$\\
+\large Eriksson reduction, complete root generation, and two-sided inverse coverage}
 \author{}\date{}
 \begin{document}\setlength{\emergencystretch}{3em}\maketitle
 \begin{abstract}
@@ -23,9 +23,13 @@ cyclic-target pair. Domains have 19 symbols and root budget 10.
 Unselected roots are generated directly. The endpoint cover consists of all
 74 fixed-point-free even annotated types on 14 symbols, with budget
 7. The checker independently regenerates roots, endpoints, and all inverse
-waves and replays intrinsic sorting certificates. This document is a conditional
-proof program; it does not establish $\TD(18)=10$ without the complete
-checked artifacts in \nolinkurl{docs/RESEARCH_PLAN.md}.
+waves and replays intrinsic sorting certificates. The proof combines this
+exhaustive computational coverage with the reverse-permutation lower bound.
+A full independent checker run has already succeeded. The retained reference
+simulation reproduces the computational result; its machine configuration,
+timings, and publication status are recorded in
+\nolinkurl{docs/REFERENCE_SIMULATION.md}. Verification of that reference database
+on a separate machine will be recorded with its completed logs.
 \end{abstract}
 \section{Pairs, moves, fixed symbols, and premises}
 Let $N=n+1$. Let a cyclic-target pair be $(\omega,\beta)$ with even algebraic
@@ -475,7 +479,7 @@ strict inequality only when the rank equals the remaining full budget.
 This rejects a subtree as unresolved; it never discharges an obligation or
 omits any required inverse reconstruction.
 
-\section{Certificates, persistence, and conditional conclusion}
+\section{Certificates, persistence, and proof of the diameter}
 Every persisted set has a version, deterministic keys, explicit budgets,
 domains and counts, and rejects missing data. Large inverse sets are disk-backed;
 asynchronous certificate persistence uses bounded queues. A witness proves an
@@ -533,24 +537,71 @@ endpoints has target $\omega^{-1}\rho=\beta$. Owned objects have fresh arrays;
 every accepted parent still passes its actual forward gain and pair replay.
 This changes construction cost without removing any support or gap.
 
-If all active direct roots and final reconstructed roots have checked
-budget-10 results and every endpoint is discharged or has complete inverse
-coverage, the exhaustive case partition gives $\TD(18)\leq 10$.
-Together with the established reverse-permutation lower bound this would give
-$\TD(18)=10$. The completion criteria require an independent full-domain
-count and full end-to-end verification; partial counts and software tests are
-not the conditional conclusion.
+\begin{theorem}[Transposition diameter]
+\label{thm:td18}
+Under the established smaller-diameter premises stated above and the checked
+computational coverage specified in \nolinkurl{docs/RESEARCH_PLAN.md},
+$\TD(18)=10$.
+\end{theorem}
+\begin{proof}
+A root with a fixed symbol contracts to a known smaller domain, and the reverse
+root has distance ten by the cited reverse formula. For every other root, joint
+selection either closes it directly by a smaller diameter, reaches a 14-symbol
+endpoint with seven moves remaining, or leaves a direct root obligation.
+The complete 53-partition root inventory and 74 annotated endpoint types cover
+these cases. The computational coverage discharges every direct root within ten
+moves and every endpoint within seven moves or through its complete three-wave
+inverse reconstruction. Both inverse branches and both endpoints are included;
+every remaining reconstructed root is discharged within ten moves. The
+independent checker regenerates the obligations and replays the persisted
+results at their actual budgets. Thus every root has distance at most ten.
+The reverse root supplies the matching lower bound, giving $\TD(18)=10$.
+\end{proof}
 
-\section{Current verification obligations}
-The runtime profile is an RTX 5090 with an AMD EPYC 7742 CPU. The source
-inventory records two direct classes, in $(11,4,4)$ and $(7,6,6)$, and
-61,798,462 non-elementary endpoint classes. The current run must independently
-regenerate all inventories, persist and replay budget-ten results for both
-direct classes, and discharge every endpoint or complete its final inverse
-coverage. Inventory tables alone do not discharge sorting obligations. No
-completed simulation or $\TD(18)$ proof is claimed. Commands and artifact
-locations are specified in \nolinkurl{docs/VALIDATION.md} and
-\nolinkurl{docs/RTX5090.md}.
+The theorem uses checked computational coverage as well as the established
+mathematical premises. Count totals, partial runs, and software tests alone do
+not supply that coverage. \nolinkurl{docs/RESEARCH_PLAN.md} enumerates the
+required evidence; \nolinkurl{docs/REFERENCE_SIMULATION.md} records the retained
+reproduction and the separate-machine verification record.
+
+\section{Reference simulation and verification record}
+The reference reproduction runs on an Intel Core Ultra 9 185H CPU with
+22 logical processors and an NVIDIA GeForce RTX 4070 Laptop GPU with 8 GiB
+of memory, under WSL2. JDK 21.0.4 runs the Java entry point through JShell
+with a 16 GiB maximum heap. CUDA Toolkit 12.4 compiles native code for
+compute capability 8.9. Eight GPU slots each have 768 MiB of queue memory,
+for a total queue allocation of 6 GiB. The reference uses eight persistence
+writers and bounded queues; all RocksDB writes disable WAL.
+
+Emission ran on 16 November 2026 from 02:57:32 to 07:35:21 UTC
+(also Lisbon local time), with elapsed time 4 h 37 min 49 s. The launcher
+recorded start at 02:57:32.521365 and exit zero at 07:35:21.975246;
+the final certificate flush completed at 07:35:21.412. The database is closed.
+The measured phase times are:
+\begin{center}\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule Phase & Start & Finish & Elapsed\\\midrule
+Direct-root emission and launch & 02:57:32 & 03:00:39 & 3 min 7 s\\
+Endpoint emission & 03:00:39 & 03:04:58 & 4 min 19 s\\
+Residual endpoint inverse generation & 03:04:58 & 03:04:59 & 1 s\\
+After-two search and inverse generation & 03:04:59 & 03:05:24 & 25 s\\
+After-one search and final-root generation & 03:05:24 & 05:45:29 & 2 h 40 min 5 s\\
+Final-root search, persistence, and closure & 05:45:29 & 07:35:21 & 1 h 49 min 53 s\\
+\bottomrule
+\end{tabular}\end{center}
+Phase durations include their associated generation and persistence work,
+rounded to whole seconds. Build and preflight time are excluded. The full
+configuration and timestamp derivation are recorded in
+\nolinkurl{docs/REFERENCE_SIMULATION.md}. The final reconstruction report
+contains 19 residual endpoints, 25,544 after-two classes, 6,451,327 after-one
+classes, and 1,349,910,890 final root classes, with zero unresolved roots.
+The scope includes all 53 root partitions and 74 endpoint types, the two direct
+classes in $(11,4,4)$ and $(7,6,6)$, and every inverse obligation. The reference
+certificate database remains outside Git; the completed emission logs are
+retained in \nolinkurl{logs/reference/}. Separate-machine verification uses
+fresh checker work and will add its completed logs to that same reference
+record. Commands and artifact requirements are specified in
+\nolinkurl{docs/VALIDATION.md}.
 
 \begin{thebibliography}{9}
 \bibitem{framework}

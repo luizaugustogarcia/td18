@@ -140,7 +140,7 @@ The full endpoint cover has 74 even fixed-point-free annotated types on
 14 symbols with budget 7. The source inventory records 76,048,061
 classes in total, 61,798,462 outside elementary diameter closures.
 Regenerate all 74 rows independently in the emitter and checker modules
-for the RTX 5090 / AMD EPYC 7742 run.
+for the [reference simulation](REFERENCE_SIMULATION.md).
 The active cover imposes no stricter 3-norm cutoff. Fixed points must be
 contracted before using this fixed-point-free census.
 
@@ -151,7 +151,7 @@ annotated type, so it uses the constrained generator rather than Burnside.
 The three inverse waves cover both `(1,2,2)` and `(0,3,2)` paths on both
 endpoints. Class counts are separate from witnesses within 7 moves at
 endpoints and 10 moves at roots. See [the source paper](td18-reduction-count.tex)
-and [validation](VALIDATION.md) for the checked scope and remaining work.
+and [validation](VALIDATION.md) for the checked scope and reference verification record.
 
 Small-domain tests compare Burnside with direct generation through nine
 symbols, including empty types and both even-domain reflection classes.

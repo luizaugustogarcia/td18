@@ -1,11 +1,13 @@
-# Active Eriksson-route workflow
+# TD(18) proof workflow
 
 The [source paper](td18-reduction-count.tex) defines the active route.
 The source inventory records **2 direct root classes** after support clearing.
 Regenerate and independently audit all counts for the current run. The endpoint
 cover contains all 74 even fixed-point-free annotated types on 14 symbols,
-with budget 7. Use the [RTX 5090 / AMD EPYC 7742 launchers](RTX5090.md) for
-complete emission and independent verification.
+with budget 7. The retained [reference simulation](REFERENCE_SIMULATION.md)
+uses the local Intel Core Ultra 9 185H / RTX 4070 Laptop machine. The database
+is verified independently on a separate machine with fresh checker work.
+The [RTX 5090 / AMD EPYC 7742 launchers](RTX5090.md) provide an optional profile.
 
 ## Validate and count
 
@@ -91,7 +93,10 @@ three inverse waves and replays the database at each actual budget. Every
 missing endpoint discharge is propagated regardless of obstruction markers.
 Any missing final root result fails verification. Ranges and partial phases
 certify only their stated scope. The final full-scope report is required for
-the conditional conclusion TD(18) = 10.
+the checked computational part of the proof of TD(18) = 10.
+Retain the completed reference emission logs and add the finished separate-machine
+checker logs to `logs/reference/`; record both configurations and durations in
+[the reference record](REFERENCE_SIMULATION.md).
 
 ## Endpoint table publication
 

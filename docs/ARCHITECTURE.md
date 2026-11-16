@@ -1,4 +1,4 @@
-# Active route architecture
+# Computer-assisted proof architecture
 
 The [paper](td18-reduction-count.tex) specifies the mathematics and
 [research plan](RESEARCH_PLAN.md) states proof completion criteria. The public

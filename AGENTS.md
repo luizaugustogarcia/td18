@@ -7,8 +7,11 @@
   proof route in this repository.
 - Prioritize completeness and correctness of the Java/CUDA implementation and
   its checked computational artifacts.
-- Never present TD(18) = 10 as proved until every exit criterion in
-  docs/RESEARCH_PLAN.md has a checked artifact.
+- Present the documentation as a computer-assisted proof of TD(18) = 10,
+  with its checked-coverage hypotheses and evidence explicit. Keep every
+  criterion in docs/RESEARCH_PLAN.md; never label an unchecked artifact or
+  unfinished verification as checked. The reference reproduction and its
+  separate-machine verification have distinct execution records.
 
 ## Mathematical framework
 
@@ -77,13 +80,17 @@
   the database. Missing obstruction markers cannot omit work. Checksums and
   sidecar manifests are not required proof inputs.
 - Validate small domains before large runs. Generated databases, checkpoints,
-  logs, and certificates remain untracked.
+  certificates, and ordinary logs remain untracked. Completed logs and settings
+  for the designated reference simulation are committed under logs/reference/.
 
 ## Engineering
 
-- Keep runtime profiles and run artifacts specific to the RTX 5090 / AMD EPYC
-  7742 setup. Use 32 GPU slots and 896 MiB of queue memory per slot, for a
-  total queue allocation of 28 GiB. See docs/RTX5090.md.
+- The designated reference simulation uses the Intel Core Ultra 9 185H / RTX
+  4070 Laptop setup: 22 CPU workers, a 16 GiB Java heap, and 8 GPU slots with
+  768 MiB of queue memory per slot (6 GiB total). Record configuration and
+  timings in docs/REFERENCE_SIMULATION.md. The optional RTX 5090 / AMD EPYC
+  7742 profile retains 32 slots with 896 MiB per slot (28 GiB total); see
+  docs/RTX5090.md.
 - Always load ~/.bashrc for every shell command, locally and on servers,
   including inspection, profiling, builds and launches. Use bash -ic locally
   and for the remote command passed to SSH so the configured toolchain is

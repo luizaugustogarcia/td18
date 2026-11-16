@@ -1,0 +1,124 @@
+{
+  "format": "td18-reference-simulation-v1",
+  "runId": "20261116T025732Z-46940",
+  "status": "emission-complete",
+  "startedUtc": "2026-11-16T02:57:32.521365+00:00",
+  "finishedUtc": "2026-11-16T07:35:21.975246+00:00",
+  "elapsedSeconds": 16669.454,
+  "timezone": "Europe/Lisbon",
+  "sourceRevision": "3ee6d121987c734a01872461ae8b0fc92c54fb4a",
+  "emitterSourceChanges": "native-build.patch",
+  "hardware": {
+    "cpu": "Intel Core Ultra 9 185H",
+    "logicalCpus": 22,
+    "cpuAffinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21
+    ],
+    "memoryBytes": 33653166080,
+    "swapBytes": 8589934592,
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "gpuMemoryMiB": 8188,
+    "gpuComputeCapability": "8.9",
+    "driverVersion": "616.92",
+    "os": "WSL2 / Linux 6.18.33.2-microsoft-standard-WSL2",
+    "jdk": "Eclipse Temurin 21.0.4+7",
+    "cudaToolkit": "12.4.131",
+    "cudaHostCompiler": "GNU g++ 12",
+    "cmake": "4.2.3",
+    "nativeArchitectures": [
+      "89-real",
+      "89-virtual"
+    ]
+  },
+  "scope": {
+    "phase": "all",
+    "partitions": [
+      1,
+      53
+    ],
+    "endpoints": [
+      1,
+      74
+    ],
+    "sourceDatabase": null,
+    "resumed": false
+  },
+  "counts": {
+    "residualEndpoints": 19,
+    "afterTwo": 25544,
+    "afterOne": 6451327,
+    "reconstructedRoots": 1349910890,
+    "unresolved": 0,
+    "rootPartitions": 53,
+    "endpointTypes": 74,
+    "directClasses": 2,
+    "nonElementaryEndpointClasses": 61798462,
+    "elementaryEndpointTypes": 26
+  },
+  "phases": [
+    {
+      "phase": "Launch and direct-root emission",
+      "startedUtc": "2026-11-16T02:57:32.521365+00:00",
+      "finishedUtc": "2026-11-16T03:00:39.206000+00:00",
+      "elapsedSeconds": 186.685
+    },
+    {
+      "phase": "Endpoint emission",
+      "startedUtc": "2026-11-16T03:00:39.206000+00:00",
+      "finishedUtc": "2026-11-16T03:04:58.484000+00:00",
+      "elapsedSeconds": 259.278
+    },
+    {
+      "phase": "Residual endpoint inverse generation",
+      "startedUtc": "2026-11-16T03:04:58.484000+00:00",
+      "finishedUtc": "2026-11-16T03:04:59.404000+00:00",
+      "elapsedSeconds": 0.92
+    },
+    {
+      "phase": "After-two search and inverse generation",
+      "startedUtc": "2026-11-16T03:04:59.404000+00:00",
+      "finishedUtc": "2026-11-16T03:05:24.122000+00:00",
+      "elapsedSeconds": 24.718
+    },
+    {
+      "phase": "After-one search and final-root generation",
+      "startedUtc": "2026-11-16T03:05:24.122000+00:00",
+      "finishedUtc": "2026-11-16T05:45:29.326000+00:00",
+      "elapsedSeconds": 9605.204
+    },
+    {
+      "phase": "Final-root search, persistence and closure",
+      "startedUtc": "2026-11-16T05:45:29.326000+00:00",
+      "finishedUtc": "2026-11-16T07:35:21.975246+00:00",
+      "elapsedSeconds": 6592.649
+    }
+  ],
+  "certificateDatabase": "certificates/",
+  "nativeLibrarySha256": "ff358c77b0df95bb8b93fd30686a3c129a9877f6c662b2ade384c50d9c351e20",
+  "verification": {
+    "status": "awaiting-separate-machine-run",
+    "logsAttached": false
+  },
+  "proofInputs": "Independent regeneration and replay from the certificate database; logs and hashes are execution provenance."
+}

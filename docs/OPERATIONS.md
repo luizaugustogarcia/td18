@@ -76,12 +76,14 @@ and `td18.gpuStatsPeriodSeconds`. CPU prefix properties are
 `td18.reconstructionCpuPrefixMillis`. Limits bound a heuristic; they do not
 remove the original sorting obligation.
 
-The [RTX 5090 / AMD EPYC 7742 profile](RTX5090.md) is the runtime profile.
-`tools/run-5090-emitter.sh` launches complete emission through JShell with
-device 0, 32 slots, 896 MiB per slot and all allocated CPU cores.
-`tools/run-5090-checker.sh` independently regenerates and verifies the complete
-scope using the same CPU allocation. Each launcher creates fresh work and
-records its settings under `/workspace/td18/logs`. All RocksDB writes disable
+The [reference profile](REFERENCE_SIMULATION.md) uses an Intel Core Ultra 9
+185H, 22 CPU workers, a 16 GiB Java heap, and an RTX 4070 Laptop GPU with
+8 slots and 768 MiB of queue memory per slot. It emits the complete scope
+through JShell into `certificates/`. Its exact launcher and settings are retained
+with its completed logs in `logs/reference/`. Independent verification runs on
+a separate machine with fresh checker work. The [RTX 5090 / AMD EPYC 7742
+profile](RTX5090.md) remains available with 32 slots and 896 MiB per slot.
+All RocksDB writes disable
 WAL; completed phases explicitly flush certificates. An interruption may lose
 unflushed results, which must be regenerated.
 
@@ -202,10 +204,11 @@ or proof coverage counts.
 
 ## Budgets and persistence
 
-The emitter profile uses `td18.gpuSlots=32` and `td18.gpuBudgetMB=896`,
-for 28 GiB of GPU queues plus state caches and metadata. Per-run settings
-under `/workspace/td18/logs` record the actual JVM options, source revision,
-work path and completion status.
+The reference emitter uses `td18.gpuSlots=8` and `td18.gpuBudgetMB=768`,
+for 6 GiB of GPU queues plus state caches and metadata. The optional RTX 5090
+profile retains 32 slots and 896 MiB per slot, or 28 GiB of queues.
+The reference settings in `logs/reference/` record the actual JVM options,
+source revision, work path, start/finish times and completion status.
 
 | State | Symbols | Budget |
 | --- | ---: | ---: |
@@ -236,7 +239,9 @@ Certificate persistence also uses `td18.certificateQueueCapacity` and
 `td18.reconstructionBufferKeys` and batched reads controlled by
 `td18.certificateLookupBatchSize`. Queues and in-memory key buffers are
 bounded. Class keys and disk iteration are deterministic at persistence
-boundaries. `certificates/`, `data/`, `logs/` and work databases are untracked.
+boundaries. `certificates/`, `data/`, work databases and ordinary logs are untracked.
+Completed reference emission and verification logs and settings in
+`logs/reference/` are committed.
 
 Each handoff file has format `td-reconstruction-queue-v1`, a route/domain/budget
 header, fixed-size records containing versioned canonical class keys and their
