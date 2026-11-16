@@ -13,8 +13,8 @@
     <properties>
         <exec.mainClass>br.unb.cic.td18.WitnessEmitter</exec.mainClass>
         <td18.gpuDevices>0</td18.gpuDevices>
-        <td18.gpuSlots>32</td18.gpuSlots>
-        <td18.gpuBudgetMB>896</td18.gpuBudgetMB>
+        <td18.gpuSlots>8</td18.gpuSlots>
+        <td18.gpuBudgetMB>768</td18.gpuBudgetMB>
         <td18.gpuQueueCapacity></td18.gpuQueueCapacity>
         <td18.gpuStatsPeriodSeconds>10</td18.gpuStatsPeriodSeconds>
         <td18.cpuPrefixJvmArgument></td18.cpuPrefixJvmArgument>

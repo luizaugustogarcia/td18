@@ -17,21 +17,23 @@ CPU validation:
   audit-roots  Independently regenerate every root count via checker JShell
 
 Computation:
-  emit         Emit sorting results via JShell (build-gpu first)
+  emit         Emit sorting results via JShell (build native CUDA first)
   avoidance    Reconstruct endpoint failures via JShell
   verify       Independently replay obligations via checker JShell
 
 Build and help:
   build        Compile Java and prepare JShell classpaths
-  build-gpu    Build CUDA and package both modules; prepare JShell classpaths
+  build-gpu    Build CUDA (default SM 120) and package modules; prepare classpaths
   help         Show this help
 
 Examples:
   tools/td18 count --phase=endpoints
   tools/td18 emit --phase=roots --partitions=1-1
   tools/td18 verify --phase=all
-Set TD18_JSHELL_OPTIONS for remote JVM options, for example:
-  TD18_JSHELL_OPTIONS='-R-Dtd18.gpuSlots=32 -R-Dtd18.gpuBudgetMB=896'
+Set TD18_JSHELL_OPTIONS for JVM options, for example:
+  TD18_JSHELL_OPTIONS='-R-Dtd18.gpuSlots=8 -R-Dtd18.gpuBudgetMB=768'
+Use tools/run-local-emitter.sh --build for the local SM 89 GPU build.
+Use tools/run-local-{emitter,checker}.sh for the bounded local runtime profile.
 Phases: roots, endpoints, avoidance, all (count supports roots/endpoints/all).
 Ranges cover only their selected scope. Obstruction counts are not prerequisites.
 The checker regenerates obligations and replays the certificate database directly.

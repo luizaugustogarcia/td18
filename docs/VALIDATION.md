@@ -46,11 +46,17 @@ regressions require canonical-frame replay for rotated current cycles and reject
 malformed or over-maximum witnesses even when the requested budget is larger.
 The independent inverse oracles continue to check all gains on both endpoints.
 
-The optional native memory-preflight regression uses the 32-slot, 896 MiB
-queue profile. It rejects queue-only and one-byte-short memory reports before
-allocation, checks exact allocations and tiny-queue minimums, and rejects
-oversized capacities. Build it with `-DTD18_BUILD_NATIVE_TESTS=ON` and run
-`ctest --test-dir <build> --output-on-failure` on that environment.
+The optional native memory-preflight regression checks the local 8-slot,
+768 MiB allocation and retains the larger 32-slot, 896 MiB case as a memory
+budget regression. It rejects queue-only and one-byte-short memory reports
+before allocation, checks exact allocations and tiny-queue minimums, and
+rejects oversized capacities. Large-budget rejection checks do not allocate
+those queues. In the configured local CUDA environment, run:
+
+```bash
+bash -ic 'TD18_BUILD_NATIVE_TESTS=ON ./tools/run-local-emitter.sh --build'
+bash -ic 'ctest --test-dir emitter/target/native --output-on-failure'
+```
 
 ## Run data and complete verification
 
@@ -67,8 +73,7 @@ The reference artifacts use repository-relative paths:
 - `checker/target/reference-verification-<timestamp>/`: fresh independent checker work on the verifying machine.
 
 Other simulation logs, databases and work sets have been removed from this local
-checkout. The optional [RTX 5090 profile](RTX5090.md) uses `/workspace/td18`;
-it is separate from the retained reference machine configuration.
+checkout.
 
 Direct roots require budget 10; endpoints require budget 7. Endpoint misses
 generate all three inverse waves for both `(1,2,2)` and `(0,3,2)` paths on

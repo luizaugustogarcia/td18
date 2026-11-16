@@ -41,8 +41,10 @@ The classpath `simplelogger.properties` files apply to JShell and packaged runs.
 Set `TD18_JSHELL_OPTIONS` for execution-VM options, for example
 `-R-Xmx3g` or `-R-Dtd18.twistedBraceletWorkers=auto`. The launcher passes
 `-R-Dtd18.countModule=emitter|checker` to keep report ownership separate.
-Use `tools/td18 build-gpu` for native CUDA libraries. GPU sorting is entered
-only after applicable CPU prefixes and known-diameter checks fail.
+Use `tools/run-local-emitter.sh --build` for the local SM 89 native library.
+The generic `tools/td18 build-gpu` retains CMake's default SM 120 target.
+GPU sorting is entered only after applicable CPU prefixes and known-diameter
+checks fail.
 
 Direct root and endpoint emission use `WitnessSearch.searchFresh`: their
 generators already emit one representative per valid-pair class within each
@@ -81,11 +83,48 @@ The [reference profile](REFERENCE_SIMULATION.md) uses an Intel Core Ultra 9
 8 slots and 768 MiB of queue memory per slot. It emits the complete scope
 through JShell into `certificates/`. Its exact launcher and settings are retained
 with its completed logs in `logs/reference/`. Independent verification runs on
-a separate machine with fresh checker work. The [RTX 5090 / AMD EPYC 7742
-profile](RTX5090.md) remains available with 32 slots and 896 MiB per slot.
-All RocksDB writes disable
-WAL; completed phases explicitly flush certificates. An interruption may lose
-unflushed results, which must be regenerated.
+a separate machine with fresh checker work.
+The maintained local launchers select the same memory and queue limits and
+use all allocated CPU cores. They create new execution records; the committed
+launcher snapshot is evidence of the historical run.
+
+```bash
+bash -ic './tools/run-local-emitter.sh --build'
+bash -ic './tools/run-local-emitter.sh --dry-run'
+bash -ic './tools/run-local-emitter.sh'
+bash -ic './tools/run-local-checker.sh --build'
+bash -ic './tools/run-local-checker.sh --dry-run'
+bash -ic './tools/run-local-checker.sh'
+```
+
+Local data uses `certificates/` for the database, `emitter/target/native/`
+for CUDA, and `target/local-runtime/` for work, logs and settings. The checker
+always creates fresh work and reads certificates without writing them. Both
+launchers share a runtime lock. The local emitter uses 8 persistence writers,
+4,194,304 aggregate buffer keys, 512 queued batches, a 262,144-key certificate
+queue and 32,768-key lookups. Its prefetch uses 4 preparation workers,
+16 prepared batches, 32 input batches and a 262,144-key recent-key cache.
+The local checker uses the same bounded state persistence, 32,768-key lookups
+and 4 lookup pipelines.
+
+Override `TD18_RUN_ROOT`, `TD18_CERTIFICATE_DB`, `TD18_CPU_WORKERS`,
+`TD18_HEAP_GIB`, `TD18_WRITERS`, `TD18_BUFFER_KEYS`, `TD18_QUEUE_BATCHES`,
+`TD18_GENERATED_BATCH_KEYS`, `TD18_SCAN_BATCH_KEYS`, `TD18_LOOKUP_BATCH_KEYS`,
+`TD18_LOOKUP_PIPELINES`, `TD18_GPU_SLOTS`, `TD18_GPU_BUDGET_MB`,
+`TD18_GPU_QUEUE_CAPACITY`, `TD18_CERTIFICATE_WRITERS` or `TD18_MIN_FREE_GIB`
+when required by the executing machine. Changing the local run root relocates
+work, logs and settings; database and native paths keep their repository defaults.
+The build accepts `TD18_CUDA_HOST_COMPILER`; locally it uses `g++-12` when
+available, matching the CUDA 12.4 reference toolchain.
+
+`--dry-run` reports settings without creating files or allocating GPU memory.
+Before execution, the launcher checks available GPU memory for queues, caches
+and a 1 GiB reserve; native initialization checks exact allocation sizes. The
+32 GiB free-disk startup guard is not an estimate of full-run storage.
+Ordinary GPU entry points default to 8 slots and 768 MiB per slot; the optional
+server launchers explicitly select their larger configuration.
+All RocksDB writes disable WAL; completed phases explicitly flush certificates.
+An interruption may lose unflushed results, which must be regenerated.
 
 Reconstruction runs CPU searches, GPU dispatch and inverse generation in separate worker pools.
 CPU workers scan the sealed source wave without waiting for GPU capacity;
@@ -174,11 +213,11 @@ queued after all generators join. Every writer drains and joins before sealing.
 td18.reconstructionWriters defaults to at most eight writers.
 td18.reconstructionBufferKeys defaults to 16,777,216 aggregate keys;
 td18.reconstructionQueueBatches defaults to 1,024 aggregate batches.
-Both capacities are divided across shards with rounding up. The RTX 5090 /
-AMD EPYC 7742 profile uses up to 64 writers, 67,108,864 buffer keys and
-32,768 queue batches.
-Each writer has a 1,048,576-key buffer budget; the 524,288-entry database
-batch limit flushes its distinct keys earlier. Queues remain
+Both capacities are divided across shards with rounding up. The reference
+emitter uses 8 writers, 4,194,304 buffer keys and 512 queue batches.
+Each reference writer has a 524,288-key buffer budget, equal to the database
+batch limit. The effective window is the smaller of that batch limit and the
+aggregate buffer divided across writers with rounding up. Queues remain
 bounded, and full queues apply backpressure when storage cannot keep up.
 Writers sort their deduplication windows and build SST files independently.
 Ingestion bypasses the per-key WAL/memtable write path; overlapping keys
@@ -205,8 +244,7 @@ or proof coverage counts.
 ## Budgets and persistence
 
 The reference emitter uses `td18.gpuSlots=8` and `td18.gpuBudgetMB=768`,
-for 6 GiB of GPU queues plus state caches and metadata. The optional RTX 5090
-profile retains 32 slots and 896 MiB per slot, or 28 GiB of queues.
+for 6 GiB of GPU queues plus state caches and metadata.
 The reference settings in `logs/reference/` record the actual JVM options,
 source revision, work path, start/finish times and completion status.
 
@@ -232,7 +270,7 @@ inverse-state external SST keys per writer, and independent checker-state
 buffers further limit batch sizes. Final partial batches still drain at
 completed persistence boundaries. A certificate entry can produce both a
 witness put and an obstruction delete, so entries do not count individual
-RocksDB operations. Both RTX 5090 profile launchers explicitly select 524,288 entries.
+RocksDB operations.
 
 Certificate persistence also uses `td18.certificateQueueCapacity` and
 `td18.certificateFlushSeconds`. Inverse sets use

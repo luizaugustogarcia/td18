@@ -91,7 +91,7 @@ public final class ErikssonAvoidance {
                                     BiPredicate<CyclicTargetPair,Integer> prefetchGpu) {
         var layout=new GpuDeviceLayout(
                 GpuDeviceLayout.parseDevices(System.getProperty("td18.gpuDevices","0")),
-                Integer.getInteger("td18.gpuSlots",32));
+                Integer.getInteger("td18.gpuSlots",8));
         try (var prefetch=new RootPrefetch(layout.totalSlots(),prefetchGpu,checked(lookup,3));
              var roots=new DiskStateSet(work.resolve("roots"),prefetch::publish)) {
             prefetch.activate();

@@ -6,8 +6,9 @@ Regenerate and independently audit all counts for the current run. The endpoint
 cover contains all 74 even fixed-point-free annotated types on 14 symbols,
 with budget 7. The retained [reference simulation](REFERENCE_SIMULATION.md)
 uses the local Intel Core Ultra 9 185H / RTX 4070 Laptop machine. The database
-is verified independently on a separate machine with fresh checker work.
-The [RTX 5090 / AMD EPYC 7742 launchers](RTX5090.md) provide an optional profile.
+will be verified independently on a separate machine with fresh checker work.
+The maintained local launchers and their bounded settings are described in
+[OPERATIONS.md](OPERATIONS.md).
 
 ## Validate and count
 
@@ -38,6 +39,7 @@ restriction is imposed. A count does not discharge a sorting obligation.
 ## Emit and reconstruct
 
 ```bash
+bash -ic './tools/run-local-emitter.sh --build'
 tools/td18 emit --phase=roots
 tools/td18 emit --phase=endpoints
 tools/td18 avoidance
@@ -85,7 +87,8 @@ remain visible. Writer names include their state-set directory.
 ## Verify complete coverage
 
 ```bash
-tools/td18 verify --phase=all
+bash -ic './tools/run-local-checker.sh --build'
+bash -ic './tools/run-local-checker.sh'
 ```
 
 The CPU checker independently regenerates all roots, endpoint classes and all

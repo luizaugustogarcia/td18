@@ -23,7 +23,7 @@ public final class ReconstructionPipeline {
 
     public static int configuredGpuWorkers() {
         var layout = new GpuDeviceLayout(GpuDeviceLayout.parseDevices(
-                System.getProperty("td18.gpuDevices", "0")), Integer.getInteger("td18.gpuSlots", 32));
+                System.getProperty("td18.gpuDevices", "0")), Integer.getInteger("td18.gpuSlots", 8));
         String queue = System.getProperty("td18.gpuQueueCapacity", "").trim();
         int capacity = queue.isEmpty() ? 0 : Integer.parseInt(queue);
         if (capacity < 0) throw new IllegalArgumentException("GPU queue capacity must not be negative");

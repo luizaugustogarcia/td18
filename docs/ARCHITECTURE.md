@@ -126,7 +126,7 @@ Each CUDA warp keeps its parent state in shared memory and cooperatively
 copies child batches into its locked queue. Every copying lane fences its
 writes before the owner publishes queue metadata; all children are counted
 before publication. Stop and completion polls use device-scoped relaxed
-loads, with an explicit PTX mapping on the RTX 5090.
+loads, with an explicit PTX mapping on compute capability 7.0 and later.
 They do not publish queue entries or witness payloads.
 
 Each search slot also holds a bounded cache of complete algebraic permutation
@@ -139,8 +139,8 @@ The cache compares all key bits under fenced locks. Hash collisions and full
 probe sequences fall back to ordinary exploration. It is cleared between
 searches, and a duplicate removal decrements the outstanding-work count.
 Its 524,288 entries use 12 MiB per slot in addition to the configured queues.
-The RTX 5090 queue allocation is 32 times 896 MiB, or 28 GiB.
-Its 32 caches add 384 MiB. Memory preflight uses the allocator's
+The reference configuration allocates 8 times 768 MiB, or 6 GiB, for queues.
+Its 8 caches add 96 MiB. Memory preflight uses the allocator's
 queue capacities and includes all device buffers: queues, caches, support
 tables, input vectors and result metadata, before allocating any slot.
 

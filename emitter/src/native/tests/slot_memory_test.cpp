@@ -76,7 +76,10 @@ int main() {
         CHECK_CUDA(cudaSetDevice(0));
         constexpr size_t MiB = size_t{1} << 20;
         rejectBeforeAllocation(2, 32 * MiB, 64 * MiB);
-        // Check the RTX 5090 queue-only budget without allocating 28 GiB.
+        // Both runtime profiles need caches and metadata beyond their queues.
+        rejectBeforeAllocation(8, 768 * MiB, 8 * 768 * MiB);
+        rejectBeforeAllocation(8, 768 * MiB, plannedBytes(8, 768 * MiB) - 1);
+        // Retain the larger memory-budget regression without allocating 28 GiB.
         rejectBeforeAllocation(32, 896 * MiB, 32 * 896 * MiB);
         rejectBeforeAllocation(3, 32 * MiB, plannedBytes(3, 32 * MiB) - 1);
         allocateAtExactBoundary(3, 32 * MiB);

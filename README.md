@@ -40,19 +40,23 @@ tools/td18 count-roots
 tools/td18 audit-roots
 tools/td18 count-endpoints
 tools/td18 audit-endpoints
-tools/td18 emit --phase=all
-tools/td18 verify --phase=all
+bash -ic './tools/run-local-emitter.sh --build'
+bash -ic './tools/run-local-emitter.sh'
+bash -ic './tools/run-local-checker.sh --build'
+bash -ic './tools/run-local-checker.sh'
 ```
 
 The reference machine is an **Intel Core Ultra 9 185H / RTX 4070 Laptop GPU**
 under WSL2: 22 CPU workers, a 16 GiB Java heap, and 8 GPU slots with 768 MiB
 of queue memory each. [The reference record](docs/REFERENCE_SIMULATION.md)
 contains the configuration, start/finish times, durations, and log locations.
-The [RTX 5090 / AMD EPYC 7742 profile](docs/RTX5090.md) remains an optional
-configuration for another machine.
+The local launchers use those memory and queue limits with all allocated CPU
+cores. They build SM 89 native code and record each new run separately from
+the retained historical emission.
 
 Java entry points run through JShell, using all JVM-visible CPUs by default.
-Build CUDA with `tools/td18 build-gpu` before a GPU sorting run. CPU counts,
+The generic `tools/td18 build-gpu` retains the CMake default SM 120 target;
+the local emitter launcher selects SM 89 explicitly. CPU counts,
 checks and successful CPU prefixes do not initialize CUDA. Generated databases,
 checkpoints and count reports remain untracked. Completed reference logs and
 settings in `logs/reference/` are committed; other run logs remain untracked. The checker has no emitter artifact dependency. See [workflow](docs/WORKFLOW.md),
