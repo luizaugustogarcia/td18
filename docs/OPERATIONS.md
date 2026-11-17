@@ -182,9 +182,13 @@ for GPU results and do not replace the CPU pool.
 
 Log labels identify `Root emission partition`, `Endpoint emission type`,
 `Certificate persistence`, `State inventory`, `State persistence`, or
-`Inverse reconstruction` explicitly. Root emission reports completed sorting
+`Inverse reconstruction` explicitly. Zero direct root rows are skipped using
+the completed paper inventory; endpoint types with Burnside count zero are
+skipped before enumeration. Skip logs are not independent count checks.
+The checker regenerates zero rows during verification. For generated rows,
+root emission reports completed sorting
 obligations separately from `generationPrefixNodes` and
-`generationStillRunning`; an empty sorting obligation count does not mean
+`generationStillRunning`; zero completed sorting obligations do not mean
 generation has finished. Shared progress reports omit percentages for zero
 totals instead of showing `0/0 (100%)` while generation is running.
 

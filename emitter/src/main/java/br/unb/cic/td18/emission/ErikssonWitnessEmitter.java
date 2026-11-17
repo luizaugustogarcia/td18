@@ -53,7 +53,7 @@ public final class ErikssonWitnessEmitter {
                 if (options.roots()) for (var row : inventory) if (options.includesPartition(row.number())) {
                     var result = emitRoot(row, (pair, budget) -> settle(pair, budget, writer, null, true), progress);
                     writer.flush();
-                    log.info("Root partition {}: retainedUnoriented={}, retainedOriented={}, supportCleared={}, directClasses={}, unresolved={}",
+                    if (row.directClasses() != 0) log.info("Root partition {}: retainedUnoriented={}, retainedOriented={}, supportCleared={}, directClasses={}, unresolved={}",
                             row.number(), result.unoriented, result.oriented, result.supportCleared,
                             result.unoriented+result.oriented-result.supportCleared, result.unresolved);
                     if (result.unresolved != 0) throw new IllegalStateException("Unresolved direct root witnesses: " + result.unresolved);
@@ -148,13 +148,20 @@ public final class ErikssonWitnessEmitter {
 
     static RootResult emitRoot(ErikssonInventory.Root row,PairDischarge discharge,Progress progress) {
         row.requireCompleteCounts();
+        long total = row.directClasses();
+        if (total == 0) {
+            // Emission uses the completed paper inventory to select work. The
+            // independent checker regenerates and verifies even zero rows.
+            log.info("Root emission partition {}: skipped; paper inventory has zero direct classes (retainedUnoriented={}, retainedOriented={}, supportCleared={}). Independent count verification is required.",
+                    row.number(), row.unoriented(), row.oriented(), row.supportCleared());
+            return new RootResult(row.unoriented(), row.oriented(), row.supportCleared(), 0);
+        }
         var unresolved=new LongAdder();
         var settled=new LongAdder();
         var prefixes=new LongAdder();
         var generating=new java.util.concurrent.atomic.AtomicBoolean(true);
         ErikssonRootGenerator.Counts counts;
         progress.phase(() -> null);
-        long total = Math.subtractExact(Math.addExact(row.unoriented(),row.oriented()),row.supportCleared());
         try (var reporting=new ReconstructionProgress("Root emission partition "+row.number(),total,settled::sum,
                      () -> "unresolved="+unresolved.sum()+", generationPrefixNodes="+prefixes.sum()+", generationStillRunning="+generating.get());
              var tasks=new BoundedTasks(Runtime.getRuntime().availableProcessors(),"eriksson-root")) {
@@ -178,8 +185,12 @@ public final class ErikssonWitnessEmitter {
             log.info("Endpoint emission type {}: known-diameter endpoint closure", endpoint.number());
             return;
         }
-        var generated = new LongAdder(); var misses = new LongAdder();
         long expected = DirectTwistedBraceletGenerator.countRepresentativesByBurnside(endpoint.partition(), endpoint.orientedByPart());
+        if (expected == 0) {
+            log.info("Endpoint emission type {}: skipped; Burnside count is zero. Independent verification is required.", endpoint.number());
+            return;
+        }
+        var generated = new LongAdder(); var misses = new LongAdder();
         progress.phase(() -> null);
         try (var reporting=new ReconstructionProgress("Endpoint emission type "+endpoint.number(),expected,generated::sum,
                 () -> "missingEndpointDischarges="+misses.sum())) {

@@ -19,6 +19,11 @@ Source-side immediate and three-move constraints, forced target-cycle checks,
 and twisted canonical comparisons prune prefixes. Known directed target paths
 also certify immediate target-side closures. Full remaining leaves pass the
 complete two-sided reduction test. Count mode retains no representative set.
+Emission skips completed paper rows with zero direct classes, including rows
+whose retained classes are all support-cleared, before starting generation or
+sorting workers. Skip logs report paper inventory values, not regenerated
+counts. The independent checker regenerates every selected root partition and
+checks all three active counts even when its recorded direct count is zero.
 
 The checker derives its own source predicates by arbitrary supports, uses
 independent rank-placement state, and tests both full cycles directly. Its
@@ -61,8 +66,10 @@ derived budget with the requested budget. That replay-derived budget is reused
 instead of replaying the same witness twice.
 
 Endpoint classes use the existing fixed-content twisted-bracelet generator and
-Burnside counter. Both modules independently regenerate the complete annotated
-cover. Elementary diameter bounds close whole families; every other class
+Burnside counter. Both modules derive the complete annotated cover. Emission
+skips zero-count types before enumeration; the checker independently counts and
+regenerates every non-elementary type, including zero-count types.
+Elementary diameter bounds close whole families; every other class
 requires a persisted complete witness, replayed diameter prefix, or final inverse
 coverage. Direct root and endpoint generation emits one representative per
 valid-pair class within each type. Ordinary emission therefore skips the

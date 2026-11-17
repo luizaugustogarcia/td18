@@ -230,6 +230,11 @@ Let $U_3,O_3,C_3$ count retained totally unoriented roots, retained oriented roo
 and the support-cleared subset respectively. Direct obligations total
 $U_3+O_3-C_3$. Every partition appears once; pending entries cannot be used by
 emission or proof verification.
+Emission skips every completed row with $U_3+O_3-C_3=0$, including rows
+whose retained classes are all support-cleared. It does not enumerate these
+partitions to rediscover that they have no direct obligations. The independent
+checker still regenerates every selected partition and verifies all three
+counts, including zero rows.
 
 The source inventory retains 0 totally unoriented and 3 oriented classes before support clearing; 1 is support-cleared, leaving 2 direct obligations. Independent full-domain regeneration must check all 53 partitions for the current run. Sorting verification is a separate requirement.
 \begin{longtable}{@{}rlrrrr@{}}
@@ -328,7 +333,10 @@ valid pairs~\cite{framework}. Use \nolinkurl{TwistedBraceletKey} for candidate
 orbits and \nolinkurl{ExtendedToricClassKey} only after pair validation.
 
 The Burnside counter counts the endpoint classes; direct generation emits one
-representative per class and is checked against those counts. Roots use rank
+representative per class and is checked against those counts. Emission skips
+endpoint types with Burnside count zero before enumeration; the independent
+checker still regenerates non-elementary zero-count types and compares the
+generated count with Burnside. Roots use rank
 placement with normalized cycle origins and equal-cycle labels. Forced proper
 target cycles and strict smaller twisted images reject prefixes. All
 source-side move sequences are derived before enumeration. A known target path

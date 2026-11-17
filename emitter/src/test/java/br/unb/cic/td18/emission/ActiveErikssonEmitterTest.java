@@ -4,6 +4,22 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.atomic.LongAdder;
 import static org.junit.jupiter.api.Assertions.*;
 class ActiveErikssonEmitterTest {
+    @Test void zeroDirectInventoryRowsSkipRootGenerationIncludingSupportClearedTypes() {
+        // This small domain actually has direct roots. A zero inventory entry
+        // still controls emission; only independent verification audits it.
+        try (var progress=new ErikssonWitnessEmitter.Progress()) {
+            for (var row:java.util.List.of(
+                    new ErikssonInventory.Root(1,new int[]{7},0,0,0),
+                    new ErikssonInventory.Root(2,new int[]{7},0,1,1))) {
+                var result=ErikssonWitnessEmitter.emitRoot(row,(pair,budget)->{
+                    fail("Zero direct inventory rows must not generate obligations"); return false;
+                },progress);
+                assertEquals(new ErikssonWitnessEmitter.RootResult(
+                        row.unoriented(),row.oriented(),row.supportCleared(),0),result);
+            }
+        }
+    }
+
     @Test void queuedRootFailuresAreObservedAfterTheQueueIsDrained() throws Exception {
         int[] partition={7};
         var counts=ErikssonRootGenerator.count(partition,2,new LongAdder()); assertTrue(counts.direct()>0);

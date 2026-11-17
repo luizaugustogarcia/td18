@@ -42,6 +42,28 @@ class ErikssonCertificateCheckerTest {
             assertThrows(IllegalStateException.class,()->ErikssonCertificateChecker.verifyRoot(row,store,progress));
         }
     }
+    @Test void zeroDirectInventoryRowsCannotHideMissingRoots(@TempDir Path path) throws Exception {
+        Path directory=path.resolve("zero-row-database");emptyDatabase(directory);
+        var row=new br.unb.cic.td18.joint.ErikssonInventory.Root(1,new int[]{7},0,0,0);
+        try(var store=new CertificateStore(directory);var progress=new VerificationProgress()) {
+            var error=assertThrows(IllegalStateException.class,
+                    ()->ErikssonCertificateChecker.verifyRoot(row,store,progress));
+            assertTrue(error.getMessage().contains("Independent active root counts disagree"));
+            assertTrue(java.util.Arrays.stream(error.getSuppressed()).anyMatch(
+                    missing->missing.getMessage().contains("Missing sorting certificate")));
+        }
+    }
+    @Test void zeroDirectInventoryRowsStillRequireAllCountsToMatch(@TempDir Path path) throws Exception {
+        Path directory=path.resolve("support-cleared-row-database");emptyDatabase(directory);
+        // The three-symbol root domain closes immediately; this falsely
+        // declared retained and support-cleared class must still be rejected.
+        var row=new br.unb.cic.td18.joint.ErikssonInventory.Root(1,new int[]{3},0,1,1);
+        try(var store=new CertificateStore(directory);var progress=new VerificationProgress()) {
+            var error=assertThrows(IllegalStateException.class,
+                    ()->ErikssonCertificateChecker.verifyRoot(row,store,progress));
+            assertTrue(error.getMessage().contains("Independent active root counts disagree"));
+        }
+    }
     private static void emptyDatabase(Path directory) throws Exception {
         RocksDB.loadLibrary();
         try(final var options=new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);

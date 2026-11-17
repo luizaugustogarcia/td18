@@ -48,8 +48,16 @@ tools/td18 emit --phase=endpoints
 tools/td18 avoidance
 ```
 
-Direct roots use budget 10; endpoints use 7. Checked intrinsic witnesses
-can be reused only when their actual required budget fits the requested one.
+Direct roots use budget 10; endpoints use 7.
+
+Emission skips root rows whose completed paper inventory has zero direct
+classes, including support-cleared rows, and endpoint types whose Burnside
+count is zero. These skips perform no representative enumeration or sorting.
+The checker still regenerates every selected root partition and every
+non-elementary endpoint type, including zeros, to audit coverage and counts.
+
+Checked intrinsic witnesses can be reused only when their actual required
+budget fits the requested one.
 Use `--source-db=PATH` for a read-only witness source. CPU prefix misses or
 limits leave the original class and its budget intact for GPU search. Neither
 an exhausted restricted search nor a timeout is a lower bound or closes an
