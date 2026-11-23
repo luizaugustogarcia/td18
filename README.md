@@ -33,6 +33,14 @@ under `logs/reference/`.
 The checker regenerates all obligations and replays intrinsic witnesses; emitter
 checkpoints and sidecar manifests are not proof inputs.
 
+The certificate database is available as an uncompressed tar archive in the
+public S3 bucket `td18` (AWS region `us-east-2`):
+[certificate.tar](https://td18.s3.us-east-2.amazonaws.com/certificate.tar).
+The archive is 15,582,771,200 bytes (14.51 GiB). Download access requires no AWS
+account. Extract it with `tar -xf certificate.tar`; see
+[the verification instructions](docs/VALIDATION.md) for independent regeneration
+and witness replay using the extracted certificate database.
+
 JDK 21, Maven, Bash and JShell are the baseline:
 
 ```bash
