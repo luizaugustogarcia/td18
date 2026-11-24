@@ -1,8 +1,12 @@
 package br.unb.cic.td18.runtime;
 
-/** Shared, configurable CPU and buffer sizing for the independent checker. */
+/**
+ * Shared, configurable CPU and buffer sizing for the independent checker.
+ */
 public final class CheckerParallelism {
-    private CheckerParallelism() { }
+
+    private CheckerParallelism() {
+    }
 
     public static int workers() {
         return positiveProperty("td18.checkerWorkers", Runtime.getRuntime().availableProcessors());
@@ -17,10 +21,12 @@ public final class CheckerParallelism {
     }
 
     public static int writeBatchEntries() {
-        String configured = System.getProperty("td18.dbWriteBatchEntries");
-        int entries = configured == null ? 524_288 : Integer.parseInt(configured.trim());
-        if (entries < 1) throw new IllegalArgumentException(
-                "td18.dbWriteBatchEntries must be positive");
+        final String configured = System.getProperty("td18.dbWriteBatchEntries");
+        final int entries = configured == null ? 524_288 : Integer.parseInt(configured.trim());
+        if (entries < 1) {
+            throw new IllegalArgumentException("td18.dbWriteBatchEntries must be positive");
+        }
+
         return entries;
     }
 
@@ -30,7 +36,10 @@ public final class CheckerParallelism {
 
     private static int positiveProperty(final String name, final int defaultValue) {
         final int value = Integer.getInteger(name, defaultValue);
-        if (value < 1) throw new IllegalArgumentException(name + " must be positive");
+        if (value < 1) {
+            throw new IllegalArgumentException(name + " must be positive");
+        }
+
         return value;
     }
 }

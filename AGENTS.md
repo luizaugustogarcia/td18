@@ -109,3 +109,8 @@
 - Use disk-backed deduplication for large inverse waves and bounded queues
   for asynchronous persistence.
 - Run CUDA-dependent tests only when the environment is configured for them.
+
+## Java local declarations
+
+- Prefer Lombok's `val` for local references and values that are assigned once; replace `final var` wherever Lombok supports the declaration. Import `lombok.val`. This includes enhanced loops and try-with-resources where supported.
+- Use `var` for reassigned state and loop counters. Keep explicit types where the declared type matters and on fields, parameters, and return values.

@@ -2,7 +2,9 @@ package br.unb.cic.td18.model;
 
 import java.util.Objects;
 
-/** Value key for the extended-toric class corresponding to a realizable bracelet. */
+/**
+ * Value key for the extended-toric class corresponding to a realizable bracelet.
+ */
 public record ExtendedToricClassKey(TwistedBraceletKey twistedBracelet) {
 
     public ExtendedToricClassKey {
