@@ -10,6 +10,9 @@ Eriksson-plus-third-move route.
 | [WORKFLOW.md](WORKFLOW.md) | Count, publish, emit, reconstruct and verify via JShell. |
 | [OPERATIONS.md](OPERATIONS.md) | Explicit budgets, CPU/GPU configuration, persistence and resume. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Independent modules, generators and three inverse waves. |
+| [EXECUTION.md](EXECUTION.md) | Visual guide to components, representations and artifact boundaries. |
+| [EMITTER_EXECUTION.md](EMITTER_EXECUTION.md) | Emitter generation, search, inverse waves and persistence. |
+| [CHECKER_EXECUTION.md](CHECKER_EXECUTION.md) | Independent regeneration, witness replay and inverse coverage. |
 | [KNOWLEDGE.md](KNOWLEDGE.md) | Pair conventions, encoding, symmetry and counting. |
 | [td18-burnside-counting.md](td18-burnside-counting.md) | Burnside derivation and the complete endpoint census. |
 

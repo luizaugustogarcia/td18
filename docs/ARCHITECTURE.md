@@ -1,5 +1,9 @@
 # Computer-assisted proof architecture
 
+For illustrated component handoffs, start with [the execution map](EXECUTION.md),
+then follow [the emitter](EMITTER_EXECUTION.md) and
+[the checker](CHECKER_EXECUTION.md).
+
 The [paper](td18-reduction-count.tex) specifies the mathematics and
 [research plan](RESEARCH_PLAN.md) states proof completion criteria. The public
 `WitnessEmitter` and `CertificateChecker` entries dispatch to their active

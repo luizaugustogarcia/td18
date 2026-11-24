@@ -75,5 +75,8 @@ override. CPU counts, checks and successful CPU prefixes do not initialize CUDA.
 Generated databases,
 checkpoints and count reports remain untracked. Completed reference logs and
 settings in `logs/reference/` are committed; other run logs remain untracked. The checker has no emitter artifact dependency. See [workflow](docs/WORKFLOW.md),
-[operations](docs/OPERATIONS.md), [architecture](docs/ARCHITECTURE.md), and
+[operations](docs/OPERATIONS.md), [architecture](docs/ARCHITECTURE.md),
 [mathematical conventions](docs/KNOWLEDGE.md), and [validation](docs/VALIDATION.md).
+For illustrated internal execution, read [the visual guide](docs/EXECUTION.md),
+[the emitter walkthrough](docs/EMITTER_EXECUTION.md), and
+[the checker walkthrough](docs/CHECKER_EXECUTION.md).
