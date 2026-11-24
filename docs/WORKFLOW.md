@@ -71,8 +71,8 @@ move by restoring one fixed point in the first branch, or restoring none and
 reversing every gain-zero support in the second. Both endpoints are covered,
 all gaps and supports are enumerated, and actual forward gains are replayed.
 No qualifying-move restriction is imposed on the first inverse step.
-Intermediate GPU searches explore their full budgets (8 or 9), without the
-former depth-five cap. Their time allowance defaults to 0
+Intermediate GPU searches explore their full budgets (8 or 9). Their time
+allowance defaults to 0
 (disabled), configurable with `-Dtd18.reconstructionGpuMillis=MS`.
 Every depth-limited miss or timeout propagates through all applicable inverse
 branches. Final budget-10 root searches use full depth 10 without a time cutoff

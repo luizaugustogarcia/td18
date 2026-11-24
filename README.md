@@ -65,8 +65,8 @@ The separate CPU verification used an **AMD Ryzen 7 8840HS**, 16 workers,
 and a 6 GiB maximum Java heap. Tests were skipped for that verification run
 at the operator's request; the evidence checklist retains its test requirements.
 The local launchers use those memory and queue limits with all allocated CPU
-cores. Their default build targets SM 89, and each new run is recorded separately from
-the retained historical emission.
+cores. Their default build targets SM 89, and each new run is recorded separately
+from the reference emission.
 
 Java entry points run through JShell, using all JVM-visible CPUs by default.
 The generic `tools/td18 build-gpu` retains the CMake default SM 120 target;

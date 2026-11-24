@@ -18,7 +18,7 @@ rows support structure checks but cannot supply proof counts.
 The emitter root stream uses `ErikssonRootGenerator` with normalized algebraic
 cycles and prefix placement. `CyclicTargetMoves` contains mathematical move and
 contraction operations. The checker has its own independent move implementation
-and a budgeted `SearchState`; neither requires a superseded route container.
+and a budgeted `SearchState`.
 Source-side immediate and three-move constraints, forced target-cycle checks,
 and twisted canonical comparisons prune prefixes. Known directed target paths
 also certify immediate target-side closures. Full remaining leaves pass the
@@ -42,7 +42,7 @@ Oriented ranks are measured from that first occurrence, with both positions
 and ranks inverted for twisted reflection. These are the same auxiliary
 standardization and spatial action described in [the conventions](KNOWLEDGE.md).
 A first larger differing symbol rejects an image immediately. Strict replacement
-preserves the previous rotation/reflection order on ties. Only the winning
+preserves rotation/reflection order on ties. Only the winning
 image becomes a constructed, fully validated encoding word. This preserves
 the canonical representative and persisted keys; it changes no obligation,
 inverse support, forward replay or certificate check. An independent full-word
@@ -111,7 +111,6 @@ source classification, every GPU result, and every transferred inverse case.
 Progress reports count processed source cases against the full wave total and
 show the remaining CPU, GPU and inverse work separately.
 Intermediate CUDA searches explore the full obligation budget (8 or 9).
-The former depth-five cap and its override have been removed.
 `td18.reconstructionGpuMillis` defaults to 0 (no time cutoff). Budget-10 searches
 always use full exploration depth 10 without a time cutoff.
 Persistence is bounded and asynchronous. The checker

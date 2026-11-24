@@ -155,9 +155,8 @@ budget, including during first-move seeding.
 
 `td18.reconstructionGpuMillis` gives each intermediate reconstruction search
 an optional device time allowance, defaulting to 0 (disabled). Intermediate
-searches explore their full move budgets (8 or 9); the old depth-five cap and
-`td18.reconstructionGpuDepth` override have been removed. Budget-10 reconstruction searches always
-use full depth 10 without a time cutoff.
+searches explore their full move budgets (8 or 9). Budget-10 reconstruction
+searches always use full depth 10 without a time cutoff.
 Ordinary root and endpoint emission searches retain their existing behavior.
 The timer starts during first-move initialization on the device, includes device
 scheduling from that point, and excludes waiting in the host dispatch queue.

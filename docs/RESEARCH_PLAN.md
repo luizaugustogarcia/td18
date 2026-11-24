@@ -13,7 +13,7 @@ Check the source paper's endpoint-side triangle inequality, fixed-point
 contraction, exhaustive gain-zero/one first supports, gain-at-least-two
 characterization, reverse exception and explicit budget-valid support patterns.
 The two inverse branches are `(1,2,2)` and `(0,3,2)`, on both endpoints.
-The former first-move qualifying restriction is not an active premise.
+No first-move qualifying restriction is an active premise.
 
 Exit artifacts: the source coverage derivation and the passing
 `ActiveErikssonRouteTest` and `ActiveErikssonInverseTest` suites in both modules.
